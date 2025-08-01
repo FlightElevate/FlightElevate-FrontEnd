@@ -1,35 +1,48 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout';
+import Dashboard from './pages/Dashboard';
+import UserManagement from './pages/UserManagement';
+import Calendar from './pages/Calendar';
+import Inbox from './pages/Inbox';
+import RolesPermissions from './pages/RolesPermissions';
+import Announcements from './pages/Announcements';
+import Subscriptions from './pages/Subscriptions';
+import Support from './pages/Support';
+import Roles from './pages/Permissions/Roles';
+import UserLogs from './pages/UserLogs';
+import Compose from './pages/Announcment/Compose ';
+import Profile from './pages/UserManagement/Profile';
 
-function App() {
-  const [count, setCount] = useState(0)
-
+const App = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <Routes>
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/user-management" element={<UserManagement />} />
+        <Route path="/user-logs" element={<UserLogs />} />
+        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/inbox" element={<Inbox />} />
+        <Route path="/roles-permissions" element={<RolesPermissions />} />
+        <Route path="/announcements" element={<Announcements />} />
+        <Route path="/subscriptions" element={<Subscriptions />} />
+        <Route path="/support" element={<Support />} />
 
-export default App
+        {/* Roles with permissions Routes */}
+        <Route path="/roles-permissions/create" element={<Roles />} />
+        
+        <Route path="/announcements/compose" element={<Compose />} />
+        
+        <Route path="/user-management/profile/:id" element={<Profile />} />
+
+        {/* <Route path="/user-management/profile/:id" element={<user/>} /> */}
+
+
+
+      </Route>
+    </Routes>
+
+  );
+};
+
+export default App;
