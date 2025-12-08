@@ -1,6 +1,6 @@
 // API Configuration for FlightElevate Backend
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 const API_VERSION = 'v1';
 
 export const API_URL = `${API_BASE_URL}/api/${API_VERSION}`;
@@ -120,9 +120,12 @@ export const ENDPOINTS = {
 
   // Inbox
   INBOX: {
-    MESSAGES: '/inbox/messages',
+    USER: '/chat/all',
+    GETCONVERSATIONS: '/chat/conversations',
+    CONVERSATION: '/chat/conversation',
+    MESSAGES: (conversationId) => `/chat/conversation/${conversationId}/messages`,
     SHOW: (id) => `/inbox/messages/${id}`,
-    SEND: '/inbox/messages',
+    SEND: (conversationId) =>`/chat/conversation/${conversationId}/message`,
     MARK_READ: (id) => `/inbox/messages/${id}/read`,
   },
 
@@ -134,6 +137,8 @@ export const ENDPOINTS = {
     UPDATE: (id) => `/organizations/${id}`,
     DELETE: (id) => `/organizations/${id}`,
   },
+
+
 };
 
 // Request configuration
