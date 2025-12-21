@@ -4,15 +4,8 @@ import { FiSearch } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 import Pagination from "../../components/Pagination";
 import { Link } from "react-router-dom";
-
-const lessonsData = [
-  { id: 1, date: "Jun 15", time: "9 AM", instructor: "Dianne Russell", status: "Ongoing", flightType: "Solo" },
-  { id: 2, date: "Aug 01", time: "3 PM", instructor: "Jane Cooper", status: "Completed", flightType: "Duo Landing" },
-  { id: 3, date: "Jun 23", time: "1 PM", instructor: "Brooklyn Simmons", status: "Pending", flightType: "Windy Smooth landing" },
-  { id: 4, date: "Jun 23", time: "1 PM", instructor: "Jacob Jones", status: "Ongoing", flightType: "Emergency" },
-  { id: 5, date: "Jun 23", time: "1 PM", instructor: "Guy Hawkins", status: "Pending", flightType: "Emergency" },
-  { id: 6, date: "Jun 23", time: "1 PM", instructor: "Eleanor Pena", status: "Pending", flightType: "Crash landing" },
-];
+import { useAuth } from "../../context/AuthContext";
+import { lessonService } from "../../api/services/lessonService";
 
 const statusColors = {
   Pending: "bg-[#FFF1DA] text-[#C47E0A]",
@@ -21,6 +14,7 @@ const statusColors = {
 };
 
 const MyLessons = ({ showReadyButton = false }) => {
+  const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,8 +22,53 @@ const MyLessons = ({ showReadyButton = false }) => {
   const [sortBy, setSortBy] = useState("Newest");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [sortOpen, setSortOpen] = useState(false);
+  const [lessons, setLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalItems, setTotalItems] = useState(0);
 
   const sortRef = useRef(null);
+
+  // Fetch lessons from API
+  useEffect(() => {
+    const fetchLessons = async () => {
+      if (!user?.id) return;
+      
+      setLoading(true);
+      try {
+        const response = await lessonService.getUserLessons(user.id, {
+          per_page: itemsPerPage,
+          page: currentPage,
+          type: 'student'
+        });
+        
+        if (response.success) {
+          // Transform API data to match component format
+          // response.data contains the array of lessons
+          // response.meta contains pagination info
+          const transformedLessons = (response.data || []).map((lesson) => ({
+            id: lesson.id,
+            date: lesson.date || lesson.full_date,
+            time: lesson.time || lesson.full_time,
+            instructor: lesson.instructor || 'N/A',
+            status: lesson.status || 'Pending',
+            flightType: lesson.flight_type || 'N/A',
+            fullDate: lesson.full_date,
+            fullTime: lesson.full_time,
+          }));
+          
+          setLessons(transformedLessons);
+          setTotalItems(response.meta?.total || transformedLessons.length);
+        }
+      } catch (error) {
+        console.error('Error fetching lessons:', error);
+        setLessons([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLessons();
+  }, [user?.id, currentPage, itemsPerPage]);
 
   // Close sort and menu dropdowns when clicking outside
   useEffect(() => {
@@ -43,22 +82,32 @@ const MyLessons = ({ showReadyButton = false }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filtering and sorting
-  let filteredData = lessonsData.filter(
+  // Filtering and sorting (client-side for search and status filter)
+  let filteredData = lessons.filter(
     (lesson) =>
       (selectedTab === "All" || lesson.status === selectedTab) &&
       (lesson.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lesson.flightType.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
- filteredData = filteredData.sort((a, b) =>
+  filteredData = filteredData.sort((a, b) =>
     sortBy === "Newest" ? b.id - a.id : a.id - b.id
   );
 
-  const totalItems = filteredData.length;
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+
+  if (loading) {
+    return (
+      <div className="p-3">
+        <div className="border border-gray-200 bg-white rounded-xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading lessons...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-3">
@@ -238,7 +287,7 @@ const MyLessons = ({ showReadyButton = false }) => {
             setPage={setCurrentPage}
             perPage={itemsPerPage}
             setPerPage={setItemsPerPage}
-            totalItems={totalItems}
+            totalItems={filteredData.length}
           />
         </div>
       </div>

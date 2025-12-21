@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight, FiSettings, FiX, FiSearch } from 'react-icons/fi';
 import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
 import { userService } from '../api/services/userService';
 import { showErrorToast, showSuccessToast } from '../utils/notifications';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api/apiClient';
+import { ENDPOINTS } from '../api/config';
 
 const Calendar = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [aircraftSchedule, setAircraftSchedule] = useState([]);
   const [userSchedule, setUserSchedule] = useState([]);
@@ -71,6 +75,15 @@ const Calendar = () => {
   const [aircraft, setAircraft] = useState([]);
   const [loadingFormData, setLoadingFormData] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Availability check states
+  const [availabilityStatus, setAvailabilityStatus] = useState({
+    student: null, // null = not checked, true = available, false = busy
+    instructor: null,
+    aircraft: null,
+    checking: false,
+  });
+  const [availabilityMessage, setAvailabilityMessage] = useState('');
 
   // Generate time slots (24 hours)
   const timeSlots = Array.from({ length: 24 }, (_, i) => {
@@ -105,6 +118,42 @@ const Calendar = () => {
       fetchFormData();
     }
   }, [showNewReservationModal, showFindTimeModal]);
+
+  // Track if aircraft is pre-selected
+  const [isAircraftPreSelected, setIsAircraftPreSelected] = useState(false);
+
+  // Handle navigation state from aircraft profile
+  useEffect(() => {
+    if (location.state) {
+      const { preSelectedAircraft, preSelectedDate, preSelectedTime, preSelectedDuration, openReservationModal } = location.state;
+      
+      if (openReservationModal) {
+        // Mark aircraft as pre-selected if provided
+        if (preSelectedAircraft) {
+          setIsAircraftPreSelected(true);
+        } else {
+          setIsAircraftPreSelected(false);
+        }
+        
+        // Open the reservation modal first
+        setShowNewReservationModal(true);
+        
+        // Set pre-selected values in reservation form after a short delay to ensure form data is loaded
+        setTimeout(() => {
+          setReservationForm(prev => ({
+            ...prev,
+            ...(preSelectedAircraft && { aircraft_id: String(preSelectedAircraft) }),
+            ...(preSelectedDate && { lesson_date: preSelectedDate }),
+            ...(preSelectedTime && { lesson_time: preSelectedTime }),
+            ...(preSelectedDuration && { duration_minutes: preSelectedDuration }),
+          }));
+        }, 100);
+        
+        // Clear the state to prevent reopening on re-render
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (showNewReservationModal) {
@@ -157,9 +206,13 @@ const Calendar = () => {
   const fetchFormData = async () => {
     setLoadingFormData(true);
     try {
-      const [studentsRes, instructorsRes] = await Promise.all([
+      const [studentsRes, instructorsRes, aircraftRes] = await Promise.all([
         userService.getUsers({ role: 'Student', per_page: 100 }),
         userService.getUsers({ role: 'Instructor', per_page: 100 }),
+        api.get(ENDPOINTS.AIRCRAFT.LIST, { params: { per_page: 100 } }).catch(err => {
+          console.error('Error fetching aircraft:', err);
+          return { success: false, data: [] };
+        }),
       ]);
 
       if (studentsRes.success) {
@@ -182,13 +235,20 @@ const Calendar = () => {
         setInstructors([]);
       }
       
-      // Set aircraft when API is available
-      setAircraft([]);
+      if (aircraftRes.success) {
+        const aircraftList = Array.isArray(aircraftRes.data) 
+          ? aircraftRes.data 
+          : [];
+        setAircraft(aircraftList);
+      } else {
+        setAircraft([]);
+      }
     } catch (err) {
       console.error('Error fetching form data:', err);
       showErrorToast('Failed to load form data');
       setStudents([]);
       setInstructors([]);
+      setAircraft([]);
     } finally {
       setLoadingFormData(false);
     }
@@ -366,8 +426,133 @@ const Calendar = () => {
     });
   };
 
+  // Check availability before submitting
+  const checkAvailability = async () => {
+    if (!reservationForm.lesson_date || !reservationForm.lesson_time || !reservationForm.duration_minutes) {
+      return;
+    }
+
+    if (!reservationForm.student_id && !reservationForm.instructor_id) {
+      return;
+    }
+
+    setAvailabilityStatus(prev => ({ ...prev, checking: true }));
+    setAvailabilityMessage('');
+
+    try {
+      const params = {
+        date: reservationForm.lesson_date,
+        duration: reservationForm.duration_minutes,
+      };
+
+      if (reservationForm.instructor_id) {
+        params.instructor_id = reservationForm.instructor_id;
+      }
+      if (reservationForm.aircraft_id) {
+        params.aircraft_id = reservationForm.aircraft_id;
+      }
+
+      const response = await calendarService.getAvailableTimeSlots(params);
+      
+      if (response.success) {
+        const selectedTime = reservationForm.lesson_time;
+        const availableSlots = response.data.available_slots || [];
+        
+        // Check if selected time is in available slots
+        const isTimeAvailable = availableSlots.some(slot => {
+          const slotTime = slot.time.split(':');
+          const selectedTimeParts = selectedTime.split(':');
+          return slotTime[0] === selectedTimeParts[0] && slotTime[1] === selectedTimeParts[1];
+        });
+
+        // Check student availability (if we have student_id, we need to check their existing bookings)
+        let studentAvailable = true;
+        if (reservationForm.student_id) {
+          // We'll check this via the schedule API
+          const scheduleRes = await calendarService.getSchedule({
+            date: reservationForm.lesson_date,
+          });
+          
+          if (scheduleRes.success) {
+            const userSchedule = scheduleRes.data.user_schedule || [];
+            const studentBookings = userSchedule.filter(user => 
+              user.id === parseInt(reservationForm.student_id)
+            );
+            
+            if (studentBookings.length > 0) {
+              const studentEvents = studentBookings[0]?.events || [];
+              const selectedDateTime = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
+              const endDateTime = new Date(selectedDateTime.getTime() + reservationForm.duration_minutes * 60000);
+              
+              studentAvailable = !studentEvents.some(event => {
+                const eventStart = new Date(`${event.date}T${event.start_time}`);
+                const eventEnd = new Date(eventStart.getTime() + (event.duration || 60) * 60000);
+                
+                return (selectedDateTime < eventEnd && endDateTime > eventStart);
+              });
+            }
+          }
+        }
+
+        setAvailabilityStatus({
+          student: studentAvailable,
+          instructor: isTimeAvailable,
+          aircraft: isTimeAvailable,
+          checking: false,
+        });
+
+        if (!isTimeAvailable) {
+          setAvailabilityMessage('⚠️ Instructor or Aircraft is not available at this time. Please select a different time.');
+        } else if (!studentAvailable) {
+          setAvailabilityMessage('⚠️ Student is already booked at this time. Please select a different time.');
+        } else {
+          setAvailabilityMessage('✅ All selected resources are available at this time.');
+        }
+      }
+    } catch (err) {
+      console.error('Error checking availability:', err);
+      setAvailabilityStatus(prev => ({ ...prev, checking: false }));
+    }
+  };
+
+  // Check availability when form fields change
+  useEffect(() => {
+    if (reservationForm.lesson_date && reservationForm.lesson_time && 
+        reservationForm.duration_minutes && 
+        (reservationForm.student_id || reservationForm.instructor_id)) {
+      const timeoutId = setTimeout(() => {
+        checkAvailability();
+      }, 500); // Debounce for 500ms
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setAvailabilityStatus({
+        student: null,
+        instructor: null,
+        aircraft: null,
+        checking: false,
+      });
+      setAvailabilityMessage('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservationForm.lesson_date, reservationForm.lesson_time, 
+      reservationForm.duration_minutes, reservationForm.student_id, 
+      reservationForm.instructor_id, reservationForm.aircraft_id]);
+
   const handleReservationSubmit = async (e) => {
     e.preventDefault();
+    
+    // Final availability check before submitting
+    if (availabilityStatus.checking) {
+      showErrorToast('Please wait while we check availability...');
+      return;
+    }
+
+    if (availabilityStatus.instructor === false || availabilityStatus.student === false) {
+      showErrorToast('Cannot create reservation: Selected time slot is not available. Please choose a different time.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const response = await lessonService.createLesson(reservationForm);
@@ -385,11 +570,23 @@ const Calendar = () => {
           notes: '',
           reservation_number: generateReservationNumber(),
         });
+        setIsAircraftPreSelected(false);
+        setAvailabilityStatus({
+          student: null,
+          instructor: null,
+          aircraft: null,
+          checking: false,
+        });
+        setAvailabilityMessage('');
         // Refresh schedule to show new reservation
         await fetchSchedule();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to create reservation');
+      const errorMessage = err.response?.data?.errors?.message || 
+                          err.response?.data?.message || 
+                          err.message || 
+                          'Failed to create reservation';
+      showErrorToast(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -454,7 +651,10 @@ const Calendar = () => {
               Find a Time
             </button>
             <button
-              onClick={() => setShowNewReservationModal(true)}
+              onClick={() => {
+                setIsAircraftPreSelected(false); // Reset when opening from calendar
+                setShowNewReservationModal(true);
+              }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
             >
               New reservation
@@ -933,6 +1133,44 @@ const Calendar = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Aircraft
+                    {isAircraftPreSelected && (
+                      <span className="ml-2 text-xs text-blue-600 font-normal">(Pre-selected from aircraft profile - You can change it)</span>
+                    )}
+                    {!isAircraftPreSelected && (
+                      <span className="ml-2 text-xs text-gray-500 font-normal">(Optional)</span>
+                    )}
+                  </label>
+                  {loadingFormData ? (
+                    <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500">
+                      Loading aircraft...
+                    </div>
+                  ) : (
+                    <select
+                      value={reservationForm.aircraft_id}
+                      onChange={(e) => setReservationForm({ ...reservationForm, aircraft_id: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition"
+                      title="Select an aircraft (optional - you can change the pre-selected one)"
+                    >
+                      <option value="">Select Aircraft (Optional)</option>
+                      {aircraft.length > 0 ? (
+                        aircraft.map((ac) => (
+                          <option key={ac.id} value={ac.id}>{ac.name} {ac.model ? `(${ac.model})` : ''}</option>
+                        ))
+                      ) : (
+                        <option value="" disabled>No aircraft available</option>
+                      )}
+                    </select>
+                  )}
+                  {isAircraftPreSelected && (
+                    <p className="mt-1 text-xs text-blue-600">
+                      ✓ Aircraft pre-selected from aircraft profile. You can change it if needed.
+                    </p>
+                  )}
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Reservation Number</label>
                   <div className="flex items-center gap-2">
                     <input
@@ -1014,6 +1252,24 @@ const Calendar = () => {
                     rows="3"
                   />
                 </div>
+
+                {/* Availability Status */}
+                {availabilityStatus.checking && (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <p className="text-sm text-blue-700">Checking availability...</p>
+                  </div>
+                )}
+
+                {availabilityMessage && !availabilityStatus.checking && (
+                  <div className={`p-3 rounded-lg border ${
+                    availabilityMessage.includes('✅') 
+                      ? 'bg-green-50 border-green-200 text-green-700'
+                      : 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                  }`}>
+                    <p className="text-sm font-medium">{availabilityMessage}</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 mt-6">
@@ -1026,10 +1282,16 @@ const Calendar = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                  disabled={submitting || availabilityStatus.checking || 
+                           availabilityStatus.instructor === false || 
+                           availabilityStatus.student === false}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Creating...' : 'Create Reservation'}
+                  {submitting ? 'Creating...' : 
+                   availabilityStatus.checking ? 'Checking...' :
+                   (availabilityStatus.instructor === false || availabilityStatus.student === false) 
+                     ? 'Time Not Available' : 
+                   'Create Reservation'}
                 </button>
               </div>
             </form>

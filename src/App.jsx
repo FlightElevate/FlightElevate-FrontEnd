@@ -3,7 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Auth/Login";
-import Dashboard from "./pages/SuperAdmin/Dashboard";
+import DashboardRouter from "./components/Dashboard/DashboardRouter";
 import UserManagement from "./pages/SuperAdmin/UserManagement";
 import UserManagementConnected from "./pages/SuperAdmin/UserManagementConnected";
 import Calendar from "./pages/Calendar";
@@ -41,7 +41,7 @@ const App = () => {
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<DashboardRouter />} />
           
           {/* User Management - Original (static data) */}
           <Route path="/user-management" element={<UserManagement />} />

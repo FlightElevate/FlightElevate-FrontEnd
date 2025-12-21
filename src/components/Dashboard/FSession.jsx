@@ -50,9 +50,24 @@ const CustomBarShape = (props) => {
 const FSession = () => {
   return (
     <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">
-        Flight Session Summary
-      </h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+        <h2 className="text-xl font-semibold text-gray-800">
+          Flight Session Summary
+        </h2>
+        <div className="flex items-center gap-3">
+          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option>Locations</option>
+            <option>All Locations</option>
+            <option>Location 1</option>
+            <option>Location 2</option>
+          </select>
+          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option>Monthly</option>
+            <option>Weekly</option>
+            <option>Daily</option>
+          </select>
+        </div>
+      </div>
 
       {/* Summary numbers */}
       <div className="flex items-center gap-10 mb-6">

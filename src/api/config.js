@@ -47,6 +47,25 @@ export const ENDPOINTS = {
     SQUAWKS: (id) => `/aircraft/${id}/squawks`,
   },
 
+  // Maintenance
+  MAINTENANCE: {
+    LIST: '/maintenance',
+    SHOW: (id) => `/maintenance/${id}`,
+    CREATE: '/maintenance',
+    UPDATE: (id) => `/maintenance/${id}`,
+    DELETE: (id) => `/maintenance/${id}`,
+  },
+
+  // Squawks
+  SQUAWKS: {
+    LIST: '/squawks',
+    SHOW: (id) => `/squawks/${id}`,
+    CREATE: '/squawks',
+    UPDATE: (id) => `/squawks/${id}`,
+    RESOLVE: (id) => `/squawks/${id}/resolve`,
+    DELETE: (id) => `/squawks/${id}`,
+  },
+
   // Lessons
   LESSONS: {
     LIST: '/lessons',
@@ -94,6 +113,15 @@ export const ENDPOINTS = {
     CREATE_PLAN: '/subscriptions/plans',
     UPDATE_PLAN: (id) => `/subscriptions/plans/${id}`,
     DELETE_PLAN: (id) => `/subscriptions/plans/${id}`,
+  },
+
+  // Subscription Plans
+  SUBSCRIPTION_PLANS: {
+    LIST: '/subscription-plans',
+    SHOW: (id) => `/subscription-plans/${id}`,
+    CREATE: '/subscription-plans',
+    UPDATE: (id) => `/subscription-plans/${id}`,
+    DELETE: (id) => `/subscription-plans/${id}`,
   },
 
   // Activity Logs

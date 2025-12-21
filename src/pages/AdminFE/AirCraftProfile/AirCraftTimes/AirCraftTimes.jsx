@@ -4,7 +4,7 @@ import Squawks from "./Squawks";
 import { FiSearch } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 
-const AirCraftTimes = () => {
+const AirCraftTimes = ({ aircraftId }) => {
   const [activeTab, setActiveTab] = useState("maintenance");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
@@ -101,9 +101,9 @@ const AirCraftTimes = () => {
       {/* Content */}
       <div className="mt-4">
         {activeTab === "maintenance" ? (
-          <Maintenance searchTerm={searchTerm} sortBy={sortBy} />
+          <Maintenance aircraftId={aircraftId} searchTerm={searchTerm} sortBy={sortBy} />
         ) : (
-          <Squawks searchTerm={searchTerm} sortBy={sortBy} />
+          <Squawks aircraftId={aircraftId} searchTerm={searchTerm} sortBy={sortBy} />
         )}
       </div>
     </div>

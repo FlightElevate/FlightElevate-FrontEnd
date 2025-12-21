@@ -1,10 +1,11 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import Widgets from '../../components/ui/Widgets';
+import SummaryCards from '../../components/Dashboard/SummaryCards';
 import FSession from '../../components/Dashboard/FSession';
 import TotalRevenue from '../../components/Dashboard/TotalRevenue';
+import UpcomingBookings from '../../components/Dashboard/UpcomingBookings';
 
-const Dashboard = () => {
+const AdminDashboard = () => {
   const { user } = useAuth();
   
   // Get user's first name or fallback to "John"
@@ -17,30 +18,19 @@ const Dashboard = () => {
         <p className='text-base text-[#8A8A8A]'>Keep the track of you flight lessons records and analytics here.</p>
       </div>
 
-     <div className="flex flex-col  gap-6">
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Widgets
-          bgColor="#E9F0FC"
-          textColor="#1751D0"
-          label="Total Organizations"
-          count={76}
-          viewLink="#"
-        />
-        <Widgets
-          bgColor="#FFF1DA"
-          textColor="#EC980C"
-          label="Earnings"
-          count="$1,520"
-          viewLink="#"
-        />
+      <div className="flex flex-col gap-6">
+        {/* Summary Cards */}
+        <SummaryCards />
+        
+        {/* Charts */}
+        <FSession/>
+        <TotalRevenue/>
+        
+        {/* Upcoming Bookings Table */}
+        <UpcomingBookings/>
       </div>
-      
-      <FSession/>
-      <TotalRevenue/>
-     </div>
-
     </div>
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;
