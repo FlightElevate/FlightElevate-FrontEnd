@@ -27,6 +27,9 @@ const Setting = () => {
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingDocId, setDeletingDocId] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Profile form state
   const [profileData, setProfileData] = useState({
@@ -83,6 +86,11 @@ const Setting = () => {
               ...prev,
               current_password: settingsData.password,
             }));
+          }
+          
+          // Set avatar preview if available
+          if (settingsData.avatar) {
+            setAvatarPreview(settingsData.avatar);
           }
         }
       } catch (err) {
@@ -229,6 +237,59 @@ const Setting = () => {
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        showErrorToast('Image size must be less than 2MB');
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showErrorToast('Please select a valid image file');
+        return;
+      }
+
+      setAvatarFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarFile || !user?.id) return;
+    
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+      
+      const response = await settingsService.updateSettingsWithFile(formData);
+      
+      if (response.success) {
+        showSuccessToast('Profile picture updated successfully');
+        setAvatarFile(null);
+        // Update local user data
+        const updatedUser = { ...user, avatar: response.data?.avatar || avatarPreview };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        // Refresh page to update context
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Failed to update profile picture';
+      showErrorToast(errorMsg);
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleProfileSave = async () => {
@@ -421,12 +482,55 @@ const Setting = () => {
               {/* Profile Picture - Centered */}
               <div className="flex justify-center mb-8">
                 <div className="text-center">
-                  <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-semibold mx-auto mb-3 overflow-hidden">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  <div className="relative w-24 h-24 mx-auto mb-3">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Profile"
+                        className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-semibold">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                    )}
+                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700 transition shadow-lg">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </label>
                   </div>
-                  <button className="text-sm text-green-600 hover:text-green-700 font-medium">
-                    Change photo
-                  </button>
+                  {avatarFile && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-600">{avatarFile.name}</p>
+                      <button
+                        onClick={handleAvatarUpload}
+                        disabled={uploadingAvatar}
+                        className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {uploadingAvatar ? 'Uploading...' : 'Upload Photo'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAvatarFile(null);
+                          setAvatarPreview(user?.avatar || null);
+                        }}
+                        className="block text-sm text-gray-600 hover:text-gray-700 mt-1"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {!avatarFile && (
+                    <p className="text-xs text-gray-500 mt-1">Click camera icon to change photo</p>
+                  )}
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 // API Configuration for FlightElevate Backend
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 const API_VERSION = 'v1';
 
 export const API_URL = `${API_BASE_URL}/api/${API_VERSION}`;
@@ -14,6 +14,8 @@ export const ENDPOINTS = {
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
     REFRESH: '/auth/refresh',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
   },
 
   // Settings
@@ -34,6 +36,12 @@ export const ENDPOINTS = {
     UPDATE_PROFILE: '/users/profile/update',
     DOCUMENTS: (userId) => `/users/${userId}/documents`,
     DOCUMENT_DELETE: (userId, docId) => `/users/${userId}/documents/${docId}`,
+  },
+
+  // Organizations
+  ORGANIZATIONS: {
+    LIST: '/organizations',
+    SHOW: (id) => `/organizations/${id}`,
   },
 
   // Aircraft
@@ -103,6 +111,8 @@ export const ENDPOINTS = {
     CREATE: '/roles',
     UPDATE: (id) => `/roles/${id}`,
     DELETE: (id) => `/roles/${id}`,
+    PERMISSIONS: '/roles/permissions/list',
+    UPDATE_PERMISSIONS: (id) => `/roles/${id}/permissions`,
   },
 
   // Subscriptions

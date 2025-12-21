@@ -85,5 +85,20 @@ export const authService = {
       new_password_confirmation: confirmPassword,
     });
   },
+
+  // Forgot password
+  async forgotPassword(email) {
+    return await api.post(ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+  },
+
+  // Reset password
+  async resetPassword(email, token, password, passwordConfirmation) {
+    return await api.post(ENDPOINTS.AUTH.RESET_PASSWORD, {
+      email,
+      token,
+      password,
+      password_confirmation: passwordConfirmation,
+    });
+  },
 };
 

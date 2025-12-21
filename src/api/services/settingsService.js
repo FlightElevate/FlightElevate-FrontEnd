@@ -11,5 +11,10 @@ export const settingsService = {
   async updateSettings(data) {
     return await api.put(ENDPOINTS.SETTINGS.UPDATE, data);
   },
+
+  // Update settings with file upload (for avatar)
+  async updateSettingsWithFile(formData) {
+    return await api.put(ENDPOINTS.SETTINGS.UPDATE, formData);
+  },
 };
 

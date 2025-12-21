@@ -1,21 +1,26 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FiSearch, FiPlus, FiX, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiSearch, FiPlus, FiX, FiEdit2, FiTrash2, FiGrid, FiList } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
+import { HiDotsVertical } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { userService } from "../../api/services/userService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../utils/notifications";
+import { useAuth } from "../../context/AuthContext";
+import { useRole } from "../../hooks/useRole";
 import photo from "../../assets/img/photo.jpg";
 
 const Instructors = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
   const [sortBy, setSortBy] = useState("Newest");
+  const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingInstructor, setEditingInstructor] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
+  const [listMenuOpenId, setListMenuOpenId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,7 +31,19 @@ const Instructors = () => {
   });
   const sortRef = useRef(null);
   const menuRefs = useRef({});
+  const listMenuRefs = useRef({});
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { isStudent } = useRole();
+
+  // Calculate years of experience from created_at date
+  const getYearsOfExperience = (createdAt) => {
+    if (!createdAt) return "N/A";
+    const createdDate = new Date(createdAt);
+    const now = new Date();
+    const years = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24 * 365));
+    return `${years} Years`;
+  };
 
   useEffect(() => {
     fetchInstructors();
@@ -38,10 +55,13 @@ const Instructors = () => {
       if (menuOpenId !== null && menuRefs.current[menuOpenId] && !menuRefs.current[menuOpenId].contains(event.target)) {
         setMenuOpenId(null);
       }
+      if (listMenuOpenId !== null && listMenuRefs.current[listMenuOpenId] && !listMenuRefs.current[listMenuOpenId].contains(event.target)) {
+        setListMenuOpenId(null);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpenId]);
+  }, [menuOpenId, listMenuOpenId]);
 
   const fetchInstructors = async () => {
     setLoading(true);
@@ -169,13 +189,31 @@ const Instructors = () => {
           <h2 className="text-xl font-semibold">Instructors</h2>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={handleAdd}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium flex items-center gap-2 whitespace-nowrap"
-            >
-              <FiPlus size={18} />
-              Add Instructor
-            </button>
+            {/* View Toggle Buttons */}
+            <div className="flex items-center border border-gray-200 bg-white rounded-lg shadow-sm overflow-hidden">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`px-3 py-2 transition ${
+                  viewMode === "grid"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+                title="Grid View"
+              >
+                <FiGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-2 transition border-l border-gray-200 ${
+                  viewMode === "list"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+                title="List View"
+              >
+                <FiList size={18} />
+              </button>
+            </div>
             
             {/* Search Input */}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 w-full">
@@ -187,9 +225,7 @@ const Instructors = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
               />
-              <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded">⌘</span>
             </div>
-
 
             <div className="relative" ref={sortRef}>
               <button
@@ -228,7 +264,8 @@ const Instructors = () => {
         <div className="flex justify-center items-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      ) : (
+      ) : viewMode === "grid" ? (
+        // Grid View (Current View)
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-4 gap-6 bg-[#FFFFFF]">
           {filteredInstructors.length > 0 ? (
             filteredInstructors.map((instructor) => (
@@ -238,7 +275,7 @@ const Instructors = () => {
               >
                 <div onClick={() => handleInstructorClick(instructor.id)}>
                   <img
-                    src={instructor.image || photo}
+                    src={instructor.avatar || instructor.image || photo}
                     alt={instructor.name}
                     className="w-full h-[250px] object-cover"
                   />
@@ -247,23 +284,24 @@ const Instructors = () => {
                   </div>
                 </div>
                 
-                {/* Action Menu */}
-                <div 
-                  className="action-menu-container absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="relative" ref={(el) => (menuRefs.current[instructor.id] = el)}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpenId(menuOpenId === instructor.id ? null : instructor.id);
-                      }}
-                      className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition"
-                    >
-                      <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
+                {/* Action Menu - Only show for non-students */}
+                {!isStudent && (
+                  <div 
+                    className="action-menu-container absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="relative" ref={(el) => (menuRefs.current[instructor.id] = el)}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === instructor.id ? null : instructor.id);
+                        }}
+                        className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition"
+                      >
+                        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
                     
                     {menuOpenId === instructor.id && (
                       <div 
@@ -288,6 +326,7 @@ const Instructors = () => {
                     )}
                   </div>
                 </div>
+                )}
               </div>
             ))
           ) : (
@@ -296,10 +335,125 @@ const Instructors = () => {
             </p>
           )}
         </div>
+      ) : (
+        // List View (Table View)
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                    Instructor
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                    Certificates held
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredInstructors.length > 0 ? (
+                  filteredInstructors.map((instructor) => (
+                    <tr
+                      key={instructor.id}
+                      className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer"
+                      onClick={() => handleInstructorClick(instructor.id)}
+                    >
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={instructor.avatar || instructor.image || photo}
+                            alt={instructor.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                          <span className="text-sm font-medium text-gray-800">
+                            {instructor.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-600">
+                        {getYearsOfExperience(instructor.created_at)}
+                      </td>
+                      <td className="py-4 px-4">
+                        {isStudent ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInstructorClick(instructor.id);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            View
+                          </button>
+                        ) : (
+                          <div 
+                            className="relative" 
+                            ref={(el) => (listMenuRefs.current[instructor.id] = el)}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setListMenuOpenId(listMenuOpenId === instructor.id ? null : instructor.id);
+                              }}
+                              className="p-1 hover:bg-gray-100 rounded transition"
+                            >
+                              <HiDotsVertical className="text-gray-600" size={18} />
+                            </button>
+                          {listMenuOpenId === instructor.id && (
+                            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleInstructorClick(instructor.id);
+                                  setListMenuOpenId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                View Details
+                              </button>
+                              {!isStudent && (
+                                <>
+                                  <button
+                                    onClick={(e) => handleEdit(instructor, e)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                  >
+                                    <FiEdit2 size={14} />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => handleDelete(instructor, e)}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
+                                  >
+                                    <FiTrash2 size={14} />
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" className="text-center py-10 text-gray-500 text-sm">
+                      No instructors found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
-      {/* Add Instructor Modal */}
-      {showModal && (
+      {/* Add Instructor Modal - Only for non-students */}
+      {showModal && !isStudent && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">

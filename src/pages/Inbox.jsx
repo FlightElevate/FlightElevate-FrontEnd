@@ -116,11 +116,31 @@ const Inbox = () => {
       const payload = { direct: true, user_id: selectedUser.id };
       const response = await messageService.createConversation(payload);
       if (response.success) {
-        const newChat = { ...response.data, user: [selectedUser], messages: [] };
-        setChats(prev => [...prev, newChat]);
+        // Map id to conversation_id for consistency with getConversations response
+        const conversationData = response.data;
+        const newChat = { 
+          ...conversationData, 
+          conversation_id: conversationData.id || conversationData.conversation_id,
+          user: conversationData.chat_users?.map(cu => cu.user) || [selectedUser], 
+          messages: [] 
+        };
+        
+        // Check if conversation already exists in chats list
+        const existingChatIndex = chats.findIndex(c => c.conversation_id === newChat.conversation_id);
+        if (existingChatIndex >= 0) {
+          // Update existing chat
+          setChats(prev => prev.map((c, idx) => idx === existingChatIndex ? newChat : c));
+        } else {
+          // Add new chat
+          setChats(prev => [...prev, newChat]);
+        }
+        
         setSelectedChat(newChat);
         setShowUserList(false);
         setNewChatSearch("");
+        
+        // Fetch messages for the new conversation
+        fetchMessages(newChat.conversation_id);
       }
     } catch {
       showErrorToast("Error creating conversation");
@@ -129,6 +149,12 @@ const Inbox = () => {
 
   const handleSend = async () => {
     if (!selectedChat || (!input.trim() && !attachment)) return;
+    
+    // Validate conversation_id exists
+    if (!selectedChat.conversation_id) {
+      showErrorToast("Invalid conversation. Please select a conversation first.");
+      return;
+    }
 
     const type = attachment ? "attachment" : "text";
     const data = attachment ? [attachment] : [];

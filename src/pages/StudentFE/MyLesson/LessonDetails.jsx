@@ -1,26 +1,132 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-// import { HiHome } from "react-icons/hi";
+import React, { useState, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
 import { RiHome6Line } from "react-icons/ri";
+import { lessonService } from "../../../api/services/lessonService";
 
 const LessonDetails = () => {
+  const { id } = useParams();
   const [activeTab, setActiveTab] = useState("Details");
+  const [lesson, setLesson] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const lesson = {
-    title: "Smooth Landing",
-    status: "Pending",
-    description: "Lorem ipsum is a dummy text",
-    instructor: "123456",
-    date: "Jun 15",
-    time: "9 AM",
-    specialInstructions:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+  useEffect(() => {
+    const fetchLesson = async () => {
+      if (!id || id === '0' || id === 'undefined') {
+        setError("Invalid lesson ID");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const lessonId = parseInt(id, 10);
+        if (isNaN(lessonId) || lessonId <= 0) {
+          setError("Invalid lesson ID");
+          setLoading(false);
+          return;
+        }
+
+        const response = await lessonService.getLesson(lessonId);
+        
+        if (response.success) {
+          const lessonData = response.data;
+          setLesson({
+            id: lessonData.id,
+            title: lessonData.flight_type || "Flight Lesson",
+            status: lessonData.status || "Pending",
+            description: lessonData.notes || "No description available",
+            instructor: lessonData.instructor?.name || lessonData.instructor_name || "N/A",
+            date: lessonData.date || lessonData.full_date || lessonData.lesson_date,
+            time: lessonData.time || lessonData.full_time || lessonData.lesson_time,
+            specialInstructions: lessonData.notes || "No special instructions provided.",
+            aircraft: lessonData.aircraft?.name || lessonData.aircraft_name || "N/A",
+            duration: lessonData.duration_minutes || 0,
+            feedback: lessonData.feedback || "No feedback available yet.",
+          });
+        } else {
+          setError("Failed to load lesson details");
+        }
+      } catch (err) {
+        console.error('Error fetching lesson:', err);
+        setError("Failed to load lesson details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLesson();
+  }, [id]);
+
+  // Get status colors with case-insensitive matching
+  const getStatusColor = (status) => {
+    if (!status) return "bg-gray-100 text-gray-600";
+    
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case 'pending':
+        return "bg-[#FFF1DA] text-[#C47E0A]";
+      case 'ongoing':
+        return "bg-[#EBF0FB] text-[#113B98]";
+      case 'completed':
+        return "bg-[#E1FAEA] text-[#016626]";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
   };
 
-  const statusColors = {
-    Pending: "bg-[#FFF1DA] text-[#C47E0A]",
-    Ongoing: "bg-[#EBF0FB] text-[#113B98]",
-    Completed: "bg-[#E1FAEA] text-[#016626]",
+  // Format status for display (capitalize first letter)
+  const formatStatus = (status) => {
+    if (!status) return "Pending";
+    return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col px-6 gap-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !lesson) {
+    return (
+      <div className="flex flex-col px-6 gap-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error || "Lesson not found"}</p>
+          <Link to="/my-lessons" className="text-blue-600 hover:underline mt-2 inline-block">
+            Back to My Lessons
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Format date
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Format time
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "N/A";
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes || '00'} ${ampm}`;
+    } catch {
+      return timeStr;
+    }
   };
 
   return (
@@ -44,11 +150,11 @@ const LessonDetails = () => {
               <h1 className="text-xl fw6 text-gray-900 flex items-center gap-4 leading-[100%] tracking-[0px] ">
                 {lesson.title}
                 <span
-                  className={`text-xs px-2 py-1 rounded-[5px] align-middle leading-4.5 tracking-[4%] ${
-                    statusColors[lesson.status]
+                  className={`text-xs px-2 py-1 rounded-[5px] align-middle leading-4.5 tracking-[4%] font-medium ${
+                    getStatusColor(lesson.status)
                   }`}
                 >
-                  {lesson.status}
+                  {formatStatus(lesson.status)}
                 </span>
               </h1>
               <p className="text-sm fw4 font-inter leading-5 tracking-[-0.05px] text-[#7F7D83] ">
@@ -83,12 +189,24 @@ const LessonDetails = () => {
               </div>
               <div className="flex flex-col gap-3">
                 <h3 className="fw6 text-[#101828]">Date</h3>
-                <p className=" text-[#3D3D3D]">{lesson.date}</p>
+                <p className=" text-[#3D3D3D]">{formatDate(lesson.date)}</p>
               </div>
               <div className="flex flex-col gap-3">
                 <h3 className="fw6 text-[#101828]">Time</h3>
-                <p className=" text-[#3D3D3D]">{lesson.time}</p>
+                <p className=" text-[#3D3D3D]">{formatTime(lesson.time)}</p>
               </div>
+              {lesson.aircraft && (
+                <div className="flex flex-col gap-3">
+                  <h3 className="fw6 text-[#101828]">Aircraft</h3>
+                  <p className=" text-[#3D3D3D]">{lesson.aircraft}</p>
+                </div>
+              )}
+              {lesson.duration && (
+                <div className="flex flex-col gap-3">
+                  <h3 className="fw6 text-[#101828]">Duration</h3>
+                  <p className=" text-[#3D3D3D]">{lesson.duration} minutes</p>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-3.5">
@@ -106,13 +224,7 @@ const LessonDetails = () => {
               Feedback
             </h3>
             <p className="text-[#344054] leading-6 tracking-[0%]">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-              reprehenderit in voluptate velit esse cillum dolore eu fugiat
-              nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-              sunt in culpa qui officia deserunt mollit anim id est laborum.
+              {lesson.feedback}
             </p>
           </div>
         )}

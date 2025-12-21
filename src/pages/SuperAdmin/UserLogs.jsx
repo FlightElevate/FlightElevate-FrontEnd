@@ -15,7 +15,7 @@ const UserLogs = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [totalItems, setTotalItems] = useState(0);
 
-  const buttons = ["Instructor", "Student", "Admin", "Manager"];
+  const buttons = ["Instructor", "Student", "Admin"];
 
   useEffect(() => {
     fetchActivityLogs();

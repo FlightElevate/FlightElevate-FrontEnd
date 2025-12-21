@@ -28,33 +28,66 @@ apiClient.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    // Create a structured error object
+    const errorResponse = {
+      message: 'An error occurred',
+      errors: null,
+      response: error.response,
+      status: error.response?.status,
+    };
+
     if (error.response) {
+      const { data, status } = error.response;
+      
       // Handle specific error codes
-      switch (error.response.status) {
+      switch (status) {
         case 401:
           // Unauthorized - clear token and redirect to login
           localStorage.removeItem('auth_token');
-          window.location.href = '/login';
+          localStorage.removeItem('user');
+          // Don't redirect if already on login page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          errorResponse.message = data?.message || 'Unauthorized. Please login again.';
           break;
         case 403:
           // Forbidden
-          console.error('Access denied');
+          errorResponse.message = data?.message || 'Access denied';
+          if (import.meta.env.DEV) {
+            console.error('Access denied:', data);
+          }
+          break;
+        case 404:
+          // Not found
+          errorResponse.message = data?.message || 'Resource not found';
           break;
         case 422:
           // Validation error
-          console.error('Validation failed:', error.response.data.errors);
+          errorResponse.message = data?.message || 'Validation failed';
+          errorResponse.errors = data?.errors || data;
+          if (import.meta.env.DEV) {
+            console.error('Validation failed:', data?.errors || data);
+          }
           break;
         case 500:
           // Server error
-          console.error('Server error');
+          errorResponse.message = data?.message || 'Internal server error';
+          if (import.meta.env.DEV) {
+            console.error('Server error:', data);
+          }
           break;
+        default:
+          errorResponse.message = data?.message || `Error: ${status}`;
       }
       
-      // Return error from error envelope
-      return Promise.reject(error.response.data.errors || error.response.data);
+      // Return structured error
+      return Promise.reject(errorResponse);
     }
     
-    return Promise.reject(error);
+    // Network error or no response
+    errorResponse.message = error.message || 'Network error. Please check your connection.';
+    return Promise.reject(errorResponse);
   }
 );
 

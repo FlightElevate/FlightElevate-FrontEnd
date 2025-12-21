@@ -3,18 +3,36 @@ import { HiDotsVertical } from "react-icons/hi";
 import { FiSearch } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 import Pagination from "../../components/Pagination";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { lessonService } from "../../api/services/lessonService";
 
-const statusColors = {
-  Pending: "bg-[#FFF1DA] text-[#C47E0A]",
-  Ongoing: "bg-[#EBF0FB] text-[#113B98]",
-  Completed: "bg-[#E1FAEA] text-[#016626]",
+// Get status colors with case-insensitive matching
+const getStatusColor = (status) => {
+  if (!status) return "bg-gray-100 text-gray-600";
+  
+  const statusLower = status.toLowerCase();
+  switch (statusLower) {
+    case 'pending':
+      return "bg-[#FFF1DA] text-[#C47E0A]";
+    case 'ongoing':
+      return "bg-[#EBF0FB] text-[#113B98]";
+    case 'completed':
+      return "bg-[#E1FAEA] text-[#016626]";
+    default:
+      return "bg-gray-100 text-gray-600";
+  }
+};
+
+// Format status for display (capitalize first letter)
+const formatStatus = (status) => {
+  if (!status) return "Pending";
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 };
 
 const MyLessons = ({ showReadyButton = false }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,6 +45,24 @@ const MyLessons = ({ showReadyButton = false }) => {
   const [totalItems, setTotalItems] = useState(0);
 
   const sortRef = useRef(null);
+
+  const handleEdit = (lessonId) => {
+    setOpenMenuId(null);
+    // Navigate to calendar with edit mode
+    navigate(`/calendar?edit=${lessonId}`);
+  };
+
+  const handleViewClick = (lessonId) => {
+    // Navigate to lesson tasks page
+    navigate(`/my-lessons/${lessonId}/tasks`);
+  };
+
+  // Ready button handler - commented out for now
+  // const handleReadyClick = (lessonId, e) => {
+  //   if (e) e.stopPropagation();
+  //   // Mark lesson as ready - you can implement this API call
+  //   console.log('Mark lesson as ready:', lessonId);
+  // };
 
   // Fetch lessons from API
   useEffect(() => {
@@ -54,6 +90,10 @@ const MyLessons = ({ showReadyButton = false }) => {
             flightType: lesson.flight_type || 'N/A',
             fullDate: lesson.full_date,
             fullTime: lesson.full_time,
+            lesson_title: lesson.title || lesson.lesson_title || lesson.flight_type,
+            lesson_number: lesson.lesson_number || null,
+            lesson_content: lesson.lesson_content || [],
+            tasks_count: Array.isArray(lesson.lesson_content) ? lesson.lesson_content.length : 0,
           }));
           
           setLessons(transformedLessons);
@@ -84,10 +124,17 @@ const MyLessons = ({ showReadyButton = false }) => {
 
   // Filtering and sorting (client-side for search and status filter)
   let filteredData = lessons.filter(
-    (lesson) =>
-      (selectedTab === "All" || lesson.status === selectedTab) &&
-      (lesson.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lesson.flightType.toLowerCase().includes(searchTerm.toLowerCase()))
+    (lesson) => {
+      // Case-insensitive status comparison
+      const lessonStatus = lesson.status ? lesson.status.toLowerCase() : '';
+      const selectedStatus = selectedTab === "All" ? null : selectedTab.toLowerCase();
+      
+      const statusMatch = selectedTab === "All" || lessonStatus === selectedStatus;
+      const searchMatch = lesson.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lesson.flightType.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return statusMatch && searchMatch;
+    }
   );
 
   filteredData = filteredData.sort((a, b) =>
@@ -188,7 +235,9 @@ const MyLessons = ({ showReadyButton = false }) => {
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Date</th>
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Time</th>
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Instructor</th>
-                <th className="py-2 px-3 font-medium border border-[#E5E1E6]">{showReadyButton ? "Action" : "Status"}</th>
+                {/* Ready button column header - commented out for now */}
+                {/* <th className="py-2 px-3 font-medium border border-[#E5E1E6]">{showReadyButton ? "Action" : "Status"}</th> */}
+                <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Status</th>
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Flight Type</th>
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6] text-center">Action</th>
               </tr>
@@ -200,15 +249,19 @@ const MyLessons = ({ showReadyButton = false }) => {
                   <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.time}</td>
                   <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.instructor}</td>
                   <td className="py-2 px-3 border border-[#E5E1E6]">
-                    {showReadyButton ? (
-                      <button className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                    {/* Ready button - commented out for now */}
+                    {/* {showReadyButton ? (
+                      <button 
+                        onClick={(e) => handleReadyClick(lesson.id, e)}
+                        className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                      >
                         Ready
                       </button>
-                    ) : (
-                      <span className={`px-2 py-1 text-xs rounded ${statusColors[lesson.status]}`}>
-                        {lesson.status}
+                    ) : ( */}
+                      <span className={`px-2 py-1 text-xs rounded font-medium ${getStatusColor(lesson.status)}`}>
+                        {formatStatus(lesson.status)}
                       </span>
-                    )}
+                    {/* )} */}
                   </td>
                   <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.flightType}</td>
                   <td className="py-2 px-3 border border-[#E5E1E6] text-center relative">
@@ -221,16 +274,24 @@ const MyLessons = ({ showReadyButton = false }) => {
                       />
                       {openMenuId === lesson.id && (
                         <div className="absolute right-5 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                          <Link
-                            to="/my-lessons/lessondetails"
-                            onClick={() => setOpenMenuId(null)}
+                          <button
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              handleViewClick(lesson.id);
+                            }}
                             className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                           >
                             View
-                          </Link>
-                          <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
-                            Edit
                           </button>
+                          {/* Only show Edit for pending lessons */}
+                          {lesson.status && lesson.status.toLowerCase() === 'pending' && (
+                            <button 
+                              onClick={() => handleEdit(lesson.id)}
+                              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                            >
+                              Edit
+                            </button>
+                          )}
                           <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
                             Delete
                           </button>
@@ -253,9 +314,15 @@ const MyLessons = ({ showReadyButton = false }) => {
                 <p className="text-xs text-[#797979] mt-1">{lesson.instructor}</p>
               </div>
               <div className="flex items-center gap-4 relative">
-                <button className="px-3 py-1 text-sm font-medium bg-[#1376CD] text-white rounded-md hover:bg-blue-700 transition">
-                  Ready
-                </button>
+                {/* Ready button - commented out for now */}
+                {/* {showReadyButton && (
+                  <button 
+                    onClick={(e) => handleReadyClick(lesson.id, e)}
+                    className="px-3 py-1 text-sm font-medium bg-[#1376CD] text-white rounded-md hover:bg-blue-700 transition"
+                  >
+                    Ready
+                  </button>
+                )} */}
                 <div className="menu-container relative">
                   <HiDotsVertical
                     className="text-[#5C5F62] cursor-pointer"
@@ -263,14 +330,23 @@ const MyLessons = ({ showReadyButton = false }) => {
                   />
                   {openMenuId === lesson.id && (
                     <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                      <Link
-                        to="/my-lessons/lessondetails"
-                        onClick={() => setOpenMenuId(null)}
+                      <button
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          handleViewClick(lesson.id);
+                        }}
                         className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                       >
                         View
-                      </Link>
-                      <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Edit</button>
+                      </button>
+                      {lesson.status && lesson.status.toLowerCase() === 'pending' && (
+                        <button 
+                          onClick={() => handleEdit(lesson.id)}
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                        >
+                          Edit
+                        </button>
+                      )}
                       <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
                     </div>
                   )}

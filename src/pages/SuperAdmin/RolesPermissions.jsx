@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiDotsVertical } from "react-icons/hi";
 import { FiSearch, FiX } from "react-icons/fi";
 import { roleService } from "../../api/services/roleService";
+import { useRolesContext } from "../../context/RolesContext";
 import { showSuccessToast, showErrorToast, showConfirmDialog } from "../../utils/notifications";
 
 const RolesPermissions = () => {
   const navigate = useNavigate();
+  const { roles: contextRoles, fetchRoles: refetchRoles } = useRolesContext();
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,8 @@ const RolesPermissions = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only fetch once on mount, use context roles
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -38,31 +41,62 @@ const RolesPermissions = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenu]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [rolesResponse, permissionsResponse] = await Promise.all([
-        roleService.getRoles(),
-        roleService.getPermissions(),
-      ]);
-
-      if (rolesResponse.success) {
-        setRoles(rolesResponse.data);
+      // Use context roles directly (they're already cached and loaded)
+      // Don't fetch roles again if we have them in context
+      let rolesData = contextRoles;
+      
+      // Only fetch from API if context has no roles
+      if (!rolesData || rolesData.length === 0) {
+        if (import.meta.env.DEV) {
+          console.log('[RolesPermissions] No roles in context, fetching...');
+        }
+        rolesData = await refetchRoles();
+      } else {
+        if (import.meta.env.DEV) {
+          console.log('[RolesPermissions] Using roles from context');
+        }
       }
-      if (permissionsResponse.success) {
+
+      // Fetch permissions (separate endpoint, no caching needed here)
+      const permissionsResponse = await roleService.getPermissions();
+
+      if (rolesData && rolesData.length > 0) {
+        setRoles(rolesData);
+      }
+      if (permissionsResponse && permissionsResponse.success) {
         setPermissions(permissionsResponse.data);
+      } else if (permissionsResponse && Array.isArray(permissionsResponse)) {
+        // Handle case where response is directly an array
+        setPermissions(permissionsResponse);
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Error loading data');
-      showErrorToast('Failed to load roles and permissions');
-      setRoles([]);
+      const errorMessage = err.message || err.response?.data?.message || 'Error loading data';
+      console.error('[RolesPermissions] Error fetching data:', err);
+      setError(errorMessage);
+      
+      // Only show toast if we have no cached roles
+      if (!contextRoles || contextRoles.length === 0) {
+        showErrorToast('Failed to load roles and permissions');
+      } else {
+        // If we have cached roles, just show error for permissions
+        showErrorToast('Failed to load permissions');
+      }
+      
+      // Don't clear roles if we have cached ones
+      if (contextRoles && contextRoles.length > 0) {
+        setRoles(contextRoles);
+      } else {
+        setRoles([]);
+      }
       setPermissions([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [contextRoles, refetchRoles]);
 
   const handleDelete = async (id, roleName) => {
     const confirmed = await showConfirmDialog(

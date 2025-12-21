@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../api/services/authService';
+import { hasRole as checkRole, isSuperAdmin, isAdmin } from '../utils/roleUtils';
 
 const AuthContext = createContext(null);
 
@@ -75,14 +76,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user has specific role
+  // Check if user has specific role (handles both string and object formats)
   const hasRole = (role) => {
-    return user?.roles?.includes(role) || false;
+    if (!user?.roles) return false;
+    return checkRole(user.roles, role);
   };
 
   // Check if user has specific permission
   const hasPermission = (permission) => {
-    return user?.permissions?.includes(permission) || false;
+    if (!user?.permissions) return false;
+    const userPermissions = Array.isArray(user.permissions) 
+      ? user.permissions 
+      : [];
+    return userPermissions.includes(permission);
+  };
+
+  // Helper functions for common role checks
+  const userIsSuperAdmin = () => {
+    return user?.roles ? isSuperAdmin(user.roles) : false;
+  };
+
+  const userIsAdmin = () => {
+    return user?.roles ? isAdmin(user.roles) : false;
   };
 
   const value = {
@@ -94,6 +109,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     hasRole,
     hasPermission,
+    isSuperAdmin: userIsSuperAdmin,
+    isAdmin: userIsAdmin,
   };
 
   return (

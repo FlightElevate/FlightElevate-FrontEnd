@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiMoreVertical } from "react-icons/fi";
+import { FiSearch, FiMoreVertical, FiX, FiCalendar, FiClock } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import gear from "../../../assets/SVG/gear.svg";
 import profileImg from "../../../assets/img/profile.jpg";
@@ -8,9 +8,11 @@ import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast, showInfoToast } from "../../../utils/notifications";
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
+import { useAuth } from "../../../context/AuthContext";
 
 const InstructorProfile = () => {
-  const { id } = useParams();
+  const { id: instructorId } = useParams();
+  const { user: currentUser } = useAuth();
   
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -21,19 +23,28 @@ const InstructorProfile = () => {
   const [searchLogs, setSearchLogs] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
   const [openMenu, setOpenMenu] = useState(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    lesson_date: '',
+    lesson_time: '',
+    flight_type: '',
+    duration_minutes: 60,
+    notes: '',
+  });
 
   useEffect(() => {
-    if (id) {
+    if (instructorId) {
       fetchUser();
       fetchDocuments();
       fetchFlightLogs();
     }
-  }, [id]);
+  }, [instructorId]);
 
   const fetchUser = async () => {
     setLoadingUser(true);
     try {
-      const response = await userService.getUser(id);
+      const response = await userService.getUser(instructorId);
       if (response.success) {
         setUser(response.data);
       }
@@ -45,10 +56,10 @@ const InstructorProfile = () => {
   };
 
   const fetchDocuments = async () => {
-    if (!id) return;
+    if (!instructorId) return;
     setLoadingDocs(true);
     try {
-      const response = await documentService.getUserDocuments(id);
+      const response = await documentService.getUserDocuments(instructorId);
       if (response.success) {
         setDocuments(response.data);
       }
@@ -61,10 +72,10 @@ const InstructorProfile = () => {
   };
 
   const fetchFlightLogs = async () => {
-    if (!id) return;
+    if (!instructorId) return;
     setLoadingLogs(true);
     try {
-      const response = await lessonService.getUserLessons(id, { per_page: 10, type: 'instructor' });
+      const response = await lessonService.getUserLessons(instructorId, { per_page: 10, type: 'instructor' });
       if (response.success) {
         setFlightLogs(response.data);
       }
@@ -81,7 +92,7 @@ const InstructorProfile = () => {
     if (!confirmed) return;
     
     try {
-      await documentService.deleteDocument(id, documentId);
+      await documentService.deleteDocument(instructorId, documentId);
       showSuccessToast('Document deleted successfully');
       fetchDocuments();
     } catch (error) {
@@ -90,7 +101,73 @@ const InstructorProfile = () => {
   };
 
   const handleRequestSession = () => {
-    showInfoToast('Session request sent to instructor');
+    setShowRequestModal(true);
+  };
+
+  const handleRequestSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!currentUser?.id || !instructorId) {
+      showErrorToast('Unable to submit request. Please try again.');
+      return;
+    }
+
+    // Validate form
+    if (!requestForm.lesson_date || !requestForm.lesson_time || !requestForm.flight_type) {
+      showErrorToast('Please fill in all required fields');
+      return;
+    }
+
+    setSubmittingRequest(true);
+    try {
+      const requestData = {
+        student_id: currentUser.id,
+        instructor_id: instructorId,
+        flight_type: requestForm.flight_type,
+        lesson_date: requestForm.lesson_date,
+        lesson_time: requestForm.lesson_time,
+        duration_minutes: requestForm.duration_minutes || 60,
+        notes: requestForm.notes || '',
+        is_request: true, // Mark as request
+        status: 'requested', // Set status to requested
+      };
+
+      const response = await lessonService.createLesson(requestData);
+      
+      if (response.success) {
+        showSuccessToast('Session request submitted successfully!');
+        setShowRequestModal(false);
+        setRequestForm({
+          lesson_date: '',
+          lesson_time: '',
+          flight_type: '',
+          duration_minutes: 60,
+          notes: '',
+        });
+      } else {
+        showErrorToast(response.message || 'Failed to submit request');
+      }
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.errors?.message ||
+                          error.message || 
+                          'Failed to submit session request';
+      showErrorToast(errorMessage);
+    } finally {
+      setSubmittingRequest(false);
+    }
+  };
+
+  const handleCloseRequestModal = () => {
+    setShowRequestModal(false);
+    setRequestForm({
+      lesson_date: '',
+      lesson_time: '',
+      flight_type: '',
+      duration_minutes: 60,
+      notes: '',
+    });
   };
 
   const toggleMenu = (index) => {
@@ -139,7 +216,7 @@ const InstructorProfile = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">User Not Found</h2>
-          <p className="text-gray-600">The user with ID {id} could not be found.</p>
+          <p className="text-gray-600">The user with ID {instructorId} could not be found.</p>
         </div>
       </div>
     );
@@ -297,6 +374,119 @@ const InstructorProfile = () => {
           </div>
         )}
       </div>
+
+      {/* Request Session Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Request Session</h3>
+              <button
+                onClick={handleCloseRequestModal}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRequestSubmit} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <FiCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="date"
+                      value={requestForm.lesson_date}
+                      onChange={(e) => setRequestForm({ ...requestForm, lesson_date: e.target.value })}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Time <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <FiClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="time"
+                      value={requestForm.lesson_time}
+                      onChange={(e) => setRequestForm({ ...requestForm, lesson_time: e.target.value })}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Flight Type <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={requestForm.flight_type}
+                    onChange={(e) => setRequestForm({ ...requestForm, flight_type: e.target.value })}
+                    placeholder="e.g., Solo, Dual, Cross Country"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    value={requestForm.duration_minutes}
+                    onChange={(e) => setRequestForm({ ...requestForm, duration_minutes: parseInt(e.target.value) || 60 })}
+                    min="15"
+                    max="480"
+                    step="15"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes / Special Instructions
+                  </label>
+                  <textarea
+                    value={requestForm.notes}
+                    onChange={(e) => setRequestForm({ ...requestForm, notes: e.target.value })}
+                    placeholder="Any special instructions or requirements..."
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleCloseRequestModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingRequest}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingRequest ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

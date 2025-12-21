@@ -1,12 +1,22 @@
 import { api } from '../apiClient';
 import { ENDPOINTS } from '../config';
 
+/**
+ * Role Service
+ * Handles all role-related API calls
+ */
 export const roleService = {
   /**
    * Get all roles with permissions
+   * @returns {Promise<Object>} - Response object with success, data, and meta
    */
   async getRoles() {
-    return await api.get(ENDPOINTS.ROLES.LIST);
+    try {
+      return await api.get(ENDPOINTS.ROLES.LIST);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      throw error;
+    }
   },
 
   /**
@@ -44,18 +54,30 @@ export const roleService = {
 
   /**
    * Get all available permissions
+   * @returns {Promise<Object>} - Response object with success and data
    */
   async getPermissions() {
-    return await api.get('/roles/permissions/list');
+    try {
+      return await api.get(ENDPOINTS.ROLES.PERMISSIONS);
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+      throw error;
+    }
   },
 
   /**
    * Update permissions for a role
    * @param {number} id - Role ID
    * @param {Array} permissions - Array of permission names
+   * @returns {Promise<Object>} - Response object with success and data
    */
   async updateRolePermissions(id, permissions) {
-    return await api.post(`/roles/${id}/permissions`, { permissions });
+    try {
+      return await api.post(ENDPOINTS.ROLES.UPDATE_PERMISSIONS(id), { permissions });
+    } catch (error) {
+      console.error('Error updating role permissions:', error);
+      throw error;
+    }
   },
 };
 

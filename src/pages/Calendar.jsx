@@ -1,18 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight, FiSettings, FiX, FiSearch } from 'react-icons/fi';
 import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
 import { userService } from '../api/services/userService';
 import { showErrorToast, showSuccessToast } from '../utils/notifications';
 import { useAuth } from '../context/AuthContext';
+import { useRole } from '../hooks/useRole';
 import { api } from '../api/apiClient';
 import { ENDPOINTS } from '../api/config';
+import FindTimeModal from '../components/Calendar/FindTimeModal';
 
 const Calendar = () => {
   const { user } = useAuth();
+  const { isStudent } = useRole();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editLessonId = searchParams.get('edit');
   const [loading, setLoading] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingLesson, setEditingLesson] = useState(null);
   const [aircraftSchedule, setAircraftSchedule] = useState([]);
   const [userSchedule, setUserSchedule] = useState([]);
   const [filteredAircraftSchedule, setFilteredAircraftSchedule] = useState([]);
@@ -84,6 +91,9 @@ const Calendar = () => {
     checking: false,
   });
   const [availabilityMessage, setAvailabilityMessage] = useState('');
+  
+  // Store student's existing bookings to prevent double booking
+  const [studentBookings, setStudentBookings] = useState([]);
 
   // Generate time slots (24 hours)
   const timeSlots = Array.from({ length: 24 }, (_, i) => {
@@ -113,11 +123,88 @@ const Calendar = () => {
     return () => document.removeEventListener('mousemove', handleMouseMove);
   }, [hoveredEvent]);
 
+  // Check for edit mode and fetch lesson data
+  useEffect(() => {
+    if (editLessonId) {
+      const fetchLessonForEdit = async () => {
+        try {
+          const lessonId = parseInt(editLessonId, 10);
+          if (!isNaN(lessonId) && lessonId > 0) {
+            const response = await lessonService.getLesson(lessonId);
+            if (response.success) {
+              const lessonData = response.data;
+              setIsEditMode(true);
+              setEditingLesson(lessonData);
+              
+              // Pre-fill form with lesson data
+              setReservationForm({
+                student_id: lessonData.student?.id || lessonData.student_id || '',
+                instructor_id: lessonData.instructor?.id || lessonData.instructor_id || '',
+                aircraft_id: lessonData.aircraft?.id || lessonData.aircraft_id || '',
+                flight_type: lessonData.flight_type || '',
+                lesson_date: lessonData.lesson_date || '',
+                lesson_time: lessonData.lesson_time || '',
+                duration_minutes: lessonData.duration_minutes || 60,
+                notes: lessonData.notes || '',
+                reservation_number: lessonData.reservation_number || generateReservationNumber(),
+              });
+              
+              // Open the reservation modal
+              setShowNewReservationModal(true);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching lesson for edit:', err);
+          showErrorToast('Failed to load lesson for editing');
+          // Remove invalid edit parameter
+          searchParams.delete('edit');
+          setSearchParams(searchParams);
+        }
+      };
+      
+      fetchLessonForEdit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editLessonId]);
+
   useEffect(() => {
     if (showNewReservationModal || showFindTimeModal) {
       fetchFormData();
     }
   }, [showNewReservationModal, showFindTimeModal]);
+
+  // Fetch student's existing bookings when modal opens and student/date is selected
+  useEffect(() => {
+    const fetchStudentBookings = async () => {
+      if (showNewReservationModal && reservationForm.student_id && reservationForm.lesson_date) {
+        try {
+          const scheduleRes = await calendarService.getSchedule({
+            date: reservationForm.lesson_date,
+          });
+          
+          if (scheduleRes.success) {
+            const userSchedule = scheduleRes.data.user_schedule || [];
+            const studentBookingsData = userSchedule.find(user => 
+              user.id === parseInt(reservationForm.student_id)
+            );
+            
+            if (studentBookingsData) {
+              setStudentBookings(studentBookingsData.events || []);
+            } else {
+              setStudentBookings([]);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching student bookings:', err);
+          setStudentBookings([]);
+        }
+      } else {
+        setStudentBookings([]);
+      }
+    };
+
+    fetchStudentBookings();
+  }, [showNewReservationModal, reservationForm.student_id, reservationForm.lesson_date]);
 
   // Track if aircraft is pre-selected
   const [isAircraftPreSelected, setIsAircraftPreSelected] = useState(false);
@@ -220,7 +307,19 @@ const Calendar = () => {
         const studentsList = Array.isArray(studentsRes.data) 
           ? studentsRes.data 
           : [];
-        setStudents(studentsList);
+        
+        // If current user is a student, only show themselves
+        if (isStudent() && user?.id) {
+          const currentStudent = studentsList.find(s => s.id === user.id);
+          setStudents(currentStudent ? [currentStudent] : []);
+          // Auto-select current student
+          setReservationForm(prev => ({
+            ...prev,
+            student_id: String(user.id),
+          }));
+        } else {
+          setStudents(studentsList);
+        }
       } else {
         setStudents([]);
       }
@@ -467,29 +566,49 @@ const Calendar = () => {
 
         // Check student availability (if we have student_id, we need to check their existing bookings)
         let studentAvailable = true;
+        let bookedSlotInfo = null;
+        
         if (reservationForm.student_id) {
-          // We'll check this via the schedule API
-          const scheduleRes = await calendarService.getSchedule({
-            date: reservationForm.lesson_date,
-          });
+          // Use cached studentBookings if available, otherwise fetch
+          let eventsToCheck = studentBookings;
           
-          if (scheduleRes.success) {
-            const userSchedule = scheduleRes.data.user_schedule || [];
-            const studentBookings = userSchedule.filter(user => 
-              user.id === parseInt(reservationForm.student_id)
-            );
+          if (eventsToCheck.length === 0) {
+            // Fetch if not cached
+            const scheduleRes = await calendarService.getSchedule({
+              date: reservationForm.lesson_date,
+            });
             
-            if (studentBookings.length > 0) {
-              const studentEvents = studentBookings[0]?.events || [];
-              const selectedDateTime = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
-              const endDateTime = new Date(selectedDateTime.getTime() + reservationForm.duration_minutes * 60000);
+            if (scheduleRes.success) {
+              const userSchedule = scheduleRes.data.user_schedule || [];
+              const studentBookingsData = userSchedule.find(user => 
+                user.id === parseInt(reservationForm.student_id)
+              );
               
-              studentAvailable = !studentEvents.some(event => {
-                const eventStart = new Date(`${event.date}T${event.start_time}`);
-                const eventEnd = new Date(eventStart.getTime() + (event.duration || 60) * 60000);
-                
-                return (selectedDateTime < eventEnd && endDateTime > eventStart);
-              });
+              if (studentBookingsData) {
+                eventsToCheck = studentBookingsData.events || [];
+                setStudentBookings(eventsToCheck);
+              }
+            }
+          }
+          
+          if (eventsToCheck.length > 0) {
+            const selectedDateTime = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
+            const endDateTime = new Date(selectedDateTime.getTime() + reservationForm.duration_minutes * 60000);
+            
+            const conflictingEvent = eventsToCheck.find(event => {
+              const eventStart = new Date(`${event.date}T${event.start_time}`);
+              const eventEnd = new Date(eventStart.getTime() + (event.duration || 60) * 60000);
+              
+              return (selectedDateTime < eventEnd && endDateTime > eventStart);
+            });
+            
+            if (conflictingEvent) {
+              studentAvailable = false;
+              bookedSlotInfo = {
+                start: conflictingEvent.start_time,
+                end: conflictingEvent.end_time,
+                title: conflictingEvent.title || 'Flight Lesson',
+              };
             }
           }
         }
@@ -504,7 +623,10 @@ const Calendar = () => {
         if (!isTimeAvailable) {
           setAvailabilityMessage('⚠️ Instructor or Aircraft is not available at this time. Please select a different time.');
         } else if (!studentAvailable) {
-          setAvailabilityMessage('⚠️ Student is already booked at this time. Please select a different time.');
+          const conflictMsg = bookedSlotInfo 
+            ? `⚠️ You already have a booking at this time (${bookedSlotInfo.start} - ${bookedSlotInfo.end}: ${bookedSlotInfo.title}). Please select a different time.`
+            : '⚠️ You are already booked at this time. Please select a different time.';
+          setAvailabilityMessage(conflictMsg);
         } else {
           setAvailabilityMessage('✅ All selected resources are available at this time.');
         }
@@ -555,9 +677,18 @@ const Calendar = () => {
 
     setSubmitting(true);
     try {
-      const response = await lessonService.createLesson(reservationForm);
+      // If student is creating, mark as request
+      const lessonData = {
+        ...reservationForm,
+        is_request: isStudent() ? true : false,
+      };
+      
+      const response = await lessonService.createLesson(lessonData);
       if (response.success) {
-        showSuccessToast('Reservation created successfully');
+        const successMessage = isStudent() 
+          ? 'Session request submitted successfully' 
+          : 'Reservation created successfully';
+        showSuccessToast(successMessage);
         setShowNewReservationModal(false);
         setReservationForm({
           student_id: '',
@@ -612,17 +743,19 @@ const Calendar = () => {
           <h2 className="text-2xl font-semibold text-gray-800">Schedule</h2>
           
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            {/* Location Select */}
-            <select
-              value={selectedLocation}
-              onChange={handleLocationChange}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">Select Location</option>
-              {locations.map((location, idx) => (
-                <option key={idx} value={location}>{location}</option>
-              ))}
-            </select>
+            {/* Location Select - Hidden for Students */}
+            {!isStudent() && (
+              <select
+                value={selectedLocation}
+                onChange={handleLocationChange}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">Select Location</option>
+                {locations.map((location, idx) => (
+                  <option key={idx} value={location}>{location}</option>
+                ))}
+              </select>
+            )}
 
             {/* Date Navigation */}
             <div className="flex items-center gap-2">
@@ -1072,9 +1205,19 @@ const Calendar = () => {
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-800">New Reservation</h3>
+              <h3 className="text-xl font-semibold text-gray-800">
+                {isEditMode ? 'Edit Reservation' : 'New Reservation'}
+              </h3>
               <button
-                onClick={() => setShowNewReservationModal(false)}
+                onClick={() => {
+                  setShowNewReservationModal(false);
+                  setIsEditMode(false);
+                  setEditingLesson(null);
+                  if (editLessonId) {
+                    searchParams.delete('edit');
+                    setSearchParams(searchParams);
+                  }
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <FiX size={24} />
@@ -1092,8 +1235,11 @@ const Calendar = () => {
                     <select
                       value={reservationForm.student_id}
                       onChange={(e) => setReservationForm({ ...reservationForm, student_id: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isStudent() ? 'bg-gray-50 cursor-not-allowed' : ''
+                      }`}
                       required
+                      disabled={isStudent()}
                     >
                       <option value="">Select Student</option>
                       {students.length > 0 ? (
@@ -1104,6 +1250,9 @@ const Calendar = () => {
                         <option value="" disabled>No students available</option>
                       )}
                     </select>
+                  )}
+                  {isStudent() && (
+                    <p className="text-xs text-gray-500 mt-1">You can only create reservations for yourself</p>
                   )}
                 </div>
 
@@ -1223,10 +1372,36 @@ const Calendar = () => {
                     <input
                       type="time"
                       value={reservationForm.lesson_time}
-                      onChange={(e) => setReservationForm({ ...reservationForm, lesson_time: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => {
+                        setReservationForm({ ...reservationForm, lesson_time: e.target.value });
+                        // Clear availability status when time changes
+                        setAvailabilityStatus({
+                          student: null,
+                          instructor: null,
+                          aircraft: null,
+                          checking: false,
+                        });
+                        setAvailabilityMessage('');
+                      }}
+                      className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        availabilityStatus.student === false 
+                          ? 'border-red-300 bg-red-50' 
+                          : 'border-gray-300'
+                      }`}
                       required
                     />
+                    {isStudent() && studentBookings.length > 0 && (
+                      <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs font-medium text-blue-800 mb-1">Your existing bookings on this date:</p>
+                        <div className="space-y-1">
+                          {studentBookings.map((booking, idx) => (
+                            <p key={idx} className="text-xs text-blue-700">
+                              • {booking.start_time} - {booking.end_time}: {booking.title || 'Flight Lesson'}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1275,7 +1450,15 @@ const Calendar = () => {
               <div className="flex justify-end gap-2 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowNewReservationModal(false)}
+                  onClick={() => {
+                    setShowNewReservationModal(false);
+                    setIsEditMode(false);
+                    setEditingLesson(null);
+                    if (editLessonId) {
+                      searchParams.delete('edit');
+                      setSearchParams(searchParams);
+                    }
+                  }}
                   className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition"
                 >
                   Cancel
@@ -1287,11 +1470,11 @@ const Calendar = () => {
                            availabilityStatus.student === false}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Creating...' : 
+                  {submitting ? (isEditMode ? 'Updating...' : 'Creating...') : 
                    availabilityStatus.checking ? 'Checking...' :
                    (availabilityStatus.instructor === false || availabilityStatus.student === false) 
                      ? 'Time Not Available' : 
-                   'Create Reservation'}
+                   (isEditMode ? 'Update Reservation' : 'Create Reservation')}
                 </button>
               </div>
             </form>
@@ -1301,30 +1484,28 @@ const Calendar = () => {
 
       {/* Find a Time Modal */}
       {showFindTimeModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-800">Find a Time</h3>
-              <button
-                onClick={() => setShowFindTimeModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <FiX size={24} />
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-600">Find available time slots feature will be available here.</p>
-            </div>
-            <div className="flex justify-end gap-2 p-6 border-t border-gray-200">
-              <button
-                onClick={() => setShowFindTimeModal(false)}
-                className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <FindTimeModal
+          isOpen={showFindTimeModal}
+          onClose={() => setShowFindTimeModal(false)}
+          instructors={instructors}
+          aircraft={aircraft}
+          loadingFormData={loadingFormData}
+          onTimeSelect={(selectedTime, date, instructorId, aircraftId, duration) => {
+            setShowFindTimeModal(false);
+            setIsAircraftPreSelected(!!aircraftId);
+            setShowNewReservationModal(true);
+            setTimeout(() => {
+              setReservationForm(prev => ({
+                ...prev,
+                lesson_date: date,
+                lesson_time: selectedTime,
+                duration_minutes: duration,
+                ...(instructorId && { instructor_id: String(instructorId) }),
+                ...(aircraftId && { aircraft_id: String(aircraftId) }),
+              }));
+            }, 100);
+          }}
+        />
       )}
     </div>
   );

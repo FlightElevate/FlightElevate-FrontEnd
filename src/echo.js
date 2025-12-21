@@ -1,5 +1,6 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
+import { API_BASE_URL } from "./api/config";
 
 // window.Pusher = Pusher;
 
@@ -11,7 +12,7 @@ const echo = new Echo({
   wssPort: import.meta.env.VITE_REVERB_PORT,
   forceTLS: false,
   enabledTransports: ["ws", "wss"],
-  authEndpoint: "http://flightelevate.test/api/broadcasting/auth",
+  authEndpoint: `${API_BASE_URL}/api/broadcasting/auth`,
   auth: {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("auth_token")}`,

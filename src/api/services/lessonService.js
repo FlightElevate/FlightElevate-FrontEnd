@@ -21,5 +21,10 @@ export const lessonService = {
   async createLesson(data) {
     return await api.post(ENDPOINTS.LESSONS.CREATE, data);
   },
+
+  // Update an existing lesson/reservation
+  async updateLesson(id, data) {
+    return await api.put(ENDPOINTS.LESSONS.UPDATE(id), data);
+  },
 };
 
