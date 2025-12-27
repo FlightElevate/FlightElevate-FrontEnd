@@ -109,7 +109,7 @@ const ChatSupport = () => {
         file_name: payload.file_name,
       };
 
-      // Add message in real-time (check for duplicates to avoid re-adding)
+      // Add message in real-time (check for duplicates to avoid re-adding add check in new Message Added instead of previous)
       setMessages((prev) => {
         const exists = prev.some((msg) => msg.id === newMessage.id);
         if (exists && newMessage?.sender_id !== user.id) {
