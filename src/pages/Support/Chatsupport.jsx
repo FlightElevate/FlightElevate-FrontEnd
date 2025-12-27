@@ -32,6 +32,7 @@ const ChatSupport = () => {
   const emojiRef = useRef(null);
   const attachRef = useRef(null);
   const audioBlobRef = useRef(null);
+  const fileRef = useRef(null); // Store file object for documents/images/videos
 
   // Fetch ticket details and messages
   useEffect(() => {
@@ -211,10 +212,20 @@ const ChatSupport = () => {
             });
           }
         } 
-        // For regular files (image, video, document)
-        else if (attachmentPreview.file && attachmentPreview.file instanceof File) {
+        // For regular files (image, video, document) - use ref first, then state
+        else if (fileRef.current && fileRef.current instanceof File) {
+          // Use file from ref (most reliable)
+          fileToSend = fileRef.current;
+          console.log('Using File from ref:', {
+            name: fileToSend.name,
+            type: fileToSend.type,
+            size: fileToSend.size,
+            isFile: fileToSend instanceof File
+          });
+        } else if (attachmentPreview.file && attachmentPreview.file instanceof File) {
+          // Fallback to state
           fileToSend = attachmentPreview.file;
-          console.log('Using existing File:', {
+          console.log('Using File from state:', {
             name: fileToSend.name,
             type: fileToSend.type,
             size: fileToSend.size,
@@ -263,14 +274,35 @@ const ChatSupport = () => {
         formData.append('message', inputMessage || attachmentPreview.name || '');
         formData.append('message_type', attachmentPreview.type);
         
-        // Debug: Verify FormData contents
-        console.log('FormData verification:', {
-          hasAttachment: formData.has('attachment'),
-          attachmentType: formData.get('attachment')?.constructor?.name,
-          attachmentSize: formData.get('attachment')?.size,
-          message: formData.get('message'),
-          message_type: formData.get('message_type'),
+        // Debug: Log complete payload structure
+        console.log('=== PAYLOAD STRUCTURE ===');
+        console.log('FormData has attachment:', formData.has('attachment'));
+        const attachmentFile = formData.get('attachment');
+        console.log('Attachment file:', {
+          name: attachmentFile?.name,
+          type: attachmentFile?.type,
+          size: attachmentFile?.size,
+          isFile: attachmentFile instanceof File,
+          constructor: attachmentFile?.constructor?.name
         });
+        console.log('Message:', formData.get('message'));
+        console.log('Message Type:', formData.get('message_type'));
+        
+        // Log all FormData entries
+        console.log('=== ALL FORMDATA ENTRIES ===');
+        for (const [key, value] of formData.entries()) {
+          if (value instanceof File) {
+            console.log(`${key}:`, {
+              type: 'File',
+              name: value.name,
+              size: value.size,
+              mimeType: value.type
+            });
+          } else {
+            console.log(`${key}:`, value);
+          }
+        }
+        console.log('========================');
         
         response = await supportService.sendMessage(ticketId, formData);
       } else {
@@ -305,9 +337,14 @@ const ChatSupport = () => {
         setAttachmentPreview(null);
         setShowPreview(false);
         
-        // Clean up audio URL if exists
-        if (attachmentPreview?.url && attachmentPreview.type === 'audio') {
-          URL.revokeObjectURL(attachmentPreview.url);
+        // Clean up refs
+        fileRef.current = null;
+        if (attachmentPreview?.type === 'audio') {
+          audioBlobRef.current = null;
+          // Clean up audio URL if exists
+          if (attachmentPreview?.url) {
+            URL.revokeObjectURL(attachmentPreview.url);
+          }
         }
         
         // Scroll to bottom
@@ -335,6 +372,9 @@ const ChatSupport = () => {
     const file = e.target.files[0];
     if (!file || !ticketId) return;
 
+    // Store file in ref for reliable access
+    fileRef.current = file;
+
     // Determine message type based on file type
     let messageType = 'document';
     if (file.type.startsWith('image/')) {
@@ -349,10 +389,11 @@ const ChatSupport = () => {
     const reader = new FileReader();
     reader.onloadend = () => {
       setAttachmentPreview({
-        file: file,
+        file: file, // Store file object
         type: messageType,
         url: reader.result,
         name: file.name,
+        mimeType: file.type,
       });
       setShowPreview(true);
       setShowAttachmentMenu(false);
@@ -363,10 +404,11 @@ const ChatSupport = () => {
     } else {
       // For documents, just show file name
       setAttachmentPreview({
-        file: file,
+        file: file, // Store file object
         type: messageType,
         url: null,
         name: file.name,
+        mimeType: file.type,
       });
       setShowPreview(true);
       setShowAttachmentMenu(false);
