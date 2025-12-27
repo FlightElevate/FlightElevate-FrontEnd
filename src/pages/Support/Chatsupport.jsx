@@ -185,17 +185,18 @@ const ChatSupport = () => {
       if (attachmentPreview) {
         const formData = new FormData();
         
-        // Handle audio blob
-        if (attachmentPreview.blob) {
-          const fileExtension = attachmentPreview.mimeType.includes('mp4') ? 'm4a' : 
-                               attachmentPreview.mimeType.includes('ogg') ? 'ogg' : 'webm';
-          const audioFile = new File([attachmentPreview.blob], attachmentPreview.name, { 
-            type: attachmentPreview.mimeType 
+        // Handle file - use file if available, otherwise create from blob
+        if (attachmentPreview.file) {
+          // File object already exists (for audio or regular files)
+          formData.append('attachment', attachmentPreview.file);
+        } else if (attachmentPreview.blob) {
+          // Fallback: create File from blob if file doesn't exist
+          const fileExtension = attachmentPreview.mimeType?.includes('mp4') ? 'm4a' : 
+                               attachmentPreview.mimeType?.includes('ogg') ? 'ogg' : 'webm';
+          const audioFile = new File([attachmentPreview.blob], attachmentPreview.name || `audio_${Date.now()}.${fileExtension}`, { 
+            type: attachmentPreview.mimeType || 'audio/webm'
           });
           formData.append('attachment', audioFile);
-        } else if (attachmentPreview.file) {
-          // Handle regular file
-          formData.append('attachment', attachmentPreview.file);
         }
         
         formData.append('message', inputMessage || attachmentPreview.name || '');
@@ -352,13 +353,18 @@ const ChatSupport = () => {
         const fileExtension = mimeType.includes('mp4') ? 'm4a' : 
                              mimeType.includes('ogg') ? 'ogg' : 'webm';
         
+        // Create File object immediately for proper FormData handling
+        const audioFile = new File([blob], `audio_${Date.now()}.${fileExtension}`, { 
+          type: mimeType 
+        });
+        
         // Show preview instead of sending immediately
         setAttachmentPreview({
-          file: null, // Will create File object when sending
-          blob: blob,
+          file: audioFile, // Store File object directly
+          blob: blob, // Keep blob for preview URL
           type: 'audio',
           url: audioUrl,
-          name: `audio_${Date.now()}.${fileExtension}`,
+          name: audioFile.name,
           mimeType: mimeType,
         });
         setShowPreview(true);
@@ -688,37 +694,37 @@ const ChatSupport = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Preview Popup */}
-        {showPreview && attachmentPreview && (
-          <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg p-4 shadow-lg z-50 w-[90%] max-w-md">
-            <div className="flex items-center gap-3 mb-3">
+        <div className="flex flex-col border-t border-[#F1F1F1] pt-4 gap-2 rounded-xl relative">
+          {/* Preview Section - shows above input when attachment is selected */}
+          {showPreview && attachmentPreview && (
+            <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg">
               {attachmentPreview.type === 'image' && attachmentPreview.url && (
                 <img 
                   src={attachmentPreview.url} 
                   alt="Preview" 
-                  className="w-24 h-24 object-cover rounded"
+                  className="w-16 h-16 object-cover rounded"
                 />
               )}
               {attachmentPreview.type === 'video' && attachmentPreview.url && (
                 <video 
                   src={attachmentPreview.url} 
                   controls 
-                  className="w-24 h-24 rounded"
+                  className="w-16 h-16 rounded"
                 />
               )}
               {attachmentPreview.type === 'audio' && attachmentPreview.url && (
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl">🎤</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-2xl">🎤</span>
                   <audio 
                     src={attachmentPreview.url} 
                     controls 
-                    className="w-32"
+                    className="flex-1 max-w-[200px] h-8"
                   />
                 </div>
               )}
               {(attachmentPreview.type === 'document' || !attachmentPreview.url) && (
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl">📎</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-2xl">📎</span>
                   <span className="text-sm text-gray-700 truncate max-w-[200px]">
                     {attachmentPreview.name}
                   </span>
@@ -732,29 +738,14 @@ const ChatSupport = () => {
                     URL.revokeObjectURL(attachmentPreview.url);
                   }
                 }}
-                className="ml-auto text-gray-500 hover:text-gray-700"
+                className="ml-auto text-gray-500 hover:text-gray-700 text-lg"
               >
                 ✕
               </button>
             </div>
-            <input
-              type="text"
-              placeholder="Add a message (optional)..."
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded mb-3 text-sm"
-            />
-            <button
-              onClick={handleSend}
-              disabled={sending}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {sending ? 'Sending...' : 'Send'}
-            </button>
-          </div>
-        )}
-
-        <div className="flex items-center border-t border-[#F1F1F1] pt-4 gap-4 rounded-xl relative">
+          )}
+          
+          <div className="flex items-center gap-4">
           {showEmojiPicker && (
             <div className="absolute bottom-12 left-0 z-10">
               <EmojiPicker onEmojiClick={handleEmojiClick} />
@@ -794,16 +785,16 @@ const ChatSupport = () => {
 
           <input
             type="text"
-            placeholder="Type a message here"
+            placeholder={showPreview ? "Add a message (optional)..." : "Type a message here"}
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !showPreview) {
+              if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
               }
             }}
-            disabled={sending || showPreview}
+            disabled={sending}
             className="flex-1 px-4 py-3 bg-white text-gray-800 placeholder-gray-400 focus:outline-none disabled:opacity-50"
           />
 
@@ -832,6 +823,7 @@ const ChatSupport = () => {
             className={`w-10 h-10 ml-4 cursor-pointer ${sending ? 'opacity-50' : ''}`}
             onClick={handleSend}
           />
+          </div>
         </div>
       </div>
     </div>
