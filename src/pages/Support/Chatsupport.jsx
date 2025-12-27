@@ -25,10 +25,13 @@ const ChatSupport = () => {
   const [attachmentType, setAttachmentType] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [attachmentPreview, setAttachmentPreview] = useState(null); // { file, type, url, name }
+  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const emojiRef = useRef(null);
   const attachRef = useRef(null);
+  const audioBlobRef = useRef(null);
 
   // Fetch ticket details and messages
   useEffect(() => {
@@ -172,24 +175,52 @@ const ChatSupport = () => {
 
   // Send message via API
   const handleSend = async () => {
-    if (!inputMessage.trim() || !ticketId || sending) return;
+    if ((!inputMessage.trim() && !attachmentPreview) || !ticketId || sending) return;
 
     setSending(true);
     try {
-      const response = await supportService.sendMessage(ticketId, {
-        message: inputMessage,
-        message_type: 'text',
-      });
+      let response;
+      
+      // If there's an attachment preview, send it
+      if (attachmentPreview) {
+        const formData = new FormData();
+        
+        // Handle audio blob
+        if (attachmentPreview.blob) {
+          const fileExtension = attachmentPreview.mimeType.includes('mp4') ? 'm4a' : 
+                               attachmentPreview.mimeType.includes('ogg') ? 'ogg' : 'webm';
+          const audioFile = new File([attachmentPreview.blob], attachmentPreview.name, { 
+            type: attachmentPreview.mimeType 
+          });
+          formData.append('attachment', audioFile);
+        } else if (attachmentPreview.file) {
+          // Handle regular file
+          formData.append('attachment', attachmentPreview.file);
+        }
+        
+        formData.append('message', inputMessage || attachmentPreview.name || '');
+        formData.append('message_type', attachmentPreview.type);
+        
+        response = await supportService.sendMessage(ticketId, formData);
+      } else {
+        // Send text message only
+        response = await supportService.sendMessage(ticketId, {
+          message: inputMessage,
+          message_type: 'text',
+        });
+      }
 
       if (response.success) {
         // Add message immediately for better UX (optimistic update)
         const sentMessage = {
           id: response.data?.id || Date.now(),
-          message: inputMessage,
+          message: inputMessage || attachmentPreview?.name || '',
           sender_id: user?.id,
           sender: user || {},
           created_at: new Date().toISOString(),
-          message_type: 'text',
+          message_type: attachmentPreview?.type || 'text',
+          attachment_url: response.data?.attachment_url,
+          file_name: response.data?.file_name || attachmentPreview?.name,
         };
         
         setMessages((prev) => {
@@ -200,6 +231,13 @@ const ChatSupport = () => {
         
         setInputMessage("");
         setShowEmojiPicker(false);
+        setAttachmentPreview(null);
+        setShowPreview(false);
+        
+        // Clean up audio URL if exists
+        if (attachmentPreview?.url && attachmentPreview.type === 'audio') {
+          URL.revokeObjectURL(attachmentPreview.url);
+        }
         
         // Scroll to bottom
         setTimeout(() => {
@@ -212,7 +250,7 @@ const ChatSupport = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      toast.error(error.message || 'Failed to send message');
     } finally {
       setSending(false);
     }
@@ -222,43 +260,48 @@ const ChatSupport = () => {
     setInputMessage((prev) => prev + emojiData.emoji);
   };
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file || !ticketId) return;
 
-    setSending(true);
-    try {
-      const formData = new FormData();
-      
-      // Determine message type based on file type
-      let messageType = 'document';
-      if (file.type.startsWith('image/')) {
-        messageType = 'image';
-      } else if (file.type.startsWith('video/')) {
-        messageType = 'video';
-      } else if (file.type.startsWith('audio/')) {
-        messageType = 'audio';
-      }
-      
-      // Append file and message data
-      formData.append('attachment', file);
-      formData.append('message', file.name);
-      formData.append('message_type', messageType);
-
-      const response = await supportService.sendMessage(ticketId, formData);
-      if (response.success) {
-        setShowAttachmentMenu(false);
-        // Message will be added via Reverb event or optimistic update
-      } else {
-        toast.error('Failed to send file');
-      }
-    } catch (error) {
-      console.error('Error sending file:', error);
-      toast.error('Failed to send file');
-    } finally {
-      setSending(false);
-      e.target.value = "";
+    // Determine message type based on file type
+    let messageType = 'document';
+    if (file.type.startsWith('image/')) {
+      messageType = 'image';
+    } else if (file.type.startsWith('video/')) {
+      messageType = 'video';
+    } else if (file.type.startsWith('audio/')) {
+      messageType = 'audio';
     }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAttachmentPreview({
+        file: file,
+        type: messageType,
+        url: reader.result,
+        name: file.name,
+      });
+      setShowPreview(true);
+      setShowAttachmentMenu(false);
+    };
+    
+    if (file.type.startsWith('image/') || file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+      reader.readAsDataURL(file);
+    } else {
+      // For documents, just show file name
+      setAttachmentPreview({
+        file: file,
+        type: messageType,
+        url: null,
+        name: file.name,
+      });
+      setShowPreview(true);
+      setShowAttachmentMenu(false);
+    }
+    
+    e.target.value = "";
   };
 
   const handleMicClick = async () => {
@@ -292,7 +335,7 @@ const ChatSupport = () => {
         }
       };
       
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
         
@@ -302,36 +345,23 @@ const ChatSupport = () => {
         }
         
         const blob = new Blob(chunks, { type: mimeType });
+        audioBlobRef.current = blob;
         
-        // Send audio message
-        if (ticketId) {
-          setSending(true);
-          try {
-            const formData = new FormData();
-            // Create a File object from the blob with proper name and type
-            const fileExtension = mimeType.includes('mp4') ? 'm4a' : 
-                                 mimeType.includes('ogg') ? 'ogg' : 'webm';
-            const audioFile = new File([blob], `audio_${Date.now()}.${fileExtension}`, { 
-              type: mimeType 
-            });
-            formData.append('attachment', audioFile);
-            formData.append('message', '🎤 Audio message');
-            formData.append('message_type', 'audio');
-            
-            const response = await supportService.sendMessage(ticketId, formData);
-            if (response.success) {
-              toast.success('Audio message sent');
-              // Message will be added via Reverb event
-            } else {
-              toast.error('Failed to send audio message');
-            }
-          } catch (error) {
-            console.error('Error sending audio:', error);
-            toast.error(error.message || 'Failed to send audio message');
-          } finally {
-            setSending(false);
-          }
-        }
+        // Create preview URL for audio
+        const audioUrl = URL.createObjectURL(blob);
+        const fileExtension = mimeType.includes('mp4') ? 'm4a' : 
+                             mimeType.includes('ogg') ? 'ogg' : 'webm';
+        
+        // Show preview instead of sending immediately
+        setAttachmentPreview({
+          file: null, // Will create File object when sending
+          blob: blob,
+          type: 'audio',
+          url: audioUrl,
+          name: `audio_${Date.now()}.${fileExtension}`,
+          mimeType: mimeType,
+        });
+        setShowPreview(true);
       };
       
       recorder.onerror = (event) => {
@@ -658,6 +688,72 @@ const ChatSupport = () => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Preview Popup */}
+        {showPreview && attachmentPreview && (
+          <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg p-4 shadow-lg z-50 w-[90%] max-w-md">
+            <div className="flex items-center gap-3 mb-3">
+              {attachmentPreview.type === 'image' && attachmentPreview.url && (
+                <img 
+                  src={attachmentPreview.url} 
+                  alt="Preview" 
+                  className="w-24 h-24 object-cover rounded"
+                />
+              )}
+              {attachmentPreview.type === 'video' && attachmentPreview.url && (
+                <video 
+                  src={attachmentPreview.url} 
+                  controls 
+                  className="w-24 h-24 rounded"
+                />
+              )}
+              {attachmentPreview.type === 'audio' && attachmentPreview.url && (
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl">🎤</span>
+                  <audio 
+                    src={attachmentPreview.url} 
+                    controls 
+                    className="w-32"
+                  />
+                </div>
+              )}
+              {(attachmentPreview.type === 'document' || !attachmentPreview.url) && (
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl">📎</span>
+                  <span className="text-sm text-gray-700 truncate max-w-[200px]">
+                    {attachmentPreview.name}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  setShowPreview(false);
+                  setAttachmentPreview(null);
+                  if (attachmentPreview.url && attachmentPreview.type === 'audio') {
+                    URL.revokeObjectURL(attachmentPreview.url);
+                  }
+                }}
+                className="ml-auto text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Add a message (optional)..."
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded mb-3 text-sm"
+            />
+            <button
+              onClick={handleSend}
+              disabled={sending}
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sending ? 'Sending...' : 'Send'}
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center border-t border-[#F1F1F1] pt-4 gap-4 rounded-xl relative">
           {showEmojiPicker && (
             <div className="absolute bottom-12 left-0 z-10">
@@ -702,12 +798,12 @@ const ChatSupport = () => {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !showPreview) {
                 e.preventDefault();
                 handleSend();
               }
             }}
-            disabled={sending}
+            disabled={sending || showPreview}
             className="flex-1 px-4 py-3 bg-white text-gray-800 placeholder-gray-400 focus:outline-none disabled:opacity-50"
           />
 
