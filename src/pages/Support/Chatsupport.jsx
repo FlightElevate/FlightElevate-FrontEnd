@@ -262,7 +262,7 @@ const ChatSupport = () => {
   };
 
   const handleMicClick = async () => {
-    if (recording) {
+    if (recording && mediaRecorder) {
       mediaRecorder.stop();
       setRecording(false);
       return;
@@ -270,37 +270,83 @@ const ChatSupport = () => {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      
+      // Determine the best MIME type supported by the browser
+      let mimeType = 'audio/webm';
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        mimeType = 'audio/ogg';
+      }
+      
+      const recorder = new MediaRecorder(stream, { mimeType });
       const chunks = [];
 
-      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+      
       recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: "audio/ogg; codecs=opus" });
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+        
+        if (chunks.length === 0) {
+          toast.error('No audio recorded');
+          return;
+        }
+        
+        const blob = new Blob(chunks, { type: mimeType });
         
         // Send audio message
         if (ticketId) {
           setSending(true);
           try {
             const formData = new FormData();
+            // Create a File object from the blob with proper name and type
+            const fileExtension = mimeType.includes('mp4') ? 'm4a' : 
+                                 mimeType.includes('ogg') ? 'ogg' : 'webm';
+            const audioFile = new File([blob], `audio_${Date.now()}.${fileExtension}`, { 
+              type: mimeType 
+            });
+            formData.append('attachment', audioFile);
             formData.append('message', '🎤 Audio message');
             formData.append('message_type', 'audio');
             
-            await supportService.sendMessage(ticketId, formData);
+            const response = await supportService.sendMessage(ticketId, formData);
+            if (response.success) {
+              toast.success('Audio message sent');
+              // Message will be added via Reverb event
+            } else {
+              toast.error('Failed to send audio message');
+            }
           } catch (error) {
             console.error('Error sending audio:', error);
-            toast.error('Failed to send audio message');
+            toast.error(error.message || 'Failed to send audio message');
           } finally {
             setSending(false);
           }
         }
+      };
+      
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event.error);
+        toast.error('Error recording audio');
+        stream.getTracks().forEach(track => track.stop());
+        setRecording(false);
       };
 
       recorder.start();
       setRecording(true);
       setMediaRecorder(recorder);
     } catch (err) {
-      alert("Microphone permission denied or not available.");
-      console.error(err);
+      console.error('Error accessing microphone:', err);
+      toast.error("Microphone permission denied or not available.");
     }
   };
 

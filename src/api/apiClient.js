@@ -100,13 +100,13 @@ export const api = {
 
   // POST request
   post: (url, data, config = {}) => {
-    // If data is FormData, don't set Content-Type (browser will set it with boundary)
+    // If data is FormData, let browser set Content-Type with boundary automatically
     if (data instanceof FormData) {
       return apiClient.post(url, data, {
         ...config,
         headers: {
           ...config.headers,
-          'Content-Type': 'multipart/form-data',
+          // Don't set Content-Type - browser will set it with boundary
         },
       });
     }
@@ -115,13 +115,13 @@ export const api = {
 
   // PUT request
   put: (url, data, config = {}) => {
-    // If data is FormData, don't set Content-Type (browser will set it with boundary)
+    // If data is FormData, let browser set Content-Type with boundary automatically
     if (data instanceof FormData) {
       return apiClient.put(url, data, {
         ...config,
         headers: {
           ...config.headers,
-          'Content-Type': 'multipart/form-data',
+          // Don't set Content-Type - browser will set it with boundary
         },
       });
     }
