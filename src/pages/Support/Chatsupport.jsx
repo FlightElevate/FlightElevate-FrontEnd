@@ -112,12 +112,17 @@ const ChatSupport = () => {
       // Add message in real-time (check for duplicates to avoid re-adding)
       setMessages((prev) => {
         const exists = prev.some((msg) => msg.id === newMessage.id);
-        if (exists) {
+        if (exists && newMessage?.sender_id !== user.id) {
           console.log('Message already exists, skipping:', newMessage.id);
           return prev;
         }
         console.log('Adding new message:', newMessage);
-        return [...prev, newMessage];
+        if(newMessage?.sender_id == user.id){
+          return [...prev];
+        }else{
+
+          return [...prev, newMessage];
+        }
       });
 
       // Scroll to bottom
@@ -127,11 +132,8 @@ const ChatSupport = () => {
     };
 
     // Listen to the custom event name (from broadcastAs)
-    channel.listen('message.sent', handleMessage);
+    channel.listen('.message.sent', handleMessage);
     
-    // Also listen to the class name as fallback (in case broadcastAs doesn't work)
-    channel.listen('App\\Events\\SupportMessageSent', handleMessage);
-    channel.listen('SupportMessageSent', handleMessage);
 
     return () => {
       console.log('Leaving channel:', channelName);

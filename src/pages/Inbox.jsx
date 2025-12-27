@@ -118,13 +118,13 @@ const Inbox = () => {
       if (response.success) {
         // Map id to conversation_id for consistency with getConversations response
         const conversationData = response.data;
-        const newChat = { 
-          ...conversationData, 
+        const newChat = {
+          ...conversationData,
           conversation_id: conversationData.id || conversationData.conversation_id,
-          user: conversationData.chat_users?.map(cu => cu.user) || [selectedUser], 
-          messages: [] 
+          user: conversationData.chat_users?.map(cu => cu.user) || [selectedUser],
+          messages: []
         };
-        
+
         // Check if conversation already exists in chats list
         const existingChatIndex = chats.findIndex(c => c.conversation_id === newChat.conversation_id);
         if (existingChatIndex >= 0) {
@@ -134,11 +134,11 @@ const Inbox = () => {
           // Add new chat
           setChats(prev => [...prev, newChat]);
         }
-        
+
         setSelectedChat(newChat);
         setShowUserList(false);
         setNewChatSearch("");
-        
+
         // Fetch messages for the new conversation
         fetchMessages(newChat.conversation_id);
       }
@@ -149,7 +149,7 @@ const Inbox = () => {
 
   const handleSend = async () => {
     if (!selectedChat || (!input.trim() && !attachment)) return;
-    
+
     // Validate conversation_id exists
     if (!selectedChat.conversation_id) {
       showErrorToast("Invalid conversation. Please select a conversation first.");
@@ -421,123 +421,65 @@ const Inbox = () => {
               </div>
 
 
-              {/* <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-6 py-4">
+              <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-6 py-4">
                 {selectedChat.messages?.map((msg) => {
-                  const isReceived = msg.chat_user?.user?.id !== user.id;
-                  let content;
-                 
-                  if (msg.type === "text") {
-                    content = (
-                      <div className="flex flex-col">
-                        <span>{msg.body}</span>
-                        <span className={`text-[10px] opacity-70 mt-1 ${msg.chat_user_id === user.id ? "text-right" : "text-left"}`}>
-                          {formatMessageTime(msg.created_at)}
-                        </span>
-                      </div>
-                    );
-                  }
-                  else if (msg.type === "attachment") {
-                    content = msg.data?.map((item, idx) => (
-                      <div key={idx} className="flex flex-col">
-                        <div className="flex items-center gap-2 my-1 bg-gray-100 p-2 rounded">
-                          {item.type === "image" ? (
-                            <img src={item.url} className="w-32 h-32 object-cover rounded" />
-                          ) : (
-                            <span>
-                              {item.type === "video"
-                                ? "🎬"
-                                : item.type === "audio"
-                                  ? "🎵"
-                                  : "📎"}
-                            </span>
-                          )}
-
-                          <span className="truncate max-w-[150px]">{item.name}</span>
-
-                          <button
-                            onClick={() => handleDownloadAttachment(item)}
-                            className="text-blue-500 text-xs"
-                          >
-                            Download
-                          </button>
-                        </div>
-
-                        <span className={`text-[10px] opacity-70 mt-1 ${msg.chat_user_id === user.id ? "text-right" : "text-left"}`}>
-                          {formatMessageTime(msg.created_at)}
-                        </span>
-                      </div>
-                    ));
-                  }
+                  const isMine = msg.chat_user?.user?.id === user.id;
+                  const time = formatMessageTime(msg.created_at);
 
                   return (
-                    <div key={msg.id} className={`flex mb-3 ${isReceived ? "justify-start" : "justify-end"}`}>
-                      <div className={`px-4 py-2 rounded-lg max-w-[60%] text-sm ${isReceived ? "bg-gray-100 text-gray-800" : "bg-blue-600 text-white flex flex-col"}`}>
-                        {content}
-                        {!isReceived && <AiOutlineCheck className="ml-2 mt-1 text-white text-xs" />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div> */}
-              <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-6 py-4">
-  {selectedChat.messages?.map((msg) => {
-    const isMine = msg.chat_user?.user?.id === user.id;
-    const time = formatMessageTime(msg.created_at);
-
-    return (
-      <div key={msg.id} className={`w-full mb-3 flex ${isMine ? "justify-end" : "justify-start"}`}>
-        <div
-          className={`
+                    <div key={msg.id} className={`w-full mb-3 flex ${isMine ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`
             relative max-w-[65%] px-3 py-2 rounded-lg shadow-sm 
             ${isMine ? "bg-[#DCF8C6] text-gray-800 rounded-br-none" : "bg-white text-gray-800 rounded-bl-none"}
             flex flex-wrap items-end gap-1
           `}
-        >
+                      >
 
-          {msg.type === "text" && (
-            <span className="font-medium break-words flex-1">
-              {msg.body}
-            </span>
-          )}
+                        {msg.type === "text" && (
+                          <span className="font-medium break-words flex-1">
+                            {msg.body}
+                          </span>
+                        )}
 
-          {msg.type === "attachment" && msg.data?.map((item, idx) => (
-            <div key={idx} className="flex-1">
-              {item.type === "image" ? (
-                <img src={item.url} className="w-40 h-40 object-cover rounded-lg mb-1" />
-              ) : (
-                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
-                  <span className="text-xl">
-                    {item.type === "video" ? "🎬" :
-                     item.type === "audio" ? "🎵" : "📎"}
-                  </span>
-                  <span className="font-semibold truncate max-w-[150px]">{item.name}</span>
-                </div>
-              )}
+                        {msg.type === "attachment" && msg.data?.map((item, idx) => (
+                          <div key={idx} className="flex-1">
+                            {item.type === "image" ? (
+                              <img src={item.url} className="w-40 h-40 object-cover rounded-lg mb-1" />
+                            ) : (
+                              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
+                                <span className="text-xl">
+                                  {item.type === "video" ? "🎬" :
+                                    item.type === "audio" ? "🎵" : "📎"}
+                                </span>
+                                <span className="font-semibold truncate max-w-[150px]">{item.name}</span>
+                              </div>
+                            )}
 
-              <button
-                className="text-blue-500 text-xs underline block mt-1"
-                onClick={() => handleDownloadAttachment(item)}
-              >
-                Download
-              </button>
-            </div>
-          ))}
+                            <button
+                              className="text-blue-500 text-xs underline block mt-1"
+                              onClick={() => handleDownloadAttachment(item)}
+                            >
+                              Download
+                            </button>
+                          </div>
+                        ))}
 
-          <span className="text-[10px] text-gray-600 flex items-center whitespace-nowrap ms-5">
-            {time}
-            {isMine && (
-              <span className="ml-1">
-                {msg.status === "sent" && "✓"}
-                {msg.status === "delivered" && "✓✓"}
-                {msg.status === "seen" && <span className="text-blue-500">✓✓</span>}
-              </span>
-            )}
-          </span>
-        </div>
-      </div>
-    );
-  })}
-</div>
+                        <span className="text-[10px] text-gray-600 flex items-center whitespace-nowrap ms-5">
+                          {time}
+                          {isMine && (
+                            <span className="ml-1">
+                              {msg.status === "sent" && "✓"}
+                              {msg.status === "delivered" && "✓✓"}
+                              {msg.status === "seen" && <span className="text-blue-500">✓✓</span>}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
 
               {showAttachmentPopup && (
