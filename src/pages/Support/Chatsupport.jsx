@@ -185,22 +185,92 @@ const ChatSupport = () => {
       if (attachmentPreview) {
         const formData = new FormData();
         
-        // Handle file - use file if available, otherwise create from blob
-        if (attachmentPreview.file) {
-          // File object already exists (for audio or regular files)
-          formData.append('attachment', attachmentPreview.file);
-        } else if (attachmentPreview.blob) {
-          // Fallback: create File from blob if file doesn't exist
-          const fileExtension = attachmentPreview.mimeType?.includes('mp4') ? 'm4a' : 
-                               attachmentPreview.mimeType?.includes('ogg') ? 'ogg' : 'webm';
-          const audioFile = new File([attachmentPreview.blob], attachmentPreview.name || `audio_${Date.now()}.${fileExtension}`, { 
-            type: attachmentPreview.mimeType || 'audio/webm'
+        // Always recreate File object from blob to ensure it's valid
+        let fileToSend = null;
+        let blobToUse = null;
+        
+        // For audio: Get blob from state or ref (fallback)
+        if (attachmentPreview.type === 'audio') {
+          blobToUse = attachmentPreview.blob || audioBlobRef.current;
+          
+          if (blobToUse && blobToUse instanceof Blob) {
+            const fileExtension = attachmentPreview.mimeType?.includes('mp4') ? 'm4a' : 
+                                 attachmentPreview.mimeType?.includes('ogg') ? 'ogg' : 'webm';
+            const fileName = attachmentPreview.name || `audio_${Date.now()}.${fileExtension}`;
+            const mimeType = attachmentPreview.mimeType || 'audio/webm';
+            
+            fileToSend = new File([blobToUse], fileName, { 
+              type: mimeType
+            });
+            
+            console.log('Created audio File:', {
+              name: fileToSend.name,
+              type: fileToSend.type,
+              size: fileToSend.size,
+              isFile: fileToSend instanceof File
+            });
+          }
+        } 
+        // For regular files (image, video, document)
+        else if (attachmentPreview.file && attachmentPreview.file instanceof File) {
+          fileToSend = attachmentPreview.file;
+          console.log('Using existing File:', {
+            name: fileToSend.name,
+            type: fileToSend.type,
+            size: fileToSend.size,
+            isFile: fileToSend instanceof File
           });
-          formData.append('attachment', audioFile);
+        } 
+        // Fallback: try to create from blob
+        else if (attachmentPreview.blob && attachmentPreview.blob instanceof Blob) {
+          blobToUse = attachmentPreview.blob;
+          const fileExtension = attachmentPreview.mimeType?.includes('mp4') ? 'm4a' : 
+                             attachmentPreview.mimeType?.includes('ogg') ? 'ogg' : 
+                             attachmentPreview.name?.split('.').pop() || 'bin';
+          const fileName = attachmentPreview.name || `file_${Date.now()}.${fileExtension}`;
+          const mimeType = attachmentPreview.mimeType || 'application/octet-stream';
+          
+          fileToSend = new File([blobToUse], fileName, { 
+            type: mimeType
+          });
         }
+        
+        // CRITICAL VALIDATION: Ensure file is valid before appending
+        if (!fileToSend) {
+          console.error('No file to send. attachmentPreview:', attachmentPreview);
+          toast.error('No file found. Please try recording/selecting again.');
+          setSending(false);
+          return;
+        }
+        
+        if (!(fileToSend instanceof File)) {
+          console.error('Invalid file object type:', typeof fileToSend, fileToSend);
+          toast.error('Invalid file object. Please try again.');
+          setSending(false);
+          return;
+        }
+        
+        if (fileToSend.size === 0) {
+          console.error('File is empty:', fileToSend);
+          toast.error('File is empty. Please try again.');
+          setSending(false);
+          return;
+        }
+        
+        // Append file to FormData
+        formData.append('attachment', fileToSend, fileToSend.name);
         
         formData.append('message', inputMessage || attachmentPreview.name || '');
         formData.append('message_type', attachmentPreview.type);
+        
+        // Debug: Verify FormData contents
+        console.log('FormData verification:', {
+          hasAttachment: formData.has('attachment'),
+          attachmentType: formData.get('attachment')?.constructor?.name,
+          attachmentSize: formData.get('attachment')?.size,
+          message: formData.get('message'),
+          message_type: formData.get('message_type'),
+        });
         
         response = await supportService.sendMessage(ticketId, formData);
       } else {
@@ -346,25 +416,21 @@ const ChatSupport = () => {
         }
         
         const blob = new Blob(chunks, { type: mimeType });
-        audioBlobRef.current = blob;
+        audioBlobRef.current = blob; // Store blob in ref for reliable access
         
         // Create preview URL for audio
         const audioUrl = URL.createObjectURL(blob);
         const fileExtension = mimeType.includes('mp4') ? 'm4a' : 
                              mimeType.includes('ogg') ? 'ogg' : 'webm';
-        
-        // Create File object immediately for proper FormData handling
-        const audioFile = new File([blob], `audio_${Date.now()}.${fileExtension}`, { 
-          type: mimeType 
-        });
+        const fileName = `audio_${Date.now()}.${fileExtension}`;
         
         // Show preview instead of sending immediately
+        // Store blob reference and metadata, but create File object when sending
         setAttachmentPreview({
-          file: audioFile, // Store File object directly
-          blob: blob, // Keep blob for preview URL
+          blob: blob, // Keep blob for preview URL and file creation
           type: 'audio',
           url: audioUrl,
-          name: audioFile.name,
+          name: fileName,
           mimeType: mimeType,
         });
         setShowPreview(true);
