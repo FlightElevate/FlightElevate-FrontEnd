@@ -185,17 +185,18 @@ const ChatSupport = () => {
       if (attachmentPreview) {
         const formData = new FormData();
         
-        // Handle audio blob
-        if (attachmentPreview.blob) {
-          const fileExtension = attachmentPreview.mimeType.includes('mp4') ? 'm4a' : 
-                               attachmentPreview.mimeType.includes('ogg') ? 'ogg' : 'webm';
-          const audioFile = new File([attachmentPreview.blob], attachmentPreview.name, { 
-            type: attachmentPreview.mimeType 
+        // Handle file - use file if available, otherwise create from blob
+        if (attachmentPreview.file) {
+          // File object already exists (for audio or regular files)
+          formData.append('attachment', attachmentPreview.file);
+        } else if (attachmentPreview.blob) {
+          // Fallback: create File from blob if file doesn't exist
+          const fileExtension = attachmentPreview.mimeType?.includes('mp4') ? 'm4a' : 
+                               attachmentPreview.mimeType?.includes('ogg') ? 'ogg' : 'webm';
+          const audioFile = new File([attachmentPreview.blob], attachmentPreview.name || `audio_${Date.now()}.${fileExtension}`, { 
+            type: attachmentPreview.mimeType || 'audio/webm'
           });
           formData.append('attachment', audioFile);
-        } else if (attachmentPreview.file) {
-          // Handle regular file
-          formData.append('attachment', attachmentPreview.file);
         }
         
         formData.append('message', inputMessage || attachmentPreview.name || '');
@@ -352,13 +353,18 @@ const ChatSupport = () => {
         const fileExtension = mimeType.includes('mp4') ? 'm4a' : 
                              mimeType.includes('ogg') ? 'ogg' : 'webm';
         
+        // Create File object immediately for proper FormData handling
+        const audioFile = new File([blob], `audio_${Date.now()}.${fileExtension}`, { 
+          type: mimeType 
+        });
+        
         // Show preview instead of sending immediately
         setAttachmentPreview({
-          file: null, // Will create File object when sending
-          blob: blob,
+          file: audioFile, // Store File object directly
+          blob: blob, // Keep blob for preview URL
           type: 'audio',
           url: audioUrl,
-          name: `audio_${Date.now()}.${fileExtension}`,
+          name: audioFile.name,
           mimeType: mimeType,
         });
         setShowPreview(true);
@@ -707,17 +713,17 @@ const ChatSupport = () => {
                 />
               )}
               {attachmentPreview.type === 'audio' && attachmentPreview.url && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1">
                   <span className="text-3xl">🎤</span>
                   <audio 
                     src={attachmentPreview.url} 
                     controls 
-                    className="w-32"
+                    className="flex-1 max-w-[200px]"
                   />
                 </div>
               )}
               {(attachmentPreview.type === 'document' || !attachmentPreview.url) && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1">
                   <span className="text-3xl">📎</span>
                   <span className="text-sm text-gray-700 truncate max-w-[200px]">
                     {attachmentPreview.name}
@@ -732,7 +738,7 @@ const ChatSupport = () => {
                     URL.revokeObjectURL(attachmentPreview.url);
                   }
                 }}
-                className="ml-auto text-gray-500 hover:text-gray-700"
+                className="ml-auto text-gray-500 hover:text-gray-700 text-xl"
               >
                 ✕
               </button>
