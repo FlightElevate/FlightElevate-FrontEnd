@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { roleService } from '../api/services/roleService';
 import { showErrorToast } from '../utils/notifications';
+import { useAuth } from './AuthContext';
 
 /**
  * Roles Context
@@ -17,6 +18,7 @@ import { showErrorToast } from '../utils/notifications';
 const RolesContext = createContext(null);
 
 export const RolesProvider = ({ children }) => {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,8 +57,17 @@ export const RolesProvider = ({ children }) => {
    * Fetch roles from API
    * Prevents multiple simultaneous calls using ref
    * Handles errors gracefully without retrying
+   * Only fetches if user is authenticated
    */
   const fetchRoles = useCallback(async (forceRefresh = false) => {
+    // Don't fetch if user is not authenticated
+    if (!isAuthenticated) {
+      if (import.meta.env.DEV) {
+        console.log('[RolesContext] User not authenticated, skipping roles fetch');
+      }
+      return [];
+    }
+
     // Return cached data if valid and not forcing refresh
     if (!forceRefresh && isCacheValid()) {
       if (import.meta.env.DEV) {
@@ -144,16 +155,32 @@ export const RolesProvider = ({ children }) => {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [isCacheValid, shouldRetryAfterError]);
+  }, [isAuthenticated, isCacheValid, shouldRetryAfterError]);
 
   /**
-   * Initialize roles on mount if not cached
-   * Only runs once on component mount
+   * Initialize roles on mount if not cached and user is authenticated
+   * Also refetches when authentication status changes
    */
   useEffect(() => {
     let isMounted = true;
 
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
+    }
+
     const initializeRoles = async () => {
+      // Only fetch if authenticated
+      if (!isAuthenticated) {
+        // Clear roles if user is not authenticated
+        if (rolesRef.current.length > 0) {
+          setRoles([]);
+          rolesRef.current = [];
+          lastFetchedRef.current = null;
+        }
+        return;
+      }
+
       if (!isCacheValid()) {
         await fetchRoles();
       } else {
@@ -171,7 +198,7 @@ export const RolesProvider = ({ children }) => {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [isAuthenticated, authLoading]); // Run when auth status changes
 
   /**
    * Sync refs when roles state changes

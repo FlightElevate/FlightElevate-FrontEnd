@@ -42,12 +42,13 @@ apiClient.interceptors.response.use(
       // Handle specific error codes
       switch (status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
+          // Unauthorized - clear token and redirect to landing page
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user');
-          // Don't redirect if already on login page
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
+          // Don't redirect if already on landing page or auth pages
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/' && currentPath !== '/login' && currentPath !== '/register') {
+            window.location.href = '/';
           }
           errorResponse.message = data?.message || 'Unauthorized. Please login again.';
           break;

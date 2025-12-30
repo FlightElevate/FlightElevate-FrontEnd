@@ -41,7 +41,7 @@ export const navigationItems = [
     icon: MdSecurity,
     label: "Roles & Permissions",
     link: "/roles-permissions",
-    roles: ["super admin"], // Super Admin only
+    roles: ["super admin", "admin"], // Super Admin and Admin
   },
   {
     icon: MdCampaign,

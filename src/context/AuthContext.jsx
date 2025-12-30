@@ -76,6 +76,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Refresh current user data (useful after role/permission changes)
+  const refreshUser = async () => {
+    try {
+      const response = await authService.me();
+      if (response.success && response.data) {
+        setUser(response.data);
+        return { success: true, user: response.data };
+      }
+      return { success: false };
+    } catch (error) {
+      console.error('Refresh user error:', error);
+      return { success: false, error };
+    }
+  };
+
   // Check if user has specific role (handles both string and object formats)
   const hasRole = (role) => {
     if (!user?.roles) return false;
@@ -107,6 +122,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    refreshUser,
     hasRole,
     hasPermission,
     isSuperAdmin: userIsSuperAdmin,
