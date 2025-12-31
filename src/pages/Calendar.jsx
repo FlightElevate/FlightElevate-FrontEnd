@@ -736,19 +736,19 @@ const Calendar = () => {
   }
 
   return (
-    <div className="md:mt-5 mx-auto">
-      <div className="bg-white shadow-sm rounded-lg">
+    <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-4 md:mt-5 mx-auto max-w-[100vw]">
+      <div className="bg-white shadow-sm rounded-lg w-full overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-b border-gray-200">
-          <h2 className="text-2xl font-semibold text-gray-800">Schedule</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 border-b border-gray-200">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">Schedule</h2>
           
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2 md:gap-3 w-full sm:w-auto">
             {/* Location Select - Hidden for Students */}
             {!isStudent() && (
               <select
                 value={selectedLocation}
                 onChange={handleLocationChange}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:min-w-[140px]"
               >
                 <option value="">Select Location</option>
                 {locations.map((location, idx) => (
@@ -758,28 +758,28 @@ const Calendar = () => {
             )}
 
             {/* Date Navigation */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => navigateWeek(-1)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
               >
-                <FiChevronLeft size={20} />
+                <FiChevronLeft size={16} className="sm:w-5 sm:h-5" />
               </button>
-              <span className="text-sm font-medium text-gray-700 min-w-[200px] text-center">
+              <span className="text-xs sm:text-sm font-medium text-gray-700 text-center whitespace-nowrap px-1 sm:px-2">
                 {getWeekRange()}
               </span>
               <button
                 onClick={() => navigateWeek(1)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
               >
-                <FiChevronRight size={20} />
+                <FiChevronRight size={16} className="sm:w-5 sm:h-5" />
               </button>
             </div>
 
             {/* Action Buttons */}
             <button
               onClick={() => setShowFindTimeModal(true)}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium"
+              className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-xs sm:text-sm font-medium whitespace-nowrap"
             >
               Find a Time
             </button>
@@ -788,74 +788,75 @@ const Calendar = () => {
                 setIsAircraftPreSelected(false); // Reset when opening from calendar
                 setShowNewReservationModal(true);
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+              className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm font-medium whitespace-nowrap"
             >
               New reservation
             </button>
             <button
               onClick={() => setShowSettingsModal(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
             >
-              <FiSettings size={20} className="text-gray-600" />
+              <FiSettings size={18} className="sm:w-5 sm:h-5 text-gray-600" />
             </button>
           </div>
         </div>
 
         {/* Schedule Grid */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            {/* Time Header */}
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="w-48 text-left px-4 py-3 font-medium text-sm text-gray-700 border-r border-gray-200">
-                  {/* Empty for row labels */}
-                </th>
-                {timeSlots.map((slot, idx) => (
-                  <th
-                    key={idx}
-                    className="text-center px-2 py-3 text-xs text-gray-600 font-medium border-r border-gray-200"
-                    style={{ minWidth: '80px' }}
-                  >
-                    {slot.label}
+        <div className="overflow-x-auto overflow-y-auto w-full" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+          <div className="inline-block min-w-full align-middle">
+            <table className="w-full border-collapse" style={{ minWidth: 'max-content' }}>
+              {/* Time Header */}
+              <thead className="sticky top-0 z-20 bg-gray-50">
+                <tr className="border-b border-gray-200">
+                  <th className="w-32 sm:w-40 md:w-48 text-left px-2 sm:px-3 md:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30">
+                    {/* Empty for row labels */}
                   </th>
-                ))}
-              </tr>
-            </thead>
+                  {timeSlots.map((slot, idx) => (
+                    <th
+                      key={idx}
+                      className="text-center px-1 sm:px-2 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
+                    >
+                      <span className="hidden sm:inline">{slot.label}</span>
+                      <span className="sm:hidden">{slot.hour === 0 ? '12a' : slot.hour < 12 ? `${slot.hour}a` : slot.hour === 12 ? '12p' : `${slot.hour - 12}p`}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
 
             <tbody>
               {/* Search Row */}
               <tr className="border-b border-gray-200">
-                <td className="px-4 py-3 border-r border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <FiSearch className="text-gray-400" size={16} />
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 sticky left-0 bg-white z-10">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <FiSearch className="text-gray-400 flex-shrink-0" size={14} />
                     <input
                       type="text"
-                      placeholder="Q Search"
+                      placeholder="Search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="border-none outline-none text-sm w-full bg-transparent text-gray-700 placeholder-gray-400"
+                      className="border-none outline-none text-xs sm:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400"
                     />
                   </div>
                 </td>
                 {timeSlots.map((_, idx) => (
                   <td
                     key={idx}
-                    className="border-r border-gray-200"
-                    style={{ minWidth: '80px' }}
+                    className="border-r border-gray-200 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
+                    style={{ height: '50px' }}
                   ></td>
                 ))}
               </tr>
 
               {/* Aircraft Transfer Schedule Section Header */}
               <tr className="border-b border-gray-200 bg-purple-50">
-                <td className="px-4 py-3 border-r border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-800">Aircraft Transfer Schedule</h3>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 sticky left-0 bg-purple-50 z-10">
+                  <h3 className="text-xs sm:text-sm font-semibold text-gray-800">Aircraft Transfer Schedule</h3>
                 </td>
                 {timeSlots.map((_, idx) => (
                   <td
                     key={idx}
-                    className="text-center border-r border-gray-200 text-gray-400"
-                    style={{ minWidth: '80px' }}
+                    className="text-center border-r border-gray-200 text-gray-400 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
+                    style={{ height: '40px' }}
                   >
                     –
                   </td>
@@ -865,8 +866,8 @@ const Calendar = () => {
               {/* Aircraft Rows */}
               {filteredAircraftSchedule.map((aircraft) => (
                 <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-4 py-3 border-r border-gray-200 text-sm text-gray-700">
-                    {aircraft.name}
+                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 text-xs sm:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium">
+                    <span className="truncate block max-w-[120px] sm:max-w-[180px]">{aircraft.name}</span>
                   </td>
                   {timeSlots.map((slot, idx) => {
                     const event = getEventForCell(aircraft, slot.hour);
@@ -876,19 +877,19 @@ const Calendar = () => {
                     return (
                       <td
                         key={idx}
-                        className="relative border-r border-gray-200 p-0"
-                        style={{ minWidth: '80px', height: '60px' }}
+                        className="relative border-r border-gray-200 p-0 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
+                        style={{ height: '50px' }}
                         colSpan={isFirstCell ? span : undefined}
                       >
                         {isFirstCell && (
                           <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white text-xs px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
-                            style={{ width: '95%', height: '40px' }}
+                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white text-[9px] sm:text-xs px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
+                            style={{ width: '95%', height: '35px' }}
                             onMouseEnter={(e) => handleEventHover(event, e)}
                             onMouseLeave={handleEventLeave}
                             onClick={() => handleEventClick(event)}
                           >
-                            <div className="font-medium truncate text-[10px]">{event.start_time}</div>
+                            <div className="font-medium truncate text-[9px] sm:text-[10px]">{event.start_time}</div>
                           </div>
                         )}
                       </td>
@@ -900,8 +901,8 @@ const Calendar = () => {
               {/* User Schedule Rows */}
               {filteredUserSchedule.map((user) => (
                 <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-4 py-3 border-r border-gray-200 text-sm text-gray-700">
-                    {user.name}
+                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 text-xs sm:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium">
+                    <span className="truncate block max-w-[120px] sm:max-w-[180px]">{user.name}</span>
                   </td>
                   {timeSlots.map((slot, idx) => {
                     const event = getEventForCell(user, slot.hour);
@@ -911,19 +912,19 @@ const Calendar = () => {
                     return (
                       <td
                         key={idx}
-                        className="relative border-r border-gray-200 p-0"
-                        style={{ minWidth: '80px', height: '60px' }}
+                        className="relative border-r border-gray-200 p-0 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
+                        style={{ height: '50px' }}
                         colSpan={isFirstCell ? span : undefined}
                       >
                         {isFirstCell && (
                           <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white text-xs px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
-                            style={{ width: '95%', height: '40px' }}
+                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white text-[9px] sm:text-xs px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
+                            style={{ width: '95%', height: '35px' }}
                             onMouseEnter={(e) => handleEventHover(event, e)}
                             onMouseLeave={handleEventLeave}
                             onClick={() => handleEventClick(event)}
                           >
-                            <div className="font-medium truncate text-[10px]">{event.start_time}</div>
+                            <div className="font-medium truncate text-[9px] sm:text-[10px]">{event.start_time}</div>
                           </div>
                         )}
                       </td>
@@ -933,6 +934,7 @@ const Calendar = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -966,8 +968,8 @@ const Calendar = () => {
 
       {/* Settings Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-xl font-semibold text-gray-800">Calendar Settings</h3>
               <button
@@ -998,7 +1000,7 @@ const Calendar = () => {
                   </div>
 
                   {/* Working Hours */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours Start</label>
                       <input
@@ -1093,8 +1095,8 @@ const Calendar = () => {
 
       {/* Reservation Detail Modal */}
       {showReservationDetailModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             {loadingReservation ? (
               <div className="flex justify-center items-center p-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -1125,7 +1127,7 @@ const Calendar = () => {
                     </button>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-4 text-sm border-t border-dashed border-gray-300 pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm border-t border-dashed border-gray-300 pt-4">
                     <div>
                       <p className="text-gray-500 mb-1">Issued</p>
                       <p className="font-medium text-gray-800">{selectedReservation.issued_date}</p>
@@ -1154,7 +1156,7 @@ const Calendar = () => {
                   </div>
 
                   {/* Customer and Instructor */}
-                  <div className="grid grid-cols-2 gap-6 border-b border-dashed border-gray-300 pb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 border-b border-dashed border-gray-300 pb-4">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Customer:</h4>
                       <div className="space-y-2 text-sm">
@@ -1202,8 +1204,8 @@ const Calendar = () => {
 
       {/* New Reservation Modal */}
       {showNewReservationModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-xl font-semibold text-gray-800">
                 {isEditMode ? 'Edit Reservation' : 'New Reservation'}
@@ -1355,7 +1357,7 @@ const Calendar = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                     <input

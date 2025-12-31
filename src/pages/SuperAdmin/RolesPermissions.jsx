@@ -1,16 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiDotsVertical } from "react-icons/hi";
 import { FiSearch, FiX } from "react-icons/fi";
 import { roleService } from "../../api/services/roleService";
 import { useRolesContext } from "../../context/RolesContext";
 import { showSuccessToast, showErrorToast, showConfirmDialog } from "../../utils/notifications";
+import { useAuth } from "../../context/AuthContext";
+import { getNavigationItemsByRole } from "../../config/navigation";
+import { isSuperAdmin } from "../../utils/roleUtils";
 
 const RolesPermissions = () => {
   const navigate = useNavigate();
+  const { user, refreshUser } = useAuth();
   const { roles: contextRoles, fetchRoles: refetchRoles } = useRolesContext();
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
+  const [allPermissions, setAllPermissions] = useState([]); // Store all permissions
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
@@ -19,6 +24,72 @@ const RolesPermissions = () => {
   const [updatingPermissions, setUpdatingPermissions] = useState({});
   const dropdownRefs = useRef({});
   const [viewMode, setViewMode] = useState("detailed"); // "summary" or "detailed"
+  
+  // Check if current user is super admin
+  const userIsSuperAdmin = useMemo(() => {
+    return user?.roles ? isSuperAdmin(user.roles) : false;
+  }, [user?.roles]);
+  
+  // Get admin's accessible navigation items (excluding Super Admin only items)
+  const adminNavItems = useMemo(() => {
+    if (userIsSuperAdmin || !user?.roles) return [];
+    // Get all navigation items for admin
+    const allNavItems = getNavigationItemsByRole(user.roles);
+    // Filter out Super Admin only items
+    const superAdminOnlyLabels = [
+      "User Logs",
+      "Announcements", 
+      "User Management",
+      "Subscriptions"
+    ];
+    return allNavItems.filter(item => !superAdminOnlyLabels.includes(item.label));
+  }, [user?.roles, userIsSuperAdmin]);
+  
+  // Map navigation labels to permission patterns (based on actual permission names from backend)
+  const navLabelToPermissionPattern = (label) => {
+    const mapping = {
+      "Dashboard": ["dashboard"], // Dashboard permissions if any
+      "Calendar": ["calendar", "events"], // view calendar, create events, edit events, delete events
+      "Inbox": ["messages", "message"], // view messages, send messages, delete messages
+      "Users": ["users", "user"], // view users, create users, edit users, delete users
+      "User Management": ["users", "user", "organizations"], // All user and org management
+      "Support": ["support tickets", "support", "ticket"], // view support tickets, create support tickets, etc.
+      "Settings": ["setting", "settings"], // Settings permissions if any
+      "Air Craft Profile": ["aircraft"], // view aircraft, create aircraft, edit aircraft, delete aircraft
+      "Announcements": ["announcements", "announcement"], // view announcements, create announcements, etc.
+      "Roles & Permissions": ["roles", "role", "permissions", "permission"], // view roles, create roles, etc.
+      "Subscriptions": ["subscriptions", "subscription"], // view subscriptions, create subscriptions, etc.
+      "User Logs": ["activity logs", "activity", "log"], // view activity logs
+      "Lessons": ["lessons", "lesson"], // view lessons, create lessons, etc.
+      "Billing": ["billing", "payment"], // Billing related permissions if any
+    };
+    
+    return mapping[label] || [label.toLowerCase().replace(/\s+/g, ' ')];
+  };
+  
+  // Filter permissions based on admin's accessible navigation items
+  const filteredPermissionsForAdmin = useMemo(() => {
+    if (userIsSuperAdmin || !allPermissions.length || !adminNavItems.length) {
+      return allPermissions; // Super admin sees all, or return all if no filter needed
+    }
+    
+    // Get all permission patterns from accessible nav items
+    const allowedPatterns = adminNavItems.flatMap(item => 
+      navLabelToPermissionPattern(item.label)
+    );
+    
+    // Remove duplicates and normalize
+    const uniquePatterns = [...new Set(allowedPatterns.map(p => p.toLowerCase()))];
+    
+    // Filter permissions that match any of the patterns
+    // Permission names are like "view users", "create aircraft", "view support tickets", etc.
+    return allPermissions.filter(permission => {
+      const permLower = permission.toLowerCase();
+      return uniquePatterns.some(pattern => 
+        permLower.includes(pattern) || permLower.startsWith(pattern) || permLower.endsWith(pattern)
+      );
+    });
+  }, [allPermissions, adminNavItems, userIsSuperAdmin]);
   
   // Modal states
   const [showAddRoleModal, setShowAddRoleModal] = useState(false);
@@ -60,19 +131,114 @@ const RolesPermissions = () => {
           console.log('[RolesPermissions] Using roles from context');
         }
       }
+      
+      // Debug: Log raw roles data
+      if (import.meta.env.DEV) {
+        console.log('[RolesPermissions] Raw roles data:', {
+          count: rolesData?.length || 0,
+          roles: rolesData?.map(r => ({ 
+            id: r.id, 
+            name: r.name, 
+            admin_identify_id: r.admin_identify_id,
+            admin_identify_id_type: typeof r.admin_identify_id
+          })) || [],
+          userOrgId: user?.organization_id,
+          userOrgIdType: typeof user?.organization_id,
+          userIsSuperAdmin
+        });
+      }
+
+      // Filter roles for Admin users
+      if (!userIsSuperAdmin && rolesData && rolesData.length > 0) {
+        // For Admin: Exclude Super Admin and Admin, show only Instructor, Student, and admin-created roles
+        rolesData = rolesData.filter(role => {
+          const roleName = role.name?.toLowerCase() || '';
+          
+          // Exclude Super Admin and Admin roles
+          if (roleName === 'super admin' || roleName === 'super-admin' || roleName === 'admin') {
+            return false;
+          }
+          
+          // IMPORTANT: Check admin-created roles FIRST (before Instructor/Student check)
+          // If admin_identify_id is NOT null, it means this role was created by an admin
+          // Only show it to the admin whose organization_id matches admin_identify_id
+          if (role.admin_identify_id !== null && role.admin_identify_id !== undefined) {
+            // This is an admin-created role - only show to the admin who created it
+            if (user?.organization_id) {
+              const roleOrgId = Number(role.admin_identify_id);
+              const userOrgId = Number(user.organization_id);
+              
+              // Debug logging
+              if (import.meta.env.DEV) {
+                console.log('[RolesPermissions] Checking admin-created role:', {
+                  roleName: role.name,
+                  roleId: role.id,
+                  roleAdminId: roleOrgId,
+                  userOrgId: userOrgId,
+                  match: roleOrgId === userOrgId
+                });
+              }
+              
+              // Only show if admin_identify_id matches current admin's organization_id
+              if (roleOrgId === userOrgId) {
+                return true; // Show this admin-created role
+              }
+            }
+            // Don't show admin-created roles to other admins
+            return false;
+          }
+          
+          // Include Instructor and Student roles (system roles with null admin_identify_id)
+          // Either system roles (null admin_identify_id) OR organization-specific versions
+          if (roleName === 'instructor' || roleName === 'student') {
+            // System role (null admin_identify_id) - show to all admins
+            if (role.admin_identify_id === null || role.admin_identify_id === undefined) {
+              return true;
+            }
+            // Organization-specific role - only show if it matches current admin's organization
+            // (This case is already handled above in admin_identify_id check)
+            return false;
+          }
+          
+          // If admin_identify_id is null and it's not Instructor/Student, it's another system role
+          // Don't show other system roles to regular admins
+          return false;
+        });
+        
+        if (import.meta.env.DEV) {
+          console.log('[RolesPermissions] Filtered roles for Admin:', {
+            totalRoles: contextRoles?.length || 0,
+            filteredRoles: rolesData.length,
+            userOrgId: user?.organization_id,
+            roles: rolesData.map(r => ({ name: r.name, admin_identify_id: r.admin_identify_id }))
+          });
+        }
+      }
 
       // Fetch permissions (separate endpoint, no caching needed here)
       const permissionsResponse = await roleService.getPermissions();
 
-      if (rolesData && rolesData.length > 0) {
-        setRoles(rolesData);
+      // Always set roles, even if empty array (to clear previous state)
+      setRoles(rolesData || []);
+      
+      if (import.meta.env.DEV) {
+        console.log('[RolesPermissions] Setting roles to state:', {
+          count: rolesData?.length || 0,
+          roles: rolesData?.map(r => ({ id: r.id, name: r.name, admin_identify_id: r.admin_identify_id })) || []
+        });
       }
+      
+      // Store all permissions
+      let allPerms = [];
       if (permissionsResponse && permissionsResponse.success) {
-        setPermissions(permissionsResponse.data);
+        allPerms = permissionsResponse.data;
       } else if (permissionsResponse && Array.isArray(permissionsResponse)) {
         // Handle case where response is directly an array
-        setPermissions(permissionsResponse);
+        allPerms = permissionsResponse;
       }
+      
+      setAllPermissions(allPerms);
+      // Filtered permissions will be set via useMemo
     } catch (err) {
       const errorMessage = err.message || err.response?.data?.message || 'Error loading data';
       console.error('[RolesPermissions] Error fetching data:', err);
@@ -92,13 +258,49 @@ const RolesPermissions = () => {
       } else {
         setRoles([]);
       }
+      setAllPermissions([]);
       setPermissions([]);
     } finally {
       setLoading(false);
     }
-  }, [contextRoles, refetchRoles]);
+  }, [contextRoles, refetchRoles, userIsSuperAdmin, user?.organization_id]);
+  
+  // Update filtered permissions when allPermissions or adminNavItems change
+  useEffect(() => {
+    if (userIsSuperAdmin) {
+      setPermissions(allPermissions);
+    } else {
+      setPermissions(filteredPermissionsForAdmin);
+    }
+  }, [allPermissions, filteredPermissionsForAdmin, userIsSuperAdmin]);
+
+  // Check if role can be deleted (only admin-created roles can be deleted)
+  const canDeleteRole = (role) => {
+    // Super Admin can delete any role (except Super Admin itself)
+    if (userIsSuperAdmin) {
+      const roleName = role.name?.toLowerCase() || '';
+      return roleName !== 'super admin' && roleName !== 'super-admin';
+    }
+    
+    // Admin can only delete roles they created (admin_identify_id matches their organization_id)
+    if (user?.organization_id && role.admin_identify_id) {
+      return role.admin_identify_id === user.organization_id;
+    }
+    
+    // System roles (Instructor, Student) cannot be deleted
+    return false;
+  };
 
   const handleDelete = async (id, roleName) => {
+    const role = roles.find(r => r.id === id);
+    if (!role) return;
+
+    // Check if role can be deleted
+    if (!canDeleteRole(role)) {
+      showErrorToast('This role cannot be deleted');
+      return;
+    }
+
     const confirmed = await showConfirmDialog(
       `Delete ${roleName}`,
       `Are you sure you want to delete the role "${roleName}"? This action cannot be undone.`,
@@ -115,7 +317,7 @@ const RolesPermissions = () => {
         fetchData();
       }
     } catch (err) {
-      showErrorToast('Failed to delete role');
+      showErrorToast(err.response?.data?.message || 'Failed to delete role');
     } finally {
       setActionLoading(null);
     }
@@ -143,14 +345,50 @@ const RolesPermissions = () => {
       const response = await roleService.updateRolePermissions(roleId, updatedPermissions);
       if (response.success) {
         showSuccessToast('Permission updated successfully');
-        // Update local state
-        setRoles(prevRoles =>
-          prevRoles.map(r =>
-            r.id === roleId
-              ? { ...r, permissions: updatedPermissions }
-              : r
-          )
-        );
+        
+        // If backend created a new organization-specific role, update the role ID
+        const updatedRoleId = response.data?.id || roleId;
+        
+        // Update local state - handle case where role ID might have changed (org-specific copy created)
+        if (updatedRoleId !== roleId && response.data) {
+          // New organization-specific role was created, replace the old one
+          setRoles(prevRoles => {
+            const filtered = prevRoles.filter(r => r.id !== roleId);
+            return [...filtered, {
+              id: response.data.id,
+              name: response.data.name,
+              permissions: response.data.permissions || updatedPermissions,
+              admin_identify_id: response.data.admin_identify_id
+            }];
+          });
+        } else {
+          // Same role, just update permissions
+          setRoles(prevRoles =>
+            prevRoles.map(r =>
+              r.id === roleId
+                ? { 
+                    ...r, 
+                    permissions: response.data?.permissions || updatedPermissions,
+                    admin_identify_id: response.data?.admin_identify_id || r.admin_identify_id
+                  }
+                : r
+            )
+          );
+        }
+        
+        // Refetch roles to ensure we have the latest data (especially if org-specific copy was created)
+        await fetchData();
+        
+        // If this was Instructor/Student role and org-specific copy was created,
+        // users were migrated - refresh current user data to get updated roles
+        const role = roles.find(r => r.id === roleId);
+        const roleName = role?.name?.toLowerCase() || '';
+        if ((roleName === 'instructor' || roleName === 'student') && updatedRoleId !== roleId) {
+          // Refresh user data to get updated roles (if current user is affected)
+          if (refreshUser) {
+            await refreshUser();
+          }
+        }
       }
     } catch (err) {
       showErrorToast('Failed to update permission');
@@ -256,7 +494,14 @@ const RolesPermissions = () => {
       <div className="bg-white shadow-sm rounded-lg">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1 p-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">Roles</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">Roles</h2>
+            {!userIsSuperAdmin && adminNavItems.length > 0 && (
+              <p className="text-sm text-gray-500 mt-1">
+                Showing permissions for: {adminNavItems.map(item => item.label).join(", ")}
+              </p>
+            )}
+          </div>
           <button
             onClick={handleAddRoleClick}
             className="mt-2 sm:mt-0 px-4 py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
@@ -355,12 +600,14 @@ const RolesPermissions = () => {
                                     >
                                       View Permissions
                                     </button>
-                                    <button
-                                      className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100"
-                                      onClick={() => handleDelete(item.id, item.name)}
-                                    >
-                                      Delete
-                                    </button>
+                                    {canDeleteRole(item) && (
+                                      <button
+                                        className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100"
+                                        onClick={() => handleDelete(item.id, item.name)}
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
                                   </div>
                                 )}
                               </div>

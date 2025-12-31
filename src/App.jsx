@@ -1,8 +1,10 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./layouts/MainLayout";
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Auth/Login";
+import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ResetPassword from "./pages/Auth/ResetPassword";
 import DashboardRouter from "./components/Dashboard/DashboardRouter";
@@ -38,7 +40,9 @@ const App = () => {
   return (
     <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         
@@ -48,7 +52,7 @@ const App = () => {
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route path="/" element={<DashboardRouter />} />
+          <Route path="/dashboard" element={<DashboardRouter />} />
           
           {/* User Management - Original (static data) */}
           <Route path="/user-management" element={<UserManagement />} />
@@ -64,9 +68,9 @@ const App = () => {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/inbox" element={<Inbox />} />
           
-          {/* Super Admin Only Routes */}
+          {/* Roles & Permissions - Super Admin and Admin */}
           <Route path="/roles-permissions" element={
-            <ProtectedRoute requiredRole="Super Admin">
+            <ProtectedRoute requiredRoles={["Super Admin", "Admin"]}>
               <RolesPermissions />
             </ProtectedRoute>
           } />
