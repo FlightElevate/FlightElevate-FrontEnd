@@ -20,11 +20,31 @@ export const navigationItems = [
     roles: ["super admin", "admin", "instructor", "student"], // All roles
   },
   {
+    icon: FiUsers,
+    label: "User Management",
+    link: "/user-management",
+    roles: ["super admin"], // Super Admin only
+  },
+  {
+    icon: FiUsers,
+    label: "Users",
+    link: "/users",
+    roles: ["admin"], // Admin only
+  },
+  {
     icon: FiFileText,
     label: "User Logs",
     link: "/user-logs",
     roles: ["super admin"], // Super Admin only
   },
+  
+  {
+    icon: FiUsers,
+    label: "Instructors",
+    link: "/instructors",
+    roles: ["student"], // Student only
+  },
+  
   {
     icon: FiCalendar,
     label: "Calendar",
@@ -73,30 +93,7 @@ export const navigationItems = [
     link: "/setting",
     roles: ["super admin", "admin", "instructor", "student"], // All roles
   },
-  {
-    icon: FiUsers,
-    label: "User Management",
-    link: "/user-management",
-    roles: ["super admin"], // Super Admin only
-  },
-  {
-    icon: FiUsers,
-    label: "Users",
-    link: "/users",
-    roles: ["admin"], // Admin only
-  },
-  {
-    icon: FiUsers,
-    label: "My Lessons",
-    link: "/my-lessons",
-    roles: ["student"], // Student only
-  },
-  {
-    icon: FiUsers,
-    label: "Instructors",
-    link: "/instructors",
-    roles: ["student"], // Student only
-  },
+  
   {
     icon: FiUsers,
     label: "Subscriptions",

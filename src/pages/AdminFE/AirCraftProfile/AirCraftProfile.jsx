@@ -4,8 +4,11 @@ import { MdFilterList } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { aircraftService } from "../../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../../utils/notifications";
+import { useAuth } from "../../../context/AuthContext";
 
 const AirCraftProfile = () => {
+
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const [sortOpen, setSortOpen] = useState(false);
@@ -240,6 +243,8 @@ const AirCraftProfile = () => {
           <h2 className="text-xl font-semibold text-gray-800">Aircraft</h2>
 
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+
+            {user?.permissions?.includes('create aircraft') && (
             <button
               onClick={handleAdd}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium flex items-center gap-2"
@@ -247,7 +252,7 @@ const AirCraftProfile = () => {
               <FiPlus size={18} />
               Add Aircraft
             </button>
-            
+            )}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 sm:w-[250px]">
               <FiSearch className="text-gray-400 mr-2" size={16} />
               <input
@@ -347,6 +352,7 @@ const AirCraftProfile = () => {
                     </div>
                     
                     {/* Action Menu */}
+                    {(user?.permissions?.includes('edit aircraft') || user?.permissions?.includes('delete aircraft')) && (
                     <div 
                       className="action-menu-container absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                       onClick={(e) => e.stopPropagation()}
@@ -363,12 +369,13 @@ const AirCraftProfile = () => {
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                           </svg>
                         </button>
-                        
-                        {menuOpenId === aircraft.id && (
+                       
+                        {menuOpenId === aircraft.id &&  (
                           <div 
                             className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
                             onClick={(e) => e.stopPropagation()}
                           >
+                            {user?.permissions?.includes('edit aircraft') && (
                             <button
                               onClick={(e) => handleEdit(aircraft, e)}
                               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -376,6 +383,8 @@ const AirCraftProfile = () => {
                               <FiEdit2 size={14} />
                               Edit
                             </button>
+                            )}
+                            {user?.permissions?.includes('delete aircraft') && (
                             <button
                               onClick={(e) => handleDelete(aircraft, e)}
                               className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
@@ -383,10 +392,12 @@ const AirCraftProfile = () => {
                               <FiTrash2 size={14} />
                               Delete
                             </button>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
+                    )}
                   </div>
                 );
               })}

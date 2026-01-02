@@ -788,7 +788,7 @@ const Calendar = () => {
                 setIsAircraftPreSelected(false); // Reset when opening from calendar
                 setShowNewReservationModal(true);
               }}
-              className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm font-medium whitespace-nowrap"
+              className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm font-medium whitespace-nowrap " 
             >
               New reservation
             </button>
