@@ -90,7 +90,6 @@ export const navigationItems = [
     badge: "Coming Soon",
     badgeColor: "bg-orange-500",
   },
-<<<<<<< HEAD
   {
     icon: FiUsers,
     label: "User Management",
@@ -115,9 +114,7 @@ export const navigationItems = [
     link: "/instructors",
     roles: ["student"], // Student only
   },
-=======
   
->>>>>>> dc716babfc9e957c3d6183e0356a30bccbf81fa5
   {
     icon: FiUsers,
     label: "Aircraft Profile",
