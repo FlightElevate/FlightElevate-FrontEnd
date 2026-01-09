@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { HiDotsVertical } from "react-icons/hi";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiCheck, FiX } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 import Pagination from "../../components/Pagination";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { lessonService } from "../../api/services/lessonService";
+import { showSuccessToast, showErrorToast } from "../../utils/notifications";
 
 // Get status colors with case-insensitive matching
 const getStatusColor = (status) => {
@@ -19,6 +20,8 @@ const getStatusColor = (status) => {
       return "bg-[#EBF0FB] text-[#113B98]";
     case 'completed':
       return "bg-[#E1FAEA] text-[#016626]";
+    case 'requested':
+      return "bg-[#FFF3CD] text-[#856404]"; // Yellow for requests
     default:
       return "bg-gray-100 text-gray-600";
   }
@@ -46,10 +49,96 @@ const InstructorLessons = () => {
   const [showRequests, setShowRequests] = useState(false);
 
   const sortRef = useRef(null);
+  const [acceptingId, setAcceptingId] = useState(null);
+  const [decliningId, setDecliningId] = useState(null);
 
   const handleViewClick = (lessonId) => {
     // Navigate to lesson details page
     navigate(`/lessons/${lessonId}`);
+  };
+
+  const handleAcceptRequest = async (lessonId) => {
+    setAcceptingId(lessonId);
+    try {
+      const response = await lessonService.updateLesson(lessonId, {
+        status: 'pending'
+      });
+      if (response.success) {
+        showSuccessToast('Session request accepted');
+        // Refresh lessons list
+        const params = {
+          per_page: itemsPerPage,
+          page: currentPage,
+          type: 'instructor'
+        };
+        if (showRequests) {
+          params.status = 'requested';
+        }
+        const refreshResponse = await lessonService.getUserLessons(user.id, params);
+        if (refreshResponse.success) {
+          const transformedLessons = (refreshResponse.data || []).map((lesson) => ({
+            id: lesson.id,
+            date: lesson.date || lesson.full_date,
+            time: lesson.time || lesson.full_time,
+            student: lesson.student || 'N/A',
+            status: lesson.status || 'Pending',
+            flightType: lesson.flight_type || 'N/A',
+            aircraft: lesson.aircraft || 'N/A',
+            notes: lesson.notes || 'N/A',
+            fullDate: lesson.full_date,
+            fullTime: lesson.full_time,
+          }));
+          setLessons(transformedLessons);
+          setTotalItems(refreshResponse.meta?.total || transformedLessons.length);
+        }
+      }
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Failed to accept session request');
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
+  const handleDeclineRequest = async (lessonId) => {
+    setDecliningId(lessonId);
+    try {
+      const response = await lessonService.updateLesson(lessonId, {
+        status: 'cancelled'
+      });
+      if (response.success) {
+        showSuccessToast('Session request declined');
+        // Refresh lessons list
+        const params = {
+          per_page: itemsPerPage,
+          page: currentPage,
+          type: 'instructor'
+        };
+        if (showRequests) {
+          params.status = 'requested';
+        }
+        const refreshResponse = await lessonService.getUserLessons(user.id, params);
+        if (refreshResponse.success) {
+          const transformedLessons = (refreshResponse.data || []).map((lesson) => ({
+            id: lesson.id,
+            date: lesson.date || lesson.full_date,
+            time: lesson.time || lesson.full_time,
+            student: lesson.student || 'N/A',
+            status: lesson.status || 'Pending',
+            flightType: lesson.flight_type || 'N/A',
+            aircraft: lesson.aircraft || 'N/A',
+            notes: lesson.notes || 'N/A',
+            fullDate: lesson.full_date,
+            fullTime: lesson.full_time,
+          }));
+          setLessons(transformedLessons);
+          setTotalItems(refreshResponse.meta?.total || transformedLessons.length);
+        }
+      }
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Failed to decline session request');
+    } finally {
+      setDecliningId(null);
+    }
   };
 
   // Fetch lessons from API
@@ -261,6 +350,7 @@ const InstructorLessons = () => {
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Time</th>
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Flight Type</th>
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6]">Notes</th>
+                {showRequests && <th className="py-2 px-3 font-medium border border-[#E5E1E6] text-center">Status</th>}
                 <th className="py-2 px-3 font-medium border border-[#E5E1E6] text-center">Action</th>
               </tr>
             </thead>
@@ -273,40 +363,82 @@ const InstructorLessons = () => {
                     <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.time}</td>
                     <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.flightType}</td>
                     <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.notes}</td>
+                    {showRequests && (
+                      <td className="py-2 px-3 border border-[#E5E1E6] text-center">
+                        <span className={`px-2 py-1 text-xs rounded font-medium ${getStatusColor(lesson.status)}`}>
+                          {formatStatus(lesson.status)}
+                        </span>
+                      </td>
+                    )}
                     <td className="py-2 px-3 border border-[#E5E1E6] text-center relative">
-                      <div className="menu-container inline-block">
-                        <HiDotsVertical
-                          className="text-[#5C5F62] cursor-pointer"
-                          onClick={() =>
-                            setOpenMenuId(openMenuId === lesson.id ? null : lesson.id)
-                          }
-                        />
-                        {openMenuId === lesson.id && (
-                          <div className="absolute right-5 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                            <button
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                handleViewClick(lesson.id);
-                              }}
-                              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                            >
-                              View
-                            </button>
-                            <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
-                              Edit
-                            </button>
-                            <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      {showRequests && lesson.status?.toLowerCase() === 'requested' ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleAcceptRequest(lesson.id)}
+                            disabled={acceptingId === lesson.id}
+                            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:opacity-50 text-xs"
+                            title="Accept request"
+                          >
+                            {acceptingId === lesson.id ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            ) : (
+                              <>
+                                <FiCheck size={14} />
+                                Accept
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeclineRequest(lesson.id)}
+                            disabled={decliningId === lesson.id}
+                            className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:opacity-50 text-xs"
+                            title="Decline request"
+                          >
+                            {decliningId === lesson.id ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            ) : (
+                              <>
+                                <FiX size={14} />
+                                Decline
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="menu-container inline-block">
+                          <HiDotsVertical
+                            className="text-[#5C5F62] cursor-pointer"
+                            onClick={() =>
+                              setOpenMenuId(openMenuId === lesson.id ? null : lesson.id)
+                            }
+                          />
+                          {openMenuId === lesson.id && (
+                            <div className="absolute right-5 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleViewClick(lesson.id);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                              >
+                                View
+                              </button>
+                              <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
+                                Edit
+                              </button>
+                              <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-gray-500">
+                  <td colSpan={showRequests ? "7" : "6"} className="py-8 text-center text-gray-500">
                     {showRequests ? "No requested sessions found" : "No lessons found"}
                   </td>
                 </tr>
@@ -324,34 +456,73 @@ const InstructorLessons = () => {
                   <div className="flex flex-col">
                     <h3 className="text-sm font-medium text-gray-900">{lesson.student}</h3>
                     <p className="text-xs text-[#797979] mt-1">{lesson.flightType}</p>
-                  </div>
-                  <div className="menu-container relative">
-                    <HiDotsVertical
-                      className="text-[#5C5F62] cursor-pointer"
-                      onClick={() => setOpenMenuId(openMenuId === lesson.id ? null : lesson.id)}
-                    />
-                    {openMenuId === lesson.id && (
-                      <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                        <button
-                          onClick={() => {
-                            setOpenMenuId(null);
-                            handleViewClick(lesson.id);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                        >
-                          View
-                        </button>
-                        <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Edit</button>
-                        <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
-                      </div>
+                    {showRequests && (
+                      <span className={`mt-2 inline-block px-2 py-1 text-xs rounded font-medium ${getStatusColor(lesson.status)}`}>
+                        {formatStatus(lesson.status)}
+                      </span>
                     )}
                   </div>
+                  {!showRequests || lesson.status?.toLowerCase() !== 'requested' ? (
+                    <div className="menu-container relative">
+                      <HiDotsVertical
+                        className="text-[#5C5F62] cursor-pointer"
+                        onClick={() => setOpenMenuId(openMenuId === lesson.id ? null : lesson.id)}
+                      />
+                      {openMenuId === lesson.id && (
+                        <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                          <button
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              handleViewClick(lesson.id);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                          >
+                            View
+                          </button>
+                          <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Edit</button>
+                          <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="mt-2 space-y-1">
                   <p className="text-xs text-gray-600"><span className="font-medium">Date:</span> {lesson.date}</p>
                   <p className="text-xs text-gray-600"><span className="font-medium">Time:</span> {lesson.time}</p>
                   <p className="text-xs text-gray-600"><span className="font-medium">Notes:</span> {lesson.notes}</p>
                 </div>
+                {showRequests && lesson.status?.toLowerCase() === 'requested' && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <button
+                      onClick={() => handleAcceptRequest(lesson.id)}
+                      disabled={acceptingId === lesson.id}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:opacity-50 text-sm"
+                    >
+                      {acceptingId === lesson.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <>
+                          <FiCheck size={16} />
+                          Accept
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDeclineRequest(lesson.id)}
+                      disabled={decliningId === lesson.id}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:opacity-50 text-sm"
+                    >
+                      {decliningId === lesson.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <>
+                          <FiX size={16} />
+                          Decline
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           ) : (

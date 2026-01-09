@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { showErrorToast, showSuccessToast } from '../../utils/notifications';
-import { FiEye, FiEyeOff, FiCheck, FiX } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiCheck, FiX, FiUpload, FiFile } from 'react-icons/fi';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -10,8 +10,10 @@ const Register = () => {
     email: '',
     password: '',
     password_confirmation: '',
-    organization_name: ''
+    organization_name: '',
+    accept_policy: false
   });
+  const [verificationDocuments, setVerificationDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({});
@@ -72,8 +74,17 @@ const Register = () => {
       newErrors.organization_name = 'Organization name is required';
     }
 
+    if (!formData.accept_policy) {
+      newErrors.accept_policy = 'You must accept the User Policy to register';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setVerificationDocuments(files);
   };
 
   const handleSubmit = async (e) => {
@@ -166,7 +177,15 @@ const Register = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span>14-day free trial, no credit card required</span>
+              <span>Verification required for full access</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span>Quick and easy setup</span>
             </div>
           </div>
         </div>
@@ -365,6 +384,76 @@ const Register = () => {
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <FiX className="mr-1" size={14} />
                     {errors.password_confirmation}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Verification Documents (Optional)
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Upload Air Agency Certificate OR Pilot Certificate with photo. You can also submit these later via email.
+                </p>
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <FiUpload className="w-8 h-8 mb-2 text-gray-400" />
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">PDF, PNG, or JPG (Max 10MB per file)</p>
+                    </div>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                {verificationDocuments.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {verificationDocuments.map((file, index) => (
+                      <div key={index} className="flex items-center text-sm text-gray-600">
+                        <FiFile className="mr-2" />
+                        <span>{file.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-start">
+                  <input
+                    id="accept_policy"
+                    name="accept_policy"
+                    type="checkbox"
+                    checked={formData.accept_policy}
+                    onChange={(e) => setFormData(prev => ({ ...prev, accept_policy: e.target.checked }))}
+                    className={`mt-1 h-4 w-4 text-blue-700 focus:ring-blue-700 border-gray-300 rounded ${
+                      errors.accept_policy ? 'border-red-300' : ''
+                    }`}
+                  />
+                  <label htmlFor="accept_policy" className="ml-2 block text-sm text-gray-700">
+                    I accept the{' '}
+                    <a
+                      href="/user-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-blue-700 hover:text-blue-600"
+                    >
+                      User Policy
+                    </a>
+                    {' '}<span className="text-red-500">*</span>
+                  </label>
+                </div>
+                {errors.accept_policy && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center ml-6">
+                    <FiX className="mr-1" size={14} />
+                    {errors.accept_policy}
                   </p>
                 )}
               </div>

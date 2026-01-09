@@ -9,8 +9,125 @@
   --font-primary: 'inter', sans-serif;
 }
 
-body {
+/* Global mobile-friendly styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
   font-family: 'inter', sans-serif;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent horizontal scrolling on root, but allow in calendar */
+#root {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* CRITICAL: Allow calendar to scroll horizontally - override all parent constraints */
+/* This is consolidated with the main rule below - keeping for reference */
+
+/* Ensure all images and iframes are responsive */
+img, iframe, video, embed, object {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make buttons and inputs tap-friendly on mobile */
+button, input, select, textarea, a {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+/* Minimum tap target size for mobile */
+@media (max-width: 768px) {
+  button, a, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better spacing for touch targets */
+  button, a.btn {
+    padding: 0.75rem 1.5rem;
+  }
+}
+
+/* Prevent text selection on touch devices for buttons */
+button {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Better mobile table handling */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile-friendly calendar styles */
+.calendar-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .calendar-container {
+    font-size: 0.875rem;
+  }
+  
+  .calendar-day {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fix for iOS input zoom */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Utility classes for responsive design */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
 }
 
 .fw1 { font-weight: 100; }
@@ -22,3 +139,169 @@ body {
 .fw7 { font-weight: 700; }
 .fw8 { font-weight: 800; }
 .fw9 { font-weight: 900; }
+
+/* Calendar scrollbar styling - Horizontal scrollbar ALWAYS visible at bottom */
+/* CRITICAL: Override ALL parent overflow constraints */
+.calendar-scroll-container {
+  /* Force horizontal scrollbar to always be visible - NO OVERRIDES */
+  overflow-x: scroll !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  /* For Firefox */
+  scrollbar-width: thin !important;
+  scrollbar-color: #94a3b8 #f1f5f9 !important;
+  /* Ensure scrollbar is at bottom */
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  /* Prevent any parent from hiding overflow */
+  position: relative !important;
+  /* Force scrollbar visibility */
+  -ms-overflow-style: scrollbar !important;
+  /* Override parent overflow constraints - break out of flex constraints */
+  min-width: 0 !important;
+  flex-shrink: 0 !important;
+  /* Ensure container can scroll - isolate from parent */
+  isolation: isolate !important;
+  /* Create new stacking context */
+  z-index: 1;
+}
+
+/* Ensure table inside can expand beyond container width - FORCE WIDTH */
+.calendar-scroll-container > table,
+.calendar-scroll-container table {
+  min-width: 600px !important;
+  width: 600px !important;
+  display: table !important;
+  table-layout: auto !important;
+}
+
+@media (min-width: 640px) {
+  .calendar-scroll-container > table,
+  .calendar-scroll-container table {
+    min-width: 800px !important;
+    width: 800px !important;
+  }
+}
+
+/* For Chrome, Safari, Edge - Horizontal scrollbar at bottom */
+.calendar-scroll-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.calendar-scroll-container::-webkit-scrollbar:horizontal {
+  height: 12px !important;
+  display: block !important;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 6px;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-track:horizontal {
+  background: #f1f5f9 !important;
+  border-radius: 6px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 6px;
+  border: 2px solid #f7fafc;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-thumb:horizontal {
+  background: #94a3b8 !important;
+  border-radius: 6px;
+  min-width: 50px;
+  border: 2px solid #f1f5f9;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+.calendar-scroll-container::-webkit-scrollbar-thumb:horizontal:hover {
+  background: #64748b !important;
+}
+
+/* Mobile specific - ensure horizontal scrollbar is visible at bottom */
+@media (max-width: 768px) {
+  .calendar-scroll-container {
+    overflow-x: scroll !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #64748b #e2e8f0 !important;
+    /* Enable touch scrolling on mobile */
+    touch-action: pan-x pan-y !important;
+    /* Force scrollbar to be visible - override all */
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex-shrink: 0 !important;
+    /* Break out of any flex container constraints */
+    position: relative !important;
+    /* Isolate from parent constraints */
+    isolation: isolate !important;
+    /* Ensure scrollbar shows */
+    -ms-overflow-style: scrollbar !important;
+  }
+  
+  .calendar-scroll-container::-webkit-scrollbar {
+    height: 14px !important;
+    width: 14px;
+    -webkit-appearance: none;
+    display: block !important;
+  }
+  
+  .calendar-scroll-container::-webkit-scrollbar:horizontal {
+    height: 14px !important;
+    display: block !important;
+    -webkit-appearance: none !important;
+  }
+  
+  .calendar-scroll-container::-webkit-scrollbar-thumb {
+    background: #64748b !important;
+    border-radius: 7px;
+    border: 2px solid #e2e8f0;
+  }
+  
+  .calendar-scroll-container::-webkit-scrollbar-thumb:horizontal {
+    background: #64748b !important;
+    min-width: 60px !important;
+    border: 2px solid #e2e8f0;
+    -webkit-appearance: none !important;
+  }
+  
+  .calendar-scroll-container::-webkit-scrollbar-thumb:horizontal:active {
+    background: #475569 !important;
+  }
+  
+  .calendar-scroll-container::-webkit-scrollbar-track {
+    background: #e2e8f0 !important;
+    border-radius: 7px;
+    -webkit-appearance: none;
+  }
+  
+  .calendar-scroll-container::-webkit-scrollbar-track:horizontal {
+    background: #e2e8f0 !important;
+    border-top: 2px solid #cbd5e0;
+    border-radius: 7px;
+    -webkit-appearance: none !important;
+  }
+  
+  /* Force table to be wider than container - FIXED WIDTH */
+  .calendar-scroll-container > table,
+  .calendar-scroll-container table {
+    min-width: 600px !important;
+    width: 600px !important;
+    display: table !important;
+  }
+}

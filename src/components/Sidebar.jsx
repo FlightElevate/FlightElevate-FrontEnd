@@ -44,21 +44,52 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <div className="p-5">
           <nav className="flex flex-col gap-2">
             {navLinks.length > 0 ? (
-              navLinks.map(({ icon: Icon, label, link }) => {
+              navLinks.map(({ icon: Icon, label, link, badge, badgeColor }) => {
                 const active =
                   location.pathname === link ||
                   location.pathname.startsWith(link + "/");
+                const isDisabled = badge === "Coming Soon";
+                
+                // If item is disabled (Coming Soon), render as div instead of Link
+                if (isDisabled) {
+                  return (
+                    <div
+                      key={link}
+                      className={`flex items-center justify-between gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                        opacity-75 cursor-not-allowed
+                        transition-colors`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon size={18} />
+                        {label}
+                      </div>
+                      {badge && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full text-white ${badgeColor || 'bg-blue-500'}`}>
+                          {badge}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+                
                 return (
                   <Link
                     key={link}
                     to={link}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                    className={`flex items-center justify-between gap-2 px-4 py-2 rounded-lg text-sm font-medium
                       ${active ? "bg-white text-blue-700" : "hover:bg-blue-600"}
                       transition-colors`}
                     onClick={() => setIsOpen(false)}
                   >
-                    <Icon size={18} />
-                    {label}
+                    <div className="flex items-center gap-2">
+                      <Icon size={18} />
+                      {label}
+                    </div>
+                    {badge && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full text-white ${badgeColor || 'bg-blue-500'}`}>
+                        {badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })

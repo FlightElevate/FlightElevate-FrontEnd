@@ -4,6 +4,7 @@ import {
   MdCampaign,
   MdSupportAgent,
   MdEventNote,
+  MdBook,
 } from "react-icons/md";
 import { normalizeRoleName } from "../utils/roleUtils";
 
@@ -56,22 +57,18 @@ export const navigationItems = [
     roles: ["instructor"], // Instructor only
   },
   {
+    icon: MdBook,
+    label: "Logbook",
+    link: "/logbook",
+    roles: ["instructor"], // Instructor only
+  },
+  {
     icon: FiDollarSign,
     label: "Billing",
     link: "/billing",
     roles: ["student"], // Student only
-  },
-  {
-    icon: MdSupportAgent,
-    label: "Support",
-    link: "/support",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles
-  },
-  {
-    icon: FiSettings,
-    label: "Settings",
-    link: "/setting",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles
+    badge: "Coming Soon",
+    badgeColor: "bg-orange-500",
   },
   {
     icon: FiUsers,
@@ -86,8 +83,8 @@ export const navigationItems = [
     roles: ["admin"], // Admin only
   },
   {
-    icon: FiUsers,
-    label: "My Lessons",
+    icon: FiBookOpen,
+    label: "My Lesson (Preview)",
     link: "/my-lessons",
     roles: ["student"], // Student only
   },
@@ -99,15 +96,21 @@ export const navigationItems = [
   },
   {
     icon: FiUsers,
-    label: "Subscriptions",
-    link: "/subscriptions",
-    roles: ["super admin"], // Super Admin only
-  },
-  {
-    icon: FiUsers,
-    label: "Air Craft Profile",
+    label: "Aircraft Profile",
     link: "/air-craft-profile",
     roles: ["admin", "instructor"], // Admin and Instructor only
+  },
+  {
+    icon: MdSupportAgent,
+    label: "Support",
+    link: "/support",
+    roles: ["super admin", "admin", "instructor", "student"], // All roles (second last)
+  },
+  {
+    icon: FiSettings,
+    label: "Settings",
+    link: "/setting",
+    roles: ["super admin", "admin", "instructor", "student"], // All roles (last)
   },
 ];
 

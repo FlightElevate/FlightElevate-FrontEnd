@@ -35,6 +35,8 @@ import LessonDetails from "./pages/StudentFE/MyLesson/LessonDetails";
 import LessonTasks from "./pages/StudentFE/MyLessons/LessonTasks";
 import InstructorProfile from "./pages/StudentFE/Instructors/InstructorProfile";
 import InstructorLessons from "./pages/InstructorFE/Lessons";
+import Logbook from "./pages/InstructorFE/Logbook";
+import UserPolicy from "./pages/UserPolicy";
 
 const App = () => {
   return (
@@ -45,6 +47,7 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/user-policy" element={<UserPolicy />} />
         
         {/* Protected Routes */}
         <Route element={
@@ -84,6 +87,7 @@ const App = () => {
           <Route path="/my-lessons/:id/tasks" element={<LessonTasks />} />
           <Route path="/lessons" element={<InstructorLessons />} />
           <Route path="/lessons/:id" element={<LessonDetails />} />
+          <Route path="/logbook" element={<Logbook />} />
           <Route path="/instructors" element={<Instructors />} />
           <Route path="/setting" element={<Setting />} />
 

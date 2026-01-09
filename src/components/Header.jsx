@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch } from 'react-icons/fi';
+import { FiSearch, FiMenu } from 'react-icons/fi';
 import { HiBell } from 'react-icons/hi';
 import { HiChevronDown } from 'react-icons/hi';
 import { showConfirmDialog } from '../utils/notifications';
 
-const Header = () => {
+const Header = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -54,11 +54,19 @@ const Header = () => {
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="px-6 py-4">
+      <div className="px-4 sm:px-6 py-4">
         <div className="flex justify-between items-center">
-          {/* Left side - Search */}
-          <div className="flex items-center gap-4">
-            <button className="text-gray-600 hover:text-gray-900 transition-colors">
+          {/* Left side - Sidebar Toggle & Search */}
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+            {/* Sidebar Toggle Button - Visible on mobile and tablet, hidden on desktop */}
+            <button 
+              onClick={toggleSidebar}
+              className="lg:hidden text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors p-2 rounded-lg flex-shrink-0"
+              aria-label="Toggle sidebar"
+            >
+              <FiMenu size={22} className="sm:w-6 sm:h-6" />
+            </button>
+            <button className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors p-2 rounded-lg">
               <FiSearch size={20} />
             </button>
           </div>
