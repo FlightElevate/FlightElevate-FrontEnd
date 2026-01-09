@@ -21,11 +21,31 @@ export const navigationItems = [
     roles: ["super admin", "admin", "instructor", "student"], // All roles
   },
   {
+    icon: FiUsers,
+    label: "User Management",
+    link: "/user-management",
+    roles: ["super admin"], // Super Admin only
+  },
+  {
+    icon: FiUsers,
+    label: "Users",
+    link: "/users",
+    roles: ["admin"], // Admin only
+  },
+  {
     icon: FiFileText,
     label: "User Logs",
     link: "/user-logs",
     roles: ["super admin"], // Super Admin only
   },
+  
+  {
+    icon: FiUsers,
+    label: "Instructors",
+    link: "/instructors",
+    roles: ["student"], // Student only
+  },
+  
   {
     icon: FiCalendar,
     label: "Calendar",
@@ -70,6 +90,7 @@ export const navigationItems = [
     badge: "Coming Soon",
     badgeColor: "bg-orange-500",
   },
+<<<<<<< HEAD
   {
     icon: FiUsers,
     label: "User Management",
@@ -94,6 +115,9 @@ export const navigationItems = [
     link: "/instructors",
     roles: ["student"], // Student only
   },
+=======
+  
+>>>>>>> dc716babfc9e957c3d6183e0356a30bccbf81fa5
   {
     icon: FiUsers,
     label: "Aircraft Profile",

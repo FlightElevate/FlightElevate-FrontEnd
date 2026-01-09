@@ -48,7 +48,9 @@ const AddUserModal = ({
         onClose();
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create user';
+
+      console.error('Error creating user:', err.response);
+      const errorMessage = err.response?.data?.errors?.message || err.message || 'Failed to create user';
       showErrorToast(errorMessage);
       
       // Set field-specific errors if available

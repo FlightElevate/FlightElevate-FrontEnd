@@ -931,9 +931,9 @@ const Calendar = () => {
                     key={idx}
                     className="text-center border-r border-gray-200 text-gray-400"
                     style={{ 
-                      minWidth: window.innerWidth < 640 ? '30px' : '40px', 
-                      width: window.innerWidth < 640 ? '30px' : '40px', 
-                      height: window.innerWidth < 640 ? '24px' : '32px' 
+                      minWidth: isMobile ? '30px' : '40px', 
+                      width: isMobile ? '30px' : '40px', 
+                      height: isMobile ? '24px' : '32px' 
                     }}
                   >
                     –
@@ -960,9 +960,9 @@ const Calendar = () => {
                         key={idx}
                         className="relative border-r border-gray-200 p-0"
                         style={{ 
-                          minWidth: window.innerWidth < 640 ? '30px' : '40px', 
-                          width: window.innerWidth < 640 ? '30px' : '40px', 
-                          height: window.innerWidth < 640 ? '32px' : '40px' 
+                          minWidth: isMobile ? '30px' : '40px', 
+                          width: isMobile ? '30px' : '40px', 
+                          height: isMobile ? '32px' : '40px' 
                         }}
                         colSpan={isFirstCell ? span : undefined}
                       >
@@ -999,9 +999,9 @@ const Calendar = () => {
                         key={idx}
                         className="relative border-r border-gray-200 p-0"
                         style={{ 
-                          minWidth: window.innerWidth < 640 ? '30px' : '40px', 
-                          width: window.innerWidth < 640 ? '30px' : '40px', 
-                          height: window.innerWidth < 640 ? '32px' : '40px' 
+                          minWidth: isMobile ? '30px' : '40px', 
+                          width: isMobile ? '30px' : '40px', 
+                          height: isMobile ? '32px' : '40px' 
                         }}
                         colSpan={isFirstCell ? span : undefined}
                       >
