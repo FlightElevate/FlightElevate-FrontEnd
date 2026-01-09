@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useRole } from '../../hooks/useRole';
 import { settingsService } from '../../api/services/settingsService';
 import { documentService } from '../../api/services/documentService';
 import { authService } from '../../api/services/authService';
@@ -10,6 +11,7 @@ import { HiDotsVertical } from 'react-icons/hi';
 
 const Setting = () => {
   const { user } = useAuth();
+  const { isSuperAdmin } = useRole();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [loadingUserData, setLoadingUserData] = useState(true);
@@ -784,12 +786,14 @@ const Setting = () => {
             <div className="bg-white rounded-lg">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Documents</h3>
-                <button
-                  onClick={() => setShowAddDocument(!showAddDocument)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                >
-                  {showAddDocument ? 'Cancel' : '+ Add New Document'}
-                </button>
+                {!isSuperAdmin() && (
+                  <button
+                    onClick={() => setShowAddDocument(!showAddDocument)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                  >
+                    {showAddDocument ? 'Cancel' : '+ Add New Document'}
+                  </button>
+                )}
               </div>
 
               {/* Add New Document Form */}

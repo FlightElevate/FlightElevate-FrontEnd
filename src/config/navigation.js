@@ -4,6 +4,7 @@ import {
   MdCampaign,
   MdSupportAgent,
   MdEventNote,
+  MdBook,
 } from "react-icons/md";
 import { normalizeRoleName } from "../utils/roleUtils";
 
@@ -76,35 +77,64 @@ export const navigationItems = [
     roles: ["instructor"], // Instructor only
   },
   {
+    icon: MdBook,
+    label: "Logbook",
+    link: "/logbook",
+    roles: ["instructor"], // Instructor only
+  },
+  {
     icon: FiDollarSign,
     label: "Billing",
     link: "/billing",
     roles: ["student"], // Student only
+    badge: "Coming Soon",
+    badgeColor: "bg-orange-500",
+  },
+<<<<<<< HEAD
+  {
+    icon: FiUsers,
+    label: "User Management",
+    link: "/user-management",
+    roles: ["super admin"], // Super Admin only
+  },
+  {
+    icon: FiUsers,
+    label: "Users",
+    link: "/users",
+    roles: ["admin"], // Admin only
+  },
+  {
+    icon: FiBookOpen,
+    label: "My Lesson (Preview)",
+    link: "/my-lessons",
+    roles: ["student"], // Student only
+  },
+  {
+    icon: FiUsers,
+    label: "Instructors",
+    link: "/instructors",
+    roles: ["student"], // Student only
+  },
+=======
+  
+>>>>>>> dc716babfc9e957c3d6183e0356a30bccbf81fa5
+  {
+    icon: FiUsers,
+    label: "Aircraft Profile",
+    link: "/air-craft-profile",
+    roles: ["admin", "instructor"], // Admin and Instructor only
   },
   {
     icon: MdSupportAgent,
     label: "Support",
     link: "/support",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles
+    roles: ["super admin", "admin", "instructor", "student"], // All roles (second last)
   },
   {
     icon: FiSettings,
     label: "Settings",
     link: "/setting",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles
-  },
-  
-  {
-    icon: FiUsers,
-    label: "Subscriptions",
-    link: "/subscriptions",
-    roles: ["super admin"], // Super Admin only
-  },
-  {
-    icon: FiUsers,
-    label: "Air Craft Profile",
-    link: "/air-craft-profile",
-    roles: ["admin", "instructor"], // Admin and Instructor only
+    roles: ["super admin", "admin", "instructor", "student"], // All roles (last)
   },
 ];
 

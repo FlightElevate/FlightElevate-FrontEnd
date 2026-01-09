@@ -63,6 +63,17 @@ const Instructors = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpenId, listMenuOpenId]);
 
+  // Generate dummy profile picture URL based on instructor ID
+  const getInstructorImage = (instructor) => {
+    if (instructor.avatar || instructor.image || instructor.profile_image) {
+      return instructor.avatar || instructor.image || instructor.profile_image;
+    }
+    // Generate consistent dummy image based on instructor ID
+    const imageIds = [1, 5, 8, 12, 15, 20, 25, 33, 47, 51, 68, 70];
+    const imageId = imageIds[instructor.id % imageIds.length] || 1;
+    return `https://i.pravatar.cc/300?img=${imageId}`;
+  };
+
   const fetchInstructors = async () => {
     setLoading(true);
     try {
@@ -275,9 +286,18 @@ const Instructors = () => {
               >
                 <div onClick={() => handleInstructorClick(instructor.id)}>
                   <img
-                    src={instructor.avatar || instructor.image || photo}
+                    src={getInstructorImage(instructor)}
                     alt={instructor.name}
                     className="w-full h-[250px] object-cover"
+                    onError={(e) => {
+                      // Fallback to initials if image fails to load
+                      e.target.style.display = 'none';
+                      const parent = e.target.parentElement;
+                      const fallback = document.createElement('div');
+                      fallback.className = 'w-full h-[250px] bg-blue-500 flex items-center justify-center text-white text-4xl font-bold';
+                      fallback.textContent = instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
+                      parent.insertBefore(fallback, e.target);
+                    }}
                   />
                   <div className="px-3 py-2">
                     <p className="text-base fw5 leading-6 tracking-[0%] text-[#3D3D3D]">{instructor.name}</p>
@@ -363,11 +383,22 @@ const Instructors = () => {
                     >
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={instructor.avatar || instructor.image || photo}
-                            alt={instructor.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
+                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200">
+                            <img
+                              src={getInstructorImage(instructor)}
+                              alt={instructor.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback to initials if image fails to load
+                                e.target.style.display = 'none';
+                                const parent = e.target.parentElement;
+                                const fallback = document.createElement('div');
+                                fallback.className = 'w-full h-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold';
+                                fallback.textContent = instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
+                                parent.appendChild(fallback);
+                              }}
+                            />
+                          </div>
                           <span className="text-sm font-medium text-gray-800">
                             {instructor.name}
                           </span>

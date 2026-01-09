@@ -84,6 +84,16 @@ export const ENDPOINTS = {
     READY: (id) => `/lessons/${id}/ready`,
   },
 
+  // Logbooks
+  LOGBOOKS: {
+    BASE: '/logbooks',
+    LIST: '/logbooks',
+    SHOW: (id) => `/logbooks/${id}`,
+    CREATE: '/logbooks',
+    UPDATE: (id) => `/logbooks/${id}`,
+    DELETE: (id) => `/logbooks/${id}`,
+  },
+
   // Support
   SUPPORT: {
     LIST: '/support-tickets',

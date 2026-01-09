@@ -18,6 +18,7 @@ const Calendar = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const editLessonId = searchParams.get('edit');
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingLesson, setEditingLesson] = useState(null);
   const [aircraftSchedule, setAircraftSchedule] = useState([]);
@@ -269,6 +270,16 @@ const Calendar = () => {
     }
   };
 
+  // Track window size for responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchSchedule = async () => {
     setLoading(true);
     try {
@@ -435,6 +446,7 @@ const Calendar = () => {
       red: 'bg-red-300',
       'light-red': 'bg-red-200',
       orange: 'bg-orange-300',
+      yellow: 'bg-yellow-400', // For requested status
       gray: 'bg-gray-300',
     };
     return colorMap[color] || 'bg-blue-300'; // Default to light blue
@@ -725,30 +737,69 @@ const Calendar = () => {
 
   if (loading) {
     return (
-      <div className="md:mt-5 mx-auto">
-        <div className="bg-white shadow-sm rounded-lg p-12">
+      <div className="w-full max-w-full px-2 sm:px-4 md:px-6 md:mt-5 mx-auto">
+        <div className="bg-white shadow-sm rounded-lg p-8 sm:p-12">
           <div className="flex justify-center items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600"></div>
           </div>
         </div>
       </div>
     );
   }
 
+  // Flight type options
+  const flightTypes = [
+    'Solo',
+    'Duo Landing',
+    'Windy Smooth landing',
+    'Emergency',
+    'Crash landing',
+    'Night Flight',
+    'Cross Country'
+  ];
+
   return (
-    <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-4 md:mt-5 mx-auto max-w-[100vw]">
-      <div className="bg-white shadow-sm rounded-lg w-full overflow-hidden">
+    <div className="w-full px-0 sm:px-2 md:px-4 lg:px-6 md:mt-5 mx-auto" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <div className="bg-white shadow-sm rounded-lg w-full" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 border-b border-gray-200">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">Schedule</h2>
+        <div className="flex flex-col gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 whitespace-nowrap">Schedule</h2>
           
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2 md:gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+            {/* Action Buttons */}
+            <button
+              onClick={() => setShowFindTimeModal(true)}
+              className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-xs sm:text-sm font-medium whitespace-nowrap"
+            >
+              Find Time
+            </button>
+            <button
+              onClick={() => {
+                setIsAircraftPreSelected(false);
+                setShowNewReservationModal(true);
+              }}
+              className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm font-medium whitespace-nowrap"
+            >
+              New
+            </button>
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+            >
+              <FiSettings size={18} className="sm:w-5 sm:h-5 text-gray-600" />
+            </button>
+          </div>
+          </div>
+          
+          {/* Second Row: Location and Date Navigation */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
             {/* Location Select - Hidden for Students */}
             {!isStudent() && (
               <select
                 value={selectedLocation}
                 onChange={handleLocationChange}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:min-w-[140px]"
+                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:flex-shrink-0 sm:min-w-[140px]"
               >
                 <option value="">Select Location</option>
                 {locations.map((location, idx) => (
@@ -758,66 +809,79 @@ const Calendar = () => {
             )}
 
             {/* Date Navigation */}
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 justify-between sm:justify-start flex-1 min-w-0">
               <button
                 onClick={() => navigateWeek(-1)}
-                className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                aria-label="Previous week"
               >
-                <FiChevronLeft size={16} className="sm:w-5 sm:h-5" />
+                <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
               </button>
-              <span className="text-xs sm:text-sm font-medium text-gray-700 text-center whitespace-nowrap px-1 sm:px-2">
+              <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
                 {getWeekRange()}
               </span>
               <button
                 onClick={() => navigateWeek(1)}
-                className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                aria-label="Next week"
               >
-                <FiChevronRight size={16} className="sm:w-5 sm:h-5" />
+                <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
               </button>
             </div>
-
-            {/* Action Buttons */}
-            <button
-              onClick={() => setShowFindTimeModal(true)}
-              className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-xs sm:text-sm font-medium whitespace-nowrap"
-            >
-              Find a Time
-            </button>
-            <button
-              onClick={() => {
-                setIsAircraftPreSelected(false); // Reset when opening from calendar
-                setShowNewReservationModal(true);
-              }}
-              className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm font-medium whitespace-nowrap " 
-            >
-              New reservation
-            </button>
-            <button
-              onClick={() => setShowSettingsModal(true)}
-              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-            >
-              <FiSettings size={18} className="sm:w-5 sm:h-5 text-gray-600" />
-            </button>
           </div>
         </div>
 
-        {/* Schedule Grid */}
-        <div className="overflow-x-auto overflow-y-auto w-full" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-          <div className="inline-block min-w-full align-middle">
-            <table className="w-full border-collapse" style={{ minWidth: 'max-content' }}>
+        {/* Schedule Grid - Horizontal scrollbar at bottom */}
+        <div 
+          className="calendar-scroll-container" 
+          style={{ 
+            maxHeight: isMobile ? 'calc(100vh - 160px)' : 'calc(100vh - 180px)',
+            minHeight: isMobile ? '200px' : '250px',
+            overflowX: 'scroll',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            position: 'relative',
+            display: 'block',
+            width: '100%',
+            maxWidth: '100%',
+            touchAction: 'pan-x pan-y',
+            msOverflowStyle: 'scrollbar',
+            scrollbarWidth: 'thin',
+            /* Break out of flex constraints */
+            minWidth: 0,
+            flexShrink: 0,
+            /* Ensure it can scroll */
+            isolation: 'isolate'
+          }}
+        >
+          <table className="border-collapse" style={{ 
+            minWidth: isMobile ? '600px' : '800px',
+            width: isMobile ? '600px' : '800px',
+            display: 'table',
+            margin: 0,
+            tableLayout: 'auto',
+            /* Force table to be wider than container to enable scroll */
+            boxSizing: 'border-box'
+          }}>
               {/* Time Header */}
               <thead className="sticky top-0 z-20 bg-gray-50">
                 <tr className="border-b border-gray-200">
-                  <th className="w-32 sm:w-40 md:w-48 text-left px-2 sm:px-3 md:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30">
+                  <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ 
+                    minWidth: isMobile ? '60px' : '80px', 
+                    width: isMobile ? '60px' : '80px' 
+                  }}>
                     {/* Empty for row labels */}
                   </th>
                   {timeSlots.map((slot, idx) => (
                     <th
                       key={idx}
-                      className="text-center px-1 sm:px-2 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
+                      className="text-center px-0.5 sm:px-1 md:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap"
+                      style={{ 
+                        minWidth: isMobile ? '30px' : '40px', 
+                        width: isMobile ? '30px' : '40px' 
+                      }}
                     >
-                      <span className="hidden sm:inline">{slot.label}</span>
-                      <span className="sm:hidden">{slot.hour === 0 ? '12a' : slot.hour < 12 ? `${slot.hour}a` : slot.hour === 12 ? '12p' : `${slot.hour - 12}p`}</span>
+                      {slot.hour === 0 ? '12a' : slot.hour < 12 ? `${slot.hour}a` : slot.hour === 12 ? '12p' : `${slot.hour - 12}p`}
                     </th>
                   ))}
                 </tr>
@@ -826,37 +890,51 @@ const Calendar = () => {
             <tbody>
               {/* Search Row */}
               <tr className="border-b border-gray-200">
-                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 sticky left-0 bg-white z-10">
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <FiSearch className="text-gray-400 flex-shrink-0" size={14} />
+                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-10"                 style={{ 
+                  minWidth: isMobile ? '60px' : '80px', 
+                  width: isMobile ? '60px' : '80px' 
+                }}>
+                  <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
+                    <FiSearch className="text-gray-400 flex-shrink-0" size={isMobile ? 12 : 14} />
                     <input
                       type="text"
                       placeholder="Search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="border-none outline-none text-xs sm:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400"
+                      className="border-none outline-none text-[10px] sm:text-xs md:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400"
                     />
                   </div>
                 </td>
                 {timeSlots.map((_, idx) => (
                   <td
                     key={idx}
-                    className="border-r border-gray-200 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
-                    style={{ height: '50px' }}
+                    className="border-r border-gray-200"
+                    style={{ 
+                      minWidth: isMobile ? '30px' : '40px', 
+                      width: isMobile ? '30px' : '40px', 
+                      height: isMobile ? '32px' : '40px' 
+                    }}
                   ></td>
                 ))}
               </tr>
 
               {/* Aircraft Transfer Schedule Section Header */}
               <tr className="border-b border-gray-200 bg-purple-50">
-                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 sticky left-0 bg-purple-50 z-10">
-                  <h3 className="text-xs sm:text-sm font-semibold text-gray-800">Aircraft Transfer Schedule</h3>
+                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-10"                 style={{ 
+                  minWidth: isMobile ? '60px' : '80px', 
+                  width: isMobile ? '60px' : '80px' 
+                }}>
+                  <h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3>
                 </td>
                 {timeSlots.map((_, idx) => (
                   <td
                     key={idx}
-                    className="text-center border-r border-gray-200 text-gray-400 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
-                    style={{ height: '40px' }}
+                    className="text-center border-r border-gray-200 text-gray-400"
+                    style={{ 
+                      minWidth: isMobile ? '30px' : '40px', 
+                      width: isMobile ? '30px' : '40px', 
+                      height: isMobile ? '24px' : '32px' 
+                    }}
                   >
                     –
                   </td>
@@ -866,8 +944,11 @@ const Calendar = () => {
               {/* Aircraft Rows */}
               {filteredAircraftSchedule.map((aircraft) => (
                 <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 text-xs sm:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium">
-                    <span className="truncate block max-w-[120px] sm:max-w-[180px]">{aircraft.name}</span>
+                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium"                 style={{ 
+                  minWidth: isMobile ? '60px' : '80px', 
+                  width: isMobile ? '60px' : '80px' 
+                }}>
+                    <span className="truncate block">{aircraft.name}</span>
                   </td>
                   {timeSlots.map((slot, idx) => {
                     const event = getEventForCell(aircraft, slot.hour);
@@ -877,19 +958,20 @@ const Calendar = () => {
                     return (
                       <td
                         key={idx}
-                        className="relative border-r border-gray-200 p-0 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
-                        style={{ height: '50px' }}
+                        className="relative border-r border-gray-200 p-0"
+                        style={{ 
+                          minWidth: isMobile ? '30px' : '40px', 
+                          width: isMobile ? '30px' : '40px', 
+                          height: isMobile ? '32px' : '40px' 
+                        }}
                         colSpan={isFirstCell ? span : undefined}
                       >
                         {isFirstCell && (
                           <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white text-[9px] sm:text-xs px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
-                            style={{ width: '95%', height: '35px' }}
-                            onMouseEnter={(e) => handleEventHover(event, e)}
-                            onMouseLeave={handleEventLeave}
-                            onClick={() => handleEventClick(event)}
+                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
+                            style={{ width: '95%' }}
                           >
-                            <div className="font-medium truncate text-[9px] sm:text-[10px]">{event.start_time}</div>
+                            <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
                           </div>
                         )}
                       </td>
@@ -901,8 +983,11 @@ const Calendar = () => {
               {/* User Schedule Rows */}
               {filteredUserSchedule.map((user) => (
                 <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 border-r border-gray-200 text-xs sm:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium">
-                    <span className="truncate block max-w-[120px] sm:max-w-[180px]">{user.name}</span>
+                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium"                 style={{ 
+                  minWidth: isMobile ? '60px' : '80px', 
+                  width: isMobile ? '60px' : '80px' 
+                }}>
+                    <span className="truncate block">{user.name}</span>
                   </td>
                   {timeSlots.map((slot, idx) => {
                     const event = getEventForCell(user, slot.hour);
@@ -912,19 +997,23 @@ const Calendar = () => {
                     return (
                       <td
                         key={idx}
-                        className="relative border-r border-gray-200 p-0 min-w-[50px] sm:min-w-[60px] md:min-w-[80px]"
-                        style={{ height: '50px' }}
+                        className="relative border-r border-gray-200 p-0"
+                        style={{ 
+                          minWidth: isMobile ? '30px' : '40px', 
+                          width: isMobile ? '30px' : '40px', 
+                          height: isMobile ? '32px' : '40px' 
+                        }}
                         colSpan={isFirstCell ? span : undefined}
                       >
                         {isFirstCell && (
                           <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white text-[9px] sm:text-xs px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
-                            style={{ width: '95%', height: '35px' }}
+                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
+                            style={{ width: '95%' }}
                             onMouseEnter={(e) => handleEventHover(event, e)}
                             onMouseLeave={handleEventLeave}
                             onClick={() => handleEventClick(event)}
                           >
-                            <div className="font-medium truncate text-[9px] sm:text-[10px]">{event.start_time}</div>
+                            <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
                           </div>
                         )}
                       </td>
@@ -934,7 +1023,6 @@ const Calendar = () => {
               ))}
             </tbody>
           </table>
-          </div>
         </div>
       </div>
 
@@ -1347,14 +1435,17 @@ const Calendar = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Flight Type</label>
-                  <input
-                    type="text"
+                  <select
                     value={reservationForm.flight_type}
                     onChange={(e) => setReservationForm({ ...reservationForm, flight_type: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Solo, Duo Landing"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     required
-                  />
+                  >
+                    <option value="">Select Flight Type</option>
+                    {flightTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

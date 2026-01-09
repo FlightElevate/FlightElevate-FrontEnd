@@ -160,7 +160,7 @@ const MyLessons = ({ showReadyButton = false }) => {
     <div className="p-3">
       <div className="border border-gray-200 bg-white rounded-xl">
         <div className="overflow-visible flex justify-between gap-3 py-5 px-4 border-b border-[#F3F4F6]">
-          <h2 className="text-xl font-semibold">My Lessons</h2>
+          <h2 className="text-xl font-semibold">My Lesson (Preview)</h2>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 w-full">
               <FiSearch className="text-gray-400 mr-2" size={16} />

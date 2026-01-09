@@ -71,6 +71,17 @@ const InstructorProfile = () => {
     }
   };
 
+  // Generate dummy profile picture URL based on instructor ID
+  const getInstructorImage = (instructor) => {
+    if (instructor?.avatar || instructor?.image || instructor?.profile_image) {
+      return instructor.avatar || instructor.image || instructor.profile_image;
+    }
+    // Generate consistent dummy image based on instructor ID
+    const imageIds = [1, 5, 8, 12, 15, 20, 25, 33, 47, 51, 68, 70];
+    const imageId = imageIds[instructor?.id % imageIds.length] || 1;
+    return `https://i.pravatar.cc/300?img=${imageId}`;
+  };
+
   const fetchFlightLogs = async () => {
     if (!instructorId) return;
     setLoadingLogs(true);
@@ -229,7 +240,22 @@ const InstructorProfile = () => {
         {/* Header */}
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
-            <img src={profileImg} alt="User Avatar" className="w-16 h-16 rounded-full object-cover" />
+            <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200">
+              <img 
+                src={getInstructorImage(user)} 
+                alt={user?.name || 'Instructor'} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to initials if image fails to load
+                  e.target.style.display = 'none';
+                  const parent = e.target.parentElement;
+                  const fallback = document.createElement('div');
+                  fallback.className = 'w-full h-full bg-blue-500 flex items-center justify-center text-white text-xl font-bold';
+                  fallback.textContent = user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
+                  parent.appendChild(fallback);
+                }}
+              />
+            </div>
             <div className="flex flex-col">
               <h1 className="text-2xl font-bold text-gray-900">{user?.name}</h1>
               <p className="text-gray-600 text-sm">{user?.email}</p>
@@ -428,14 +454,21 @@ const InstructorProfile = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Flight Type <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={requestForm.flight_type}
                     onChange={(e) => setRequestForm({ ...requestForm, flight_type: e.target.value })}
-                    placeholder="e.g., Solo, Dual, Cross Country"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     required
-                  />
+                  >
+                    <option value="">Select Flight Type</option>
+                    <option value="Solo">Solo</option>
+                    <option value="Duo Landing">Duo Landing</option>
+                    <option value="Windy Smooth landing">Windy Smooth landing</option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Crash landing">Crash landing</option>
+                    <option value="Night Flight">Night Flight</option>
+                    <option value="Cross Country">Cross Country</option>
+                  </select>
                 </div>
 
                 <div>
