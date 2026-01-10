@@ -42,6 +42,7 @@ export const ENDPOINTS = {
   ORGANIZATIONS: {
     LIST: '/organizations',
     SHOW: (id) => `/organizations/${id}`,
+    UPDATE: (id) => `/organizations/${id}`,
   },
 
   // Aircraft

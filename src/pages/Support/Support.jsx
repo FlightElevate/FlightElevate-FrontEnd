@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FiSearch, FiX, FiPlus } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
-import { HiOutlineDotsVertical } from "react-icons/hi";
+import { HiOutlineDotsVertical, HiChevronDown } from "react-icons/hi";
 import Pagination from "../../components/Pagination";
 import { useNavigate } from "react-router-dom";
 import { supportService } from "../../api/services/supportService";
@@ -243,73 +243,92 @@ const Support = () => {
     <div className="md:mt-5 mx-auto">
       <div className="bg-white shadow-xl rounded-lg px-4 py-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
-          <h2 className="text-xl font-inter font-semibold text-[#101828]">
-            Support
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-800">Support</h2>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            {/* Create Ticket Button */}
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors min-h-[44px] whitespace-nowrap"
             >
-              <FiPlus size={18} />
-              Create Ticket
+              <FiPlus size={18} className="flex-shrink-0" />
+              <span>Create Ticket</span>
             </button>
-            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm flex-grow sm:flex-grow-0 sm:w-[250px]">
-              <FiSearch className="text-gray-400 mr-2" size={16} />
+            
+            {/* Search */}
+            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px] min-h-[44px]">
+              <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
                 type="text"
                 placeholder="Search"
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
+                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full min-w-0"
               />
+              <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline">
+                ⌘
+              </span>
             </div>
 
-            <div className="relative" ref={sortMenuRef}>
+            {/* Sort Dropdown */}
+            <div className="relative w-full sm:w-auto" ref={sortMenuRef}>
               <button
-                className="flex items-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700 min-h-[44px] whitespace-nowrap hover:bg-gray-50 transition-colors"
                 onClick={() => setMenuOpen(menuOpen === "sort" ? null : "sort")}
               >
-                <MdFilterList className="w-[20px] h-[20px]" />
-                <span>Sort by: {sortOption}</span>
+                <MdFilterList className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden sm:inline">Sort by</span>
+                <HiChevronDown 
+                  size={16} 
+                  className={`transition-transform flex-shrink-0 ${menuOpen === "sort" ? 'transform rotate-180' : ''}`}
+                />
               </button>
 
               {menuOpen === "sort" && (
-                <div className="absolute right-0 mt-2 bg-white shadow-lg border border-gray-200 rounded-md w-32 z-10">
-                  {["Newest", "Oldest"].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => handleSortChange(option)}
-                      className={`block w-full text-left px-3 py-2 text-sm ${
-                        sortOption === option
-                          ? "bg-gray-100 text-[#2563eb]"
-                          : "hover:bg-gray-50 text-gray-700"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="absolute right-0 mt-2 w-full sm:w-48 md:w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="py-1">
+                    {["Newest", "Oldest"].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleSortChange(option)}
+                        className={`block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] flex items-center justify-between ${
+                          sortOption === option
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        <span>{option}</span>
+                        {sortOption === option && (
+                          <span className="text-xs text-gray-500">{sortOption === "Newest" ? '↓' : '↑'}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="px-4 py-3 border-b border-[#F3F4F6] flex gap-[16px] text-sm">
-          {buttons.map((label) => (
-            <button
-              key={label}
-              onClick={() => handleStatusChange(label)}
-              className={`px-3 py-1 rounded ${
-                selected === label
-                  ? "bg-[#C6E4FF] text-black"
-                  : "bg-white text-gray-700"
-              } transition-colors duration-150`}
-            >
-              {label}
-            </button>
-          ))}
+        {/* Status Filters */}
+        <div className="border-b border-[#F3F4F6] text-sm">
+          <div className="overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-0.5 sm:gap-4 px-1 sm:px-4 py-1 sm:py-3 min-w-max sm:min-w-0">
+              {buttons.map((label) => (
+                <button
+                  key={label}
+                  onClick={() => handleStatusChange(label)}
+                  className={`py-1 sm:py-1 rounded transition-colors duration-150 whitespace-nowrap flex-shrink-0 min-h-[44px] sm:min-h-0 flex items-center justify-center text-sm font-medium ${
+                    selected === label
+                      ? "bg-[#C6E4FF] text-black px-0 sm:px-4"
+                      : "bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 px-0 sm:px-4"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto shadow-lg rounded-xl mt-5">

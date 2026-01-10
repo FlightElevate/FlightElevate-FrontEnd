@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { FiSearch, FiPlus } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
-import { HiDotsVertical } from "react-icons/hi";
+import { HiDotsVertical, HiChevronDown } from "react-icons/hi";
 import { Link, useNavigate } from "react-router-dom";
 import { userService } from "../../../api/services/userService";
 import Pagination from "../../../components/Pagination";
@@ -29,7 +29,13 @@ const Users = () => {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const dropdownRefs = useRef({});
+  const sortDropdownRef = useRef(null);
+  
+  // Sort state
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,27 +43,6 @@ const Users = () => {
   const [totalItems, setTotalItems] = useState(0);
 
   const roleFilters = ["Instructor", "Student", "Admin"];
-
-  // Fetch users when dependencies change
-  useEffect(() => {
-    fetchUsers();
-  }, [currentPage, itemsPerPage, selected, searchTerm]);
-
-  // Handle click outside dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        openDropdownId !== null &&
-        dropdownRefs.current[openDropdownId] &&
-        !dropdownRefs.current[openDropdownId].contains(event.target)
-      ) {
-        setOpenDropdownId(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openDropdownId]);
 
   /**
    * Fetches users from API with current filters
@@ -71,8 +56,8 @@ const Users = () => {
         per_page: itemsPerPage,
         role: selected,
         search: searchTerm,
-        sort: 'created_at',
-        order: 'desc'
+        sort: sortField,
+        order: sortOrder
       });
       if (response.success) {
         setUsers(response.data);
@@ -85,7 +70,37 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, selected, searchTerm]);
+  }, [currentPage, itemsPerPage, selected, searchTerm, sortField, sortOrder]);
+
+  // Fetch users when dependencies change
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        openDropdownId !== null &&
+        dropdownRefs.current[openDropdownId] &&
+        !dropdownRefs.current[openDropdownId].contains(event.target)
+      ) {
+        setOpenDropdownId(null);
+      }
+      
+      // Close sort dropdown
+      if (
+        sortDropdownOpen &&
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(event.target)
+      ) {
+        setSortDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openDropdownId, sortDropdownOpen]);
 
   /**
    * Handles role filter change
@@ -95,6 +110,22 @@ const Users = () => {
     setSelectedIds([]);
     setCurrentPage(1);
   }, []);
+
+  /**
+   * Handles sort field change
+   */
+  const handleSortChange = useCallback((field) => {
+    if (sortField === field) {
+      // Toggle order if same field
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field with default desc order
+      setSortField(field);
+      setSortOrder('desc');
+    }
+    setSortDropdownOpen(false);
+    setCurrentPage(1);
+  }, [sortField]);
 
   /**
    * Handles select all checkbox
@@ -162,52 +193,117 @@ const Users = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
           <h2 className="text-xl font-inter font-semibold text-gray-800">Users</h2>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             {/* Search */}
-            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 sm:w-[250px]">
-              <FiSearch className="text-gray-400 mr-2" size={16} />
+            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px] min-h-[44px]">
+              <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
                 type="text"
                 placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
+                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full min-w-0"
               />
-              <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded">⌘</span>
+              <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline">⌘</span>
             </div>
             
             {/* Sort Button */}
-            <button className="flex items-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700">
-              <MdFilterList className="w-5 h-5" />
-              <span className="whitespace-nowrap">Sort by</span>
-            </button>
+            <div className="relative w-full sm:w-auto" ref={sortDropdownRef}>
+              <button 
+                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700 min-h-[44px] whitespace-nowrap hover:bg-gray-50 transition-colors"
+              >
+                <MdFilterList className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden sm:inline">Sort by</span>
+                <HiChevronDown 
+                  size={16} 
+                  className={`transition-transform flex-shrink-0 ${sortDropdownOpen ? 'transform rotate-180' : ''}`}
+                />
+              </button>
+
+              {/* Sort Dropdown */}
+              {sortDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-full sm:w-48 md:w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="py-1">
+                    <button
+                      onClick={() => handleSortChange('name')}
+                      className={`block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] flex items-center justify-between ${
+                        sortField === 'name' ? 'text-blue-600 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span>Name</span>
+                      {sortField === 'name' && (
+                        <span className="text-xs text-gray-500">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleSortChange('email')}
+                      className={`block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] flex items-center justify-between ${
+                        sortField === 'email' ? 'text-blue-600 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span>Email</span>
+                      {sortField === 'email' && (
+                        <span className="text-xs text-gray-500">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleSortChange('created_at')}
+                      className={`block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] flex items-center justify-between ${
+                        sortField === 'created_at' ? 'text-blue-600 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span>Joined Date</span>
+                      {sortField === 'created_at' && (
+                        <span className="text-xs text-gray-500">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleSortChange('status')}
+                      className={`block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] flex items-center justify-between ${
+                        sortField === 'status' ? 'text-blue-600 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span>Status</span>
+                      {sortField === 'status' && (
+                        <span className="text-xs text-gray-500">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             
             {/* Add User Button */}
             <button
               onClick={() => setShowAddUserModal(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors min-h-[44px] whitespace-nowrap"
             >
-              <FiPlus size={18} />
-              <span className="whitespace-nowrap">Add User</span>
+              <FiPlus size={18} className="flex-shrink-0" />
+              <span>Add User</span>
             </button>
           </div>
         </div>
 
         {/* Role Filters */}
-        <div className="px-4 py-3 border-b border-[#F3F4F6] flex gap-4 text-sm">
-          {roleFilters.map((label) => (
-            <button
-              key={label}
-              onClick={() => handleRoleFilterChange(label)}
-              className={`px-3 py-1 rounded transition-colors duration-150 ${
-                selected === label
-                  ? "bg-[#C6E4FF] text-black"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="border-b border-[#F3F4F6] text-sm">
+          <div className="overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-0.5 sm:gap-4 px-1 sm:px-4 py-1 sm:py-3 min-w-max sm:min-w-0">
+              {roleFilters.map((label) => (
+                <button
+                  key={label}
+                  onClick={() => handleRoleFilterChange(label)}
+                  className={`py-1 sm:py-1 rounded transition-colors duration-150 whitespace-nowrap flex-shrink-0 min-h-[44px] sm:min-h-0 flex items-center justify-center text-sm font-medium ${
+                    selected === label
+                      ? "bg-[#C6E4FF] text-black px-0 sm:px-4"
+                      : "bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 px-0 sm:px-4"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Loading State */}
@@ -227,53 +323,56 @@ const Users = () => {
           </div>
         )}
 
-        {/* Users Table */}
+        {/* Users Table - Horizontal Scrolling on Mobile */}
         {!loading && !error && (
           <>
-            <div className="overflow-x-auto insect-shadow-sm shadow-lg rounded-xl">
-              <table className="w-full text-sm text-left border-b border-gray-200 mt-4">
-                <thead className="bg-[rgb(249,250,251)] text-black font-inter font-medium">
-                  <tr className="h-11">
-                    <th className="pl-6">
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        onChange={handleSelectAll}
-                        aria-label="Select all users"
-                      />
-                    </th>
-                    <th className="pl-5">Name</th>
-                    <th className="pl-5">Email</th>
-                    <th className="pl-5">Joined Date</th>
-                    <th className="pl-5">Status</th>
-                    <th className="pr-5">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.length > 0 ? (
-                    users.map((user) => (
-                      <UserRow
-                        key={user.id}
-                        user={user}
-                        isSelected={selectedIds.includes(user.id)}
-                        onSelect={() => handleSelectOne(user.id)}
-                        onRowClick={() => handleRowClick(user.id)}
-                        onBlock={() => handleBlockUser(user.id, user.name, user.status)}
-                        isActionLoading={actionLoading === user.id}
-                        isDropdownOpen={openDropdownId === user.id}
-                        onDropdownToggle={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
-                        dropdownRef={(el) => (dropdownRefs.current[user.id] = el)}
-                      />
-                    ))
-                  ) : (
-                    <tr className="h-[72px]">
-                      <td colSpan="6" className="text-center text-gray-500 py-6">
-                        No users found for "{selected}"
-                      </td>
+            <div className="overflow-x-auto insect-shadow-sm shadow-lg rounded-xl mt-4 -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="inline-block min-w-full align-middle">
+                <table className="w-full text-sm text-left border-b border-gray-200" style={{ minWidth: '600px' }}>
+                  <thead className="bg-[rgb(249,250,251)] text-black font-inter font-medium">
+                    <tr className="h-11">
+                      <th className="pl-6 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={isAllSelected}
+                          onChange={handleSelectAll}
+                          aria-label="Select all users"
+                          className="min-w-[44px] min-h-[44px]"
+                        />
+                      </th>
+                      <th className="pl-5 whitespace-nowrap">Name</th>
+                      <th className="pl-5 whitespace-nowrap">Email</th>
+                      <th className="pl-5 whitespace-nowrap">Joined Date</th>
+                      <th className="pl-5 whitespace-nowrap">Status</th>
+                      <th className="pr-5 whitespace-nowrap">Action</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {users.length > 0 ? (
+                      users.map((user) => (
+                        <UserRow
+                          key={user.id}
+                          user={user}
+                          isSelected={selectedIds.includes(user.id)}
+                          onSelect={() => handleSelectOne(user.id)}
+                          onRowClick={() => handleRowClick(user.id)}
+                          onBlock={() => handleBlockUser(user.id, user.name, user.status)}
+                          isActionLoading={actionLoading === user.id}
+                          isDropdownOpen={openDropdownId === user.id}
+                          onDropdownToggle={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
+                          dropdownRef={(el) => (dropdownRefs.current[user.id] = el)}
+                        />
+                      ))
+                    ) : (
+                      <tr className="h-[72px]">
+                        <td colSpan="6" className="text-center text-gray-500 py-6">
+                          No users found for "{selected}"
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Pagination */}
@@ -351,10 +450,20 @@ const UserRow = React.memo(({
           aria-label={`Select ${user.name}`}
         />
       </td>
-      <td className="p-6">{user.name}</td>
-      <td className="p-6">{user.email}</td>
-      <td className="p-6">
-        {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+      <td className="p-6 whitespace-nowrap">
+        <div className="truncate max-w-[200px]" title={user.name}>
+          {user.name}
+        </div>
+      </td>
+      <td className="p-6 whitespace-nowrap">
+        <div className="truncate max-w-[250px]" title={user.email}>
+          {user.email}
+        </div>
+      </td>
+      <td className="p-6 whitespace-nowrap">
+        <div>
+          {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+        </div>
       </td>
       <td className="p-6">
         <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${status.bg} ${status.text}`}>
