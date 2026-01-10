@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FiImage, FiMoreHorizontal, FiPlus, FiVideo, FiFileText, FiSearch } from "react-icons/fi";
+import { FiImage, FiMoreHorizontal, FiPlus, FiVideo, FiFileText, FiSearch, FiArrowLeft, FiMenu } from "react-icons/fi";
 import { BsEmojiSmile } from "react-icons/bs";
 import { AiOutlineCheck } from "react-icons/ai";
 import EmojiPicker from "emoji-picker-react";
@@ -22,6 +22,7 @@ const Inbox = () => {
   const [showAttachmentPopup, setShowAttachmentPopup] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newChatSearch, setNewChatSearch] = useState("");
+  const [showChatList, setShowChatList] = useState(false); // For mobile chat list toggle
 
   const chatBodyRef = useRef(null);
   const emojiRef = useRef(null);
@@ -300,21 +301,45 @@ const Inbox = () => {
 
 
   return (
-    <div className="p-2 bg-[#F9FAFB] ">
-      <div className="flex h-[calc(90vh-50px)] bg-white rounded-lg shadow border border-gray-100 overflow-hidden relative">
-        <div className="w-[340px] bg-white border-r border-gray-100 flex flex-col">
-          <div className="px-6 py-5 border-b border-gray-300 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800">Messages</h2>
+    <div className="p-2 sm:p-3 bg-[#F9FAFB]">
+      <div className="flex h-[calc(90vh-50px)] sm:h-[calc(90vh-50px)] bg-white rounded-lg shadow border border-gray-100 overflow-hidden relative">
+        {/* Backdrop for mobile chat list */}
+        {showChatList && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
+            onClick={() => setShowChatList(false)}
+          />
+        )}
+
+        {/* Chat List Sidebar - Hidden on mobile when chat is selected, shown as overlay */}
+        <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} ${showChatList ? 'flex' : 'hidden md:flex'} absolute md:relative top-0 left-0 w-full md:w-[340px] h-full bg-white border-r border-gray-100 flex-col z-40`}>
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-300 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Back button for mobile */}
+              {selectedChat && (
+                <button
+                  onClick={() => {
+                    setSelectedChat(null);
+                    setShowChatList(false);
+                  }}
+                  className="md:hidden text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label="Back to messages"
+                >
+                  <FiArrowLeft size={20} />
+                </button>
+              )}
+              <h2 className="text-lg font-semibold text-gray-800">Messages</h2>
+            </div>
             <span className="text-xs bg-gray-100 p-2.5 rounded">{filteredChats.length}</span>
           </div>
           <div className="px-3 py-2">
-            <div className="flex items-center bg-gray-100 rounded-md px-3 py-2">
-              <FiSearch className="text-gray-500" />
+            <div className="flex items-center bg-gray-100 rounded-md px-3 py-2 min-h-[44px]">
+              <FiSearch className="text-gray-500 flex-shrink-0" size={18} />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search conversations..."
-                className="bg-transparent w-full outline-none text-sm px-2"
+                className="bg-transparent w-full outline-none text-sm px-2 min-h-[44px]"
               />
             </div>
           </div>
@@ -349,8 +374,11 @@ const Inbox = () => {
                 return (
                   <div
                     key={chat.conversation_id}
-                    onClick={() => fetchMessages(chat.conversation_id)}
-                    className={`flex flex-col px-5 py-3 cursor-pointer border-b border-gray-300 transition ${selectedChat?.conversation_id === chat.conversation_id ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                    onClick={() => {
+                      fetchMessages(chat.conversation_id);
+                      setShowChatList(false); // Close chat list on mobile after selection
+                    }}
+                    className={`flex flex-col px-4 sm:px-5 py-3 cursor-pointer border-b border-gray-300 transition min-h-[44px] ${selectedChat?.conversation_id === chat.conversation_id ? "bg-blue-50" : "hover:bg-gray-50"}`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
@@ -382,14 +410,30 @@ const Inbox = () => {
 
         </div>
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {!selectedChat ? (
-            <div className="flex flex-col justify-center items-center h-full text-gray-400">
-              <p>Select a conversation to start</p>
+            <div className="flex flex-col justify-center items-center h-full text-gray-400 px-4">
+              <p className="text-center">Select a conversation to start</p>
+              {/* Mobile: Show menu button to open chat list */}
+              <button
+                onClick={() => setShowChatList(true)}
+                className="md:hidden mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition min-h-[44px]"
+              >
+                <FiMenu size={20} className="inline mr-2" />
+                View Messages
+              </button>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-300 bg-white">
+              <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-300 bg-white">
+                {/* Mobile: Menu button to show chat list */}
+                <button
+                  onClick={() => setShowChatList(true)}
+                  className="md:hidden text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label="Open messages"
+                >
+                  <FiMenu size={20} />
+                </button>
 
                 <div className="relative">
                   <img
@@ -421,7 +465,7 @@ const Inbox = () => {
               </div>
 
 
-              <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-6 py-4">
+              <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
                 {selectedChat.messages?.map((msg) => {
                   const isMine = msg.chat_user?.user?.id === user.id;
                   const time = formatMessageTime(msg.created_at);
@@ -430,7 +474,7 @@ const Inbox = () => {
                     <div key={msg.id} className={`w-full mb-3 flex ${isMine ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`
-            relative max-w-[65%] px-3 py-2 rounded-lg shadow-sm 
+            relative max-w-[85%] sm:max-w-[65%] px-3 py-2 rounded-lg shadow-sm 
             ${isMine ? "bg-[#DCF8C6] text-gray-800 rounded-br-none" : "bg-white text-gray-800 rounded-bl-none"}
             flex flex-wrap items-end gap-1
           `}
@@ -443,21 +487,21 @@ const Inbox = () => {
                         )}
 
                         {msg.type === "attachment" && msg.data?.map((item, idx) => (
-                          <div key={idx} className="flex-1">
+                          <div key={idx} className="flex-1 min-w-0">
                             {item.type === "image" ? (
-                              <img src={item.url} className="w-40 h-40 object-cover rounded-lg mb-1" />
+                              <img src={item.url} className="w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-lg mb-1 max-w-full" alt="Attachment" />
                             ) : (
-                              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
-                                <span className="text-xl">
+                              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2 min-w-0">
+                                <span className="text-xl flex-shrink-0">
                                   {item.type === "video" ? "🎬" :
                                     item.type === "audio" ? "🎵" : "📎"}
                                 </span>
-                                <span className="font-semibold truncate max-w-[150px]">{item.name}</span>
+                                <span className="font-semibold truncate text-sm">{item.name}</span>
                               </div>
                             )}
 
                             <button
-                              className="text-blue-500 text-xs underline block mt-1"
+                              className="text-blue-500 text-xs underline block mt-1 min-h-[44px]"
                               onClick={() => handleDownloadAttachment(item)}
                             >
                               Download
@@ -486,26 +530,42 @@ const Inbox = () => {
                 <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 bg-white border border-gray-200 rounded-lg p-4 shadow-md z-50 w-[90%] max-w-md flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     {attachmentPreview?.type === "image" ? (
-                      <img src={attachmentPreview.url} className="w-32 h-32 object-cover rounded" />
+                      <img src={attachmentPreview.url} className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded flex-shrink-0" alt="Preview" />
                     ) : (
-                      <span>{attachmentPreview?.type === "video" ? "🎬" : attachmentPreview?.type === "audio" ? "🎵" : "📎"}</span>
+                      <span className="text-2xl sm:text-3xl">{attachmentPreview?.type === "video" ? "🎬" : attachmentPreview?.type === "audio" ? "🎵" : "📎"}</span>
                     )}
-                    <span className="truncate max-w-[200px]">{attachmentPreview?.name}</span>
+                    <span className="truncate max-w-[200px] text-sm">{attachmentPreview?.name}</span>
                   </div>
                   <textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Add a message..."
-                    className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                    className="border border-gray-300 rounded px-3 py-2 text-sm w-full min-h-[44px]"
+                    rows="2"
                   />
-                  <button onClick={handleSend} className="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
+                  <button
+                    onClick={handleSend}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition min-h-[44px]"
+                  >
+                    Send
+                  </button>
                 </div>
               )}
 
-              <div className="flex items-center gap-2 p-4 border-t border-gray-300 bg-white">
-                <div className="relative" ref={emojiRef}>
-                  <BsEmojiSmile className="text-gray-500 text-2xl cursor-pointer" onClick={() => setShowEmojiPicker(!showEmojiPicker)} />
-                  {showEmojiPicker && <div className="absolute bottom-12 z-50"><EmojiPicker onEmojiClick={handleEmojiClick} /></div>}
+              <div className="flex items-center gap-2 p-3 sm:p-4 border-t border-gray-300 bg-white">
+                <div className="relative flex-shrink-0" ref={emojiRef}>
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="text-gray-500 hover:text-gray-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label="Emoji picker"
+                  >
+                    <BsEmojiSmile className="text-xl sm:text-2xl" />
+                  </button>
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-full mb-2 left-0 z-50">
+                      <EmojiPicker onEmojiClick={handleEmojiClick} />
+                    </div>
+                  )}
                 </div>
 
                 <input
@@ -513,20 +573,31 @@ const Inbox = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder="Type message..."
-                  className="flex-1 px-4 py-2 rounded-xl bg-gray-100 outline-none text-sm"
+                  className="flex-1 px-3 sm:px-4 py-2 rounded-xl bg-gray-100 outline-none text-sm min-h-[44px]"
                 />
 
-                <div className="relative" ref={menuRef}>
-                  <FiMoreHorizontal className="text-gray-500 text-xl cursor-pointer hover:text-blue-500" onClick={() => setShowActionMenu(!showActionMenu)} />
+                <div className="relative flex-shrink-0" ref={menuRef}>
+                  <button
+                    onClick={() => setShowActionMenu(!showActionMenu)}
+                    className="text-gray-500 hover:text-blue-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label="More options"
+                  >
+                    <FiMoreHorizontal className="text-xl" />
+                  </button>
                   {showActionMenu && (
-                    <div className="absolute bottom-12 right-0 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-50">
+                    <div className="absolute bottom-full mb-2 right-0 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-50">
                       {[
                         { icon: <FiFileText />, label: "Attach File", type: "file" },
                         { icon: <FiImage />, label: "Send Image", type: "image" },
                         { icon: <FiVideo />, label: "Send Video", type: "video" },
                         { icon: <FiVideo />, label: "Send Audio", type: "audio" },
                       ].map((item, idx) => (
-                        <button key={idx} type="button" onClick={() => handleMenuClick(item.type)} className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700">
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleMenuClick(item.type)}
+                          className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700 min-h-[44px]"
+                        >
                           {item.icon}{item.label}
                         </button>
                       ))}
@@ -534,7 +605,12 @@ const Inbox = () => {
                   )}
                 </div>
 
-                <button className="bg-blue-600 text-white px-5 py-2 rounded-xl" onClick={handleSend}>Send</button>
+                <button
+                  className="bg-blue-600 text-white px-4 sm:px-5 py-2 rounded-xl hover:bg-blue-700 transition min-h-[44px] whitespace-nowrap text-sm sm:text-base"
+                  onClick={handleSend}
+                >
+                  Send
+                </button>
 
                 <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => handleFileUpload(e, "file")} />
                 <input type="file" accept="image/*" ref={imageInputRef} className="hidden" onChange={(e) => handleFileUpload(e, "image")} />
@@ -545,42 +621,59 @@ const Inbox = () => {
           )}
         </div>
 
-        {!showUserList && (
-          <button onClick={() => setShowUserList(true)} className="absolute bottom-4 left-4 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition">
-            <FiPlus className="text-2xl" />
+        {!showUserList && !selectedChat && (
+          <button
+            onClick={() => setShowUserList(true)}
+            className="absolute bottom-4 left-4 bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-700 transition min-w-[56px] min-h-[56px] flex items-center justify-center"
+            aria-label="New chat"
+          >
+            <FiPlus className="text-xl sm:text-2xl" />
           </button>
         )}
 
         {showUserList && (
-          <div className="absolute top-0 left-0 w-[340px] h-full bg-white border-r border-gray-100 flex flex-col z-50">
-            <div className="px-6 py-5 border-b border-gray-300 flex items-center justify-between">
+          <div className="absolute top-0 left-0 w-full md:w-[340px] h-full bg-white border-r border-gray-100 flex flex-col z-50">
+            <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-300 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-800">New Chat</h2>
-              <button onClick={() => setShowUserList(false)} className="text-gray-500">Close</button>
+              <button
+                onClick={() => setShowUserList(false)}
+                className="text-gray-500 hover:text-gray-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Close"
+              >
+                Close
+              </button>
             </div>
 
             <div className="px-3 py-2">
-              <div className="flex items-center bg-gray-100 rounded-md px-3 py-2">
-                <FiSearch className="text-gray-500" />
+              <div className="flex items-center bg-gray-100 rounded-md px-3 py-2 min-h-[44px]">
+                <FiSearch className="text-gray-500 flex-shrink-0" size={18} />
                 <input
                   value={newChatSearch}
                   onChange={(e) => setNewChatSearch(e.target.value)}
                   placeholder="Search users..."
-                  className="bg-transparent w-full outline-none text-sm px-2"
+                  className="bg-transparent w-full outline-none text-sm px-2 min-h-[44px]"
                 />
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               {filteredUsers.length === 0 ? (
                 <p className="text-center text-gray-400 py-10">No users found</p>
               ) : filteredUsers.map((userItem) => (
                 <div
                   key={userItem.id}
-                  onClick={() => handleStartNewConversation(userItem)}
-                  className="flex items-center gap-3 px-5 py-4 cursor-pointer border-b border-gray-300 hover:bg-gray-50"
+                  onClick={() => {
+                    handleStartNewConversation(userItem);
+                    setShowUserList(false); // Close user list after selection
+                  }}
+                  className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-gray-300 hover:bg-gray-50 min-h-[44px]"
                 >
-                  <img src={userItem.avatar || "/default-avatar.png"} className="w-10 h-10 rounded-full object-cover" />
-                  <div className="flex-1">
+                  <img
+                    src={userItem.avatar || "/default-avatar.png"}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
+                    alt={userItem.name}
+                  />
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-800 truncate">{userItem.name}</p>
                     <p className="text-xs text-gray-500 truncate">@{userItem.username}</p>
                   </div>

@@ -47,11 +47,11 @@ const UserManagement = () => {
   // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        openDropdownId !== null &&
-        dropdownRefs.current[openDropdownId] &&
-        !dropdownRefs.current[openDropdownId].contains(event.target)
-      ) {
+      // Check all dropdown refs (including mobile ones)
+      const clickedOutsideAllMenus = Object.values(dropdownRefs.current).every(
+        (ref) => !ref?.contains(event.target)
+      );
+      if (clickedOutsideAllMenus && openDropdownId !== null) {
         setOpenDropdownId(null);
       }
     };
@@ -208,38 +208,66 @@ const UserManagement = () => {
               </span>
             </div>
             
-            {/* Sort Button */}
-            <button className="flex items-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700">
-              <MdFilterList className="w-[20px] h-[20px]" />
-              <span className="whitespace-nowrap">Sort by</span>
-            </button>
-            
-            {/* Add User Button */}
-            <button
-              onClick={() => setShowAddUserModal(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              <FiPlus size={18} />
-              <span className="whitespace-nowrap">Add User</span>
-            </button>
           </div>
         </div>
 
-        {/* Role Filters */}
-        <div className="px-4 py-3 border-b border-[#F3F4F6] flex gap-[16px] text-sm">
-          {roleFilters.map((label) => (
-            <button
-              key={label}
-              onClick={() => handleRoleFilterChange(label)}
-              className={`px-3 py-1 rounded transition-colors duration-150 ${
-                selected === label
-                  ? "bg-[#C6E4FF] text-black"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        {/* Role Filters - Vertical on Mobile, Horizontal on Desktop */}
+        <div className="bg-white border-b border-[#F3F4F6]">
+          {/* Mobile: Vertical Filters */}
+          <div className="md:hidden">
+            <div className="flex flex-col px-4 py-2">
+              {roleFilters.map((label) => (
+                <button
+                  key={label}
+                  onClick={() => handleRoleFilterChange(label)}
+                  className={`w-full text-left py-3 px-4 rounded-md text-sm font-medium transition-colors min-h-[44px] flex items-center ${
+                    selected === label
+                      ? 'bg-blue-100 text-blue-700 font-semibold'
+                      : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              {/* Add User Button - Mobile */}
+              <button
+                onClick={() => setShowAddUserModal(true)}
+                className="w-full text-left py-3 px-4 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] flex items-center justify-center gap-2 mt-2"
+              >
+                <FiPlus size={18} />
+                <span>Add User</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop: Horizontal Filters */}
+          <div className="hidden md:block">
+            <div className="flex items-center justify-between gap-2 px-6 py-4">
+              <div className="flex gap-2">
+                {roleFilters.map((label) => (
+                  <button
+                    key={label}
+                    onClick={() => handleRoleFilterChange(label)}
+                    className={`py-2.5 px-4 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center justify-center min-h-[44px] ${
+                      selected === label
+                        ? 'bg-blue-100 text-blue-700 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* Add User Button - Desktop */}
+              <button
+                onClick={() => setShowAddUserModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] whitespace-nowrap"
+              >
+                <FiPlus size={18} />
+                <span>Add User</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Loading State */}
@@ -259,10 +287,10 @@ const UserManagement = () => {
           </div>
         )}
 
-        {/* Users Table */}
+        {/* Desktop Table View */}
         {!loading && !error && (
           <>
-            <div className="overflow-x-auto insect-shadow-sm shadow-lg rounded-xl">
+            <div className="hidden md:block overflow-x-auto insect-shadow-sm shadow-lg rounded-xl">
               <table className="w-full text-sm text-left border-b border-gray-200 mt-4">
                 <thead className="bg-[#F9FAFB] text-black font-inter font-medium">
                   <tr className="h-[44px]">
@@ -333,6 +361,214 @@ const UserManagement = () => {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 mt-4">
+              {users.length > 0 ? (
+                users.map((item) => {
+                  // If Organization tab, render organization card
+                  if (selected === "Organization") {
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleRowClick(item)}
+                        className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(item.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleSelectOne(item.id);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="min-w-[44px] min-h-[44px] flex-shrink-0"
+                              aria-label={`Select ${item.name}`}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-800 truncate">{item.name}</h4>
+                              <p className="text-sm text-gray-600 truncate mt-1">{item.contact_email || 'N/A'}</p>
+                            </div>
+                          </div>
+                          <div
+                            className="relative flex-shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                            ref={(el) => (dropdownRefs.current[`mobile-org-${item.id}`] = el)}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdownId(openDropdownId === `mobile-org-${item.id}` ? null : `mobile-org-${item.id}`);
+                              }}
+                              className="text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              <HiDotsVertical className="w-5 h-5" />
+                            </button>
+                            {openDropdownId === `mobile-org-${item.id}` && (
+                              <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDropdownId(null);
+                                    handleRowClick(item);
+                                  }}
+                                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                                >
+                                  View
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100">
+                          <div>
+                            <span className="text-xs text-gray-500">Users Count</span>
+                            <p className="text-sm font-medium text-gray-800">{item.users_count || 0}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-500">Aircraft Count</span>
+                            <p className="text-sm font-medium text-gray-800">{item.aircraft_count || 0}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                          <div>
+                            <span className="text-xs text-gray-500">Joined Date</span>
+                            <p className="text-sm text-gray-700">
+                              {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {item.status || 'Active'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  // User card
+                  const statusConfig = {
+                    active: {
+                      bg: "bg-[#E1FAEA]",
+                      text: "text-[#016626]",
+                      dot: "bg-[#019939]",
+                    },
+                    blocked: {
+                      bg: "bg-[#FFE3E3]",
+                      text: "text-[#961616]",
+                      dot: "bg-[#E12121]",
+                    },
+                    inactive: {
+                      bg: "bg-[#F1F1F1]",
+                      text: "text-[#4F4D55]",
+                      dot: "bg-[#18181C]",
+                    },
+                  };
+
+                  const status = statusConfig[item.status] || {
+                    bg: "bg-yellow-100",
+                    text: "text-yellow-600",
+                    dot: "bg-yellow-500",
+                  };
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleRowClick(item)}
+                      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(item.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleSelectOne(item.id);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="min-w-[44px] min-h-[44px] flex-shrink-0"
+                            aria-label={`Select ${item.name}`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-800 truncate">{item.name}</h4>
+                            <p className="text-sm text-gray-600 truncate mt-1">{item.email}</p>
+                          </div>
+                        </div>
+                        <div
+                          className="relative flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                          ref={(el) => (dropdownRefs.current[`mobile-${item.id}`] = el)}
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === `mobile-${item.id}` ? null : `mobile-${item.id}`);
+                            }}
+                            className="text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                          >
+                            <HiDotsVertical className="w-5 h-5" />
+                          </button>
+                          {openDropdownId === `mobile-${item.id}` && (
+                            <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdownId(null);
+                                  handleRowClick(item);
+                                }}
+                                className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdownId(null);
+                                  handleBlockUser(item.id, item.name, item.status);
+                                }}
+                                className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                              >
+                                {item.status === 'blocked' ? 'Unblock' : 'Block'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-100">
+                        <div>
+                          <span className="text-xs text-gray-500">Organization</span>
+                          <p className="text-sm text-gray-700 truncate">{item.organization?.name || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500">Role</span>
+                          <p className="text-sm text-gray-700">{item.roles?.[0] || selected}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                        <div>
+                          <span className="text-xs text-gray-500">Joined Date</span>
+                          <p className="text-sm text-gray-700">
+                            {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${status.bg} ${status.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No {selected === "Organization" ? "organizations" : selected.toLowerCase()} found
+                </div>
+              )}
             </div>
 
             {/* Pagination */}

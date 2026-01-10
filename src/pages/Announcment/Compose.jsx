@@ -100,10 +100,10 @@ const Compose = () => {
           {isEditMode ? 'Edit Announcements' : 'Add Announcements'}
         </h2>
       </div>
-      <div className="bg-white shadow-xs mt-1 px-4 py-2">
+      <div className="bg-white shadow-xs mt-1 px-4 sm:px-6 py-4 sm:py-6">
         <form onSubmit={handleSubmit}>
-          <div className="md:mb-4">
-            <label className="block text-gray-700 font-inter text-sm mt-2 mb-3">
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-gray-700 font-inter text-sm mt-2 mb-2 sm:mb-3">
               Announcement Title
             </label>
             <input
@@ -112,11 +112,11 @@ const Compose = () => {
               onChange={handleChange}
               placeholder="Enter..."
               required
-              className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 sm:px-4 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px] text-sm sm:text-base"
             />
           </div>
 
-          <div className="md:mb-4">
+          <div className="mb-4 sm:mb-6">
             <label className="block text-gray-700 font-inter text-sm mt-3 mb-2">
               Description
             </label>
@@ -127,15 +127,15 @@ const Compose = () => {
               placeholder="Enter..."
               required
               rows="6"
-              className="w-full border border-gray-300 rounded-md px-2 pt-2 pb-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-md px-3 sm:px-4 pt-2 pb-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm sm:text-base"
             />
           </div>
 
-          <div className="flex space-x-8 mb-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-4">
             <button
               type="button"
               onClick={() => handleDeliveryMethodChange('in_app')}
-              className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors ${
+              className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg transition-colors min-h-[44px] w-full sm:w-auto ${
                 formData.delivery_method === 'in_app'
                   ? 'border-[#1376CD] bg-blue-50 text-[#1376CD]'
                   : 'border-[#D0D5DD] text-black hover:bg-gray-50'
@@ -145,15 +145,16 @@ const Compose = () => {
                 type="checkbox"
                 checked={formData.delivery_method === 'in_app'}
                 onChange={() => handleDeliveryMethodChange('in_app')}
-                className="w-4 h-4 appearance-none border bg-[#FFFFFF] border-black rounded-full checked:bg-blue-700 checked:border-blue-700"
+                className="h-3 w-3 sm:h-3.5 sm:w-3.5 appearance-none border bg-[#FFFFFF] border-black rounded-full checked:bg-blue-700 checked:border-blue-700 flex-shrink-0"
+                style={{ minWidth: '12px', minHeight: '12px', maxWidth: '14px', maxHeight: '14px' }}
               />
-              <span>In App</span>
+              <span className="text-sm sm:text-base whitespace-nowrap">In App</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleDeliveryMethodChange('email')}
-              className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors ${
+              className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg transition-colors min-h-[44px] w-full sm:w-auto ${
                 formData.delivery_method === 'email'
                   ? 'border-[#1376CD] bg-blue-50 text-[#1376CD]'
                   : 'border-[#D0D5DD] text-black hover:bg-gray-50'
@@ -163,15 +164,16 @@ const Compose = () => {
                 type="checkbox"
                 checked={formData.delivery_method === 'email'}
                 onChange={() => handleDeliveryMethodChange('email')}
-                className="w-4 h-4 appearance-none border bg-[#FFFFFF] border-black rounded-full checked:bg-blue-700 checked:border-blue-700"
+                className="h-3 w-3 sm:h-3.5 sm:w-3.5 appearance-none border bg-[#FFFFFF] border-black rounded-full checked:bg-blue-700 checked:border-blue-700 flex-shrink-0"
+                style={{ minWidth: '12px', minHeight: '12px', maxWidth: '14px', maxHeight: '14px' }}
               />
-              <span>Email</span>
+              <span className="text-sm sm:text-base whitespace-nowrap">Email</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleDeliveryMethodChange('both')}
-              className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors ${
+              className={`flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2.5 sm:py-2 border rounded-lg transition-colors min-h-[44px] w-full sm:w-auto ${
                 formData.delivery_method === 'both'
                   ? 'border-[#1376CD] bg-blue-50 text-[#1376CD]'
                   : 'border-[#D0D5DD] text-black hover:bg-gray-50'
@@ -181,24 +183,25 @@ const Compose = () => {
                 type="checkbox"
                 checked={formData.delivery_method === 'both'}
                 onChange={() => handleDeliveryMethodChange('both')}
-                className="w-4 h-4 appearance-none border border-black bg-[#FFFFFF] rounded-full checked:bg-[#1376CD] checked:border-[#1376CD]"
+                className="h-3 w-3 sm:h-3.5 sm:w-3.5 appearance-none border border-black bg-[#FFFFFF] rounded-full checked:bg-[#1376CD] checked:border-[#1376CD] flex-shrink-0"
+                style={{ minWidth: '12px', minHeight: '12px', maxWidth: '14px', maxHeight: '14px' }}
               />
-              <span>Both</span>
+              <span className="text-sm sm:text-base whitespace-nowrap">Both</span>
             </button>
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-2 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 bg-[#F6F6F6] text-black rounded-lg hover:bg-gray-200 transition"
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-[#F6F6F6] text-black rounded-lg hover:bg-gray-200 transition min-h-[44px] text-sm sm:text-base"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] text-sm sm:text-base"
             >
               {loading ? 'Saving...' : 'Save'}
             </button>

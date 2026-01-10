@@ -493,21 +493,23 @@ const RolesPermissions = () => {
     <div className="md:mt-5 mx-auto">
       <div className="bg-white shadow-sm rounded-lg">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1 p-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">Roles</h2>
-            {!userIsSuperAdmin && adminNavItems.length > 0 && (
-              <p className="text-sm text-gray-500 mt-1">
-                Showing permissions for: {adminNavItems.map(item => item.label).join(", ")}
-              </p>
-            )}
+        <div className="mb-1 p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-gray-800">Roles</h2>
+              {!userIsSuperAdmin && adminNavItems.length > 0 && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Showing permissions for: {adminNavItems.map(item => item.label).join(", ")}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleAddRoleClick}
+              className="ml-4 px-4 py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium whitespace-nowrap"
+            >
+              Add New Role
+            </button>
           </div>
-          <button
-            onClick={handleAddRoleClick}
-            className="mt-2 sm:mt-0 px-4 py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-          >
-            Add New Role
-          </button>
         </div>
 
         {/* View Toggle */}
@@ -691,7 +693,8 @@ const RolesPermissions = () => {
                                       onChange={(e) =>
                                         handlePermissionToggle(role.id, permission, e.target.checked)
                                       }
-                                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                                      className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                                      style={{ minWidth: '12px', minHeight: '12px', maxWidth: '14px', maxHeight: '14px' }}
                                     />
                                   )}
                                 </td>
@@ -765,7 +768,8 @@ const RolesPermissions = () => {
                             type="checkbox"
                             checked={selectedPermissions.includes(permission)}
                             onChange={() => handlePermissionSelect(permission)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                            className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer flex-shrink-0"
+                            style={{ minWidth: '12px', minHeight: '12px', maxWidth: '14px', maxHeight: '14px' }}
                           />
                           <label className="ml-3 text-sm text-gray-700 cursor-pointer flex-1">
                             {permission}

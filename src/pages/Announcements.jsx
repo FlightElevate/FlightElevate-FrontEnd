@@ -87,11 +87,11 @@ const Announcements = () => {
       <div className="bg-white shadow-xs rounded-lg">
         <div className="sm:flex-row items-start justify-between p-4">
           <div className="bg-white shadow-xs">
-            <div className="flex flex-col sm:flex-row items-start justify-between px-4 py-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-4 sm:py-5 gap-3 sm:gap-0">
               <h2 className="text-xl font-semibold text-gray-800">Announcements</h2>
               <Link
                 to="/announcements/compose"
-                className="mt-2 sm:mt-0 px-4 py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition text-center min-h-[44px] flex items-center justify-center text-sm sm:text-base"
               >
                 Add Announcement
               </Link>
@@ -117,7 +117,8 @@ const Announcements = () => {
 
           {!loading && !error && (
             <div className="bg-[#FFFFFF] inset-shadow-sm shadow-sm rounded-xl mt-3">
-              <div className="overflow-x-auto border-gray-200">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto border-gray-200">
                 <table className="table-auto w-full text-left">
                   <thead>
                     <tr className="border-b border-gray-200">
@@ -146,7 +147,7 @@ const Announcements = () => {
                               <div ref={(el) => (dropdownRefs.current[index] = el)}>
                                 <button
                                   onClick={() => toggleMenu(index)}
-                                  className="p-2 rounded-full hover:bg-gray-200"
+                                  className="p-2 rounded-full hover:bg-gray-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                 >
                                   <HiDotsVertical className="w-5 h-5 text-gray-500" />
                                 </button>
@@ -155,13 +156,13 @@ const Announcements = () => {
                                   <div className="absolute right-4 mt-1 mr-4 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                                     <Link
                                       to={`/announcements/edit/${item.id}`}
-                                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px] flex items-center"
                                       onClick={() => setOpenMenu(null)}
                                     >
                                       Edit
                                     </Link>
                                     <button
-                                      className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100"
+                                      className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100 min-h-[44px] flex items-center"
                                       onClick={() => handleDelete(item.id, index)}
                                     >
                                       Delete
@@ -185,6 +186,69 @@ const Announcements = () => {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden">
+                {announcements.length > 0 ? (
+                  <div className="divide-y divide-gray-200">
+                    {announcements.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-gray-500 font-medium">{item.date}</span>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-xs text-gray-500">{item.time}</span>
+                            </div>
+                            <p className="text-sm text-[#475467] break-words">{item.announcement}</p>
+                          </div>
+                          <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                            {actionLoading === item.id ? (
+                              <div className="flex justify-center min-w-[44px] min-h-[44px] items-center">
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                              </div>
+                            ) : (
+                              <div ref={(el) => (dropdownRefs.current[index] = el)}>
+                                <button
+                                  onClick={() => toggleMenu(index)}
+                                  className="p-2 rounded-full hover:bg-gray-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                >
+                                  <HiDotsVertical className="w-5 h-5 text-gray-500" />
+                                </button>
+
+                                {openMenu === index && (
+                                  <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                    <Link
+                                      to={`/announcements/edit/${item.id}`}
+                                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px] flex items-center"
+                                      onClick={() => setOpenMenu(null)}
+                                    >
+                                      Edit
+                                    </Link>
+                                    <button
+                                      className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100 min-h-[44px] flex items-center"
+                                      onClick={() => handleDelete(item.id, index)}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-6 px-4">
+                    No announcements found
+                  </div>
+                )}
               </div>
 
               <div className="py-2.5 gap-3 flex justify-center">

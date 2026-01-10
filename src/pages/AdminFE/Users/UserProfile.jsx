@@ -296,15 +296,31 @@ const UserProfile = () => {
                         </p>
                       ) : null}
                     </div>
-                    <button className="p-2 hover:bg-gray-100 rounded menu-container relative" onClick={() => toggleMenu(index)}>
-                      <FiMoreVertical className="text-gray-500" />
+                    <div className="relative menu-container">
+                      <button 
+                        className="p-2 hover:bg-gray-100 rounded" 
+                        onClick={() => toggleMenu(index)}
+                        aria-label="Document menu"
+                      >
+                        <FiMoreVertical className="text-gray-500" />
+                      </button>
                       {openMenu === index && (
                         <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                          <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => alert(`Edit: ${doc.title}`)}>Edit</button>
-                          <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100" onClick={() => handleDeleteDocument(doc.id, doc.title)}>Delete</button>
+                          <button 
+                            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px]" 
+                            onClick={() => alert(`Edit: ${doc.title}`)}
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 min-h-[44px]" 
+                            onClick={() => handleDeleteDocument(doc.id, doc.title)}
+                          >
+                            Delete
+                          </button>
                         </div>
                       )}
-                    </button>
+                    </div>
                   </div>
                 ))}
               </div>
