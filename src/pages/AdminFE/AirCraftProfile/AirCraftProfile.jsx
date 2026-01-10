@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiSearch, FiX, FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
+import { HiChevronDown } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { aircraftService } from "../../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../../utils/notifications";
@@ -239,61 +240,73 @@ const AirCraftProfile = () => {
     <div className="md:mt-5 mx-auto">
       <div className="bg-white shadow-sm rounded-lg">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-b border-[#F3F4F6]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
           <h2 className="text-xl font-semibold text-gray-800">Aircraft</h2>
 
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            {/* Add Aircraft Button */}
             {user?.permissions?.includes('create aircraft') && (
-            <button
-              onClick={handleAdd}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium flex items-center gap-2"
-            >
-              <FiPlus size={18} />
-              Add Aircraft
-            </button>
+              <button
+                onClick={handleAdd}
+                className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors min-h-[44px] whitespace-nowrap"
+              >
+                <FiPlus size={18} className="flex-shrink-0" />
+                <span>Add Aircraft</span>
+              </button>
             )}
-            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 sm:w-[250px]">
-              <FiSearch className="text-gray-400 mr-2" size={16} />
+            
+            {/* Search */}
+            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px] min-h-[44px]">
+              <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
                 type="text"
                 placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
+                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full min-w-0"
               />
-              <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded">
+              <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline">
                 ⌘
               </span>
             </div>
             
-            <div className="relative" ref={sortRef}>
+            {/* Sort Dropdown */}
+            <div className="relative w-full sm:w-auto" ref={sortRef}>
               <button
                 onClick={() => setSortOpen(!sortOpen)}
-                className="flex items-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700 min-h-[44px] whitespace-nowrap hover:bg-gray-50 transition-colors"
               >
-                <MdFilterList className="w-5 h-5" />
-                <span className="whitespace-nowrap">Sort by</span>
+                <MdFilterList className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden sm:inline">Sort by</span>
+                <HiChevronDown 
+                  size={16} 
+                  className={`transition-transform flex-shrink-0 ${sortOpen ? 'transform rotate-180' : ''}`}
+                />
               </button>
        
               {sortOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                  {["Newest", "Oldest"].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setSortBy(option);
-                        setSortOpen(false);
-                      }}
-                      className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                        sortBy === option
-                          ? "text-blue-600 font-medium"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="absolute right-0 mt-2 w-full sm:w-48 md:w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="py-1">
+                    {["Newest", "Oldest"].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          setSortBy(option);
+                          setSortOpen(false);
+                        }}
+                        className={`block w-full text-left px-4 py-3 text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] flex items-center justify-between ${
+                          sortBy === option
+                            ? "text-blue-600 font-medium"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        <span>{option}</span>
+                        {sortBy === option && (
+                          <span className="text-xs text-gray-500">{sortBy === "Newest" ? '↓' : '↑'}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

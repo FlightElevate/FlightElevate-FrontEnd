@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -11,14 +11,31 @@ import {
   Rectangle,
 } from "recharts";
 
-const data = [
-  { month: "June", single: 200, multi: 330 },
-  { month: "July", single: 230, multi: 320 },
-  { month: "Aug", single: 190, multi: 270 },
-  { month: "Sep", single: 160, multi: 230 },
-  { month: "Oct", single: 290, multi: 420 },
-  { month: "Nov", single: 370, multi: 250 },
-  { month: "Dec", single: 323 , multi: 324 },
+// Full dataset with location information
+const allData = [
+  { month: "June", single: 200, multi: 330, location: "All Locations" },
+  { month: "July", single: 230, multi: 320, location: "All Locations" },
+  { month: "Aug", single: 190, multi: 270, location: "All Locations" },
+  { month: "Sep", single: 160, multi: 230, location: "All Locations" },
+  { month: "Oct", single: 290, multi: 420, location: "All Locations" },
+  { month: "Nov", single: 370, multi: 250, location: "All Locations" },
+  { month: "Dec", single: 323, multi: 324, location: "All Locations" },
+  // Location 1 data
+  { month: "June", single: 100, multi: 150, location: "Location 1" },
+  { month: "July", single: 120, multi: 160, location: "Location 1" },
+  { month: "Aug", single: 90, multi: 130, location: "Location 1" },
+  { month: "Sep", single: 80, multi: 110, location: "Location 1" },
+  { month: "Oct", single: 140, multi: 200, location: "Location 1" },
+  { month: "Nov", single: 180, multi: 120, location: "Location 1" },
+  { month: "Dec", single: 160, multi: 160, location: "Location 1" },
+  // Location 2 data
+  { month: "June", single: 100, multi: 180, location: "Location 2" },
+  { month: "July", single: 110, multi: 160, location: "Location 2" },
+  { month: "Aug", single: 100, multi: 140, location: "Location 2" },
+  { month: "Sep", single: 80, multi: 120, location: "Location 2" },
+  { month: "Oct", single: 150, multi: 220, location: "Location 2" },
+  { month: "Nov", single: 190, multi: 130, location: "Location 2" },
+  { month: "Dec", single: 163, multi: 164, location: "Location 2" },
 ];
 
 // ✅ Custom Bar Shape — outlines if no value
@@ -48,49 +65,90 @@ const CustomBarShape = (props) => {
 };
 
 const FSession = () => {
+  const [selectedLocation, setSelectedLocation] = useState("All Locations");
+  const [timePeriod, setTimePeriod] = useState("Monthly");
+
+  // Filter data based on selected location
+  const filteredData = useMemo(() => {
+    let locationFiltered = allData;
+    
+    if (selectedLocation !== "All Locations") {
+      locationFiltered = allData.filter(item => item.location === selectedLocation);
+    } else {
+      // For "All Locations", aggregate data by month
+      const aggregated = {};
+      allData.forEach(item => {
+        if (!aggregated[item.month]) {
+          aggregated[item.month] = { month: item.month, single: 0, multi: 0 };
+        }
+        aggregated[item.month].single += item.single;
+        aggregated[item.month].multi += item.multi;
+      });
+      locationFiltered = Object.values(aggregated);
+    }
+
+    // Filter by time period (for now, we only have monthly data, but this can be extended)
+    // If Weekly or Daily is selected, we could show different data or transform the monthly data
+    return locationFiltered;
+  }, [selectedLocation, timePeriod]);
+
+  // Calculate summary totals
+  const summary = useMemo(() => {
+    const totalSingle = filteredData.reduce((sum, item) => sum + (item.single || 0), 0);
+    const totalMulti = filteredData.reduce((sum, item) => sum + (item.multi || 0), 0);
+    return { totalSingle, totalMulti };
+  }, [filteredData]);
+
   return (
-    <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
+    <div className="bg-white shadow-sm rounded-xl p-4 sm:p-6 border border-gray-100">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
         <h2 className="text-xl font-semibold text-gray-800">
           Flight Session Summary
         </h2>
-        <div className="flex items-center gap-3">
-          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option>Locations</option>
-            <option>All Locations</option>
-            <option>Location 1</option>
-            <option>Location 2</option>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <select 
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
+            className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+          >
+            <option value="All Locations">All Locations</option>
+            <option value="Location 1">Location 1</option>
+            <option value="Location 2">Location 2</option>
           </select>
-          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option>Monthly</option>
-            <option>Weekly</option>
-            <option>Daily</option>
+          <select 
+            value={timePeriod}
+            onChange={(e) => setTimePeriod(e.target.value)}
+            className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+          >
+            <option value="Monthly">Monthly</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Daily">Daily</option>
           </select>
         </div>
       </div>
 
       {/* Summary numbers */}
-      <div className="flex items-center gap-10 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10 mb-6">
         <div>
           <p className="text-sm text-gray-500">Single Engine</p>
           <h3 className="text-2xl font-semibold text-gray-900">
-            1500{" "}
+            {summary.totalSingle.toLocaleString()}{" "}
             <span className="text-sm text-green-600 font-normal">Hours</span>
           </h3>
         </div>
         <div>
           <p className="text-sm text-gray-500">Multi Engine</p>
           <h3 className="text-2xl font-semibold text-gray-900">
-            2300{" "}
+            {summary.totalMulti.toLocaleString()}{" "}
             <span className="text-sm text-green-600 font-normal">Hours</span>
           </h3>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="w-full h-80">
+      <div className="w-full h-80" style={{ minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} barGap={3}>
+          <BarChart data={filteredData} barGap={3}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="month"

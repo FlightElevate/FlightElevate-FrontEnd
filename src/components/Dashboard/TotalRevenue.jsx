@@ -53,15 +53,75 @@ const TotalRevenue = () => {
     return new Date().toISOString().split('T')[0];
   });
 
+  const [selectedLocation, setSelectedLocation] = useState("All Locations");
+  const [timePeriod, setTimePeriod] = useState("Weekly");
+
   const currentDate = getCurrentDate();
   const currentFullDate = getCurrentFullDate();
 
-  // Filter data based on date range
+  // Enhanced dataset with location information
+  const allRevenueDataWithLocation = allRevenueData.map(item => ({
+    ...item,
+    location: "All Locations" // Default location, can be extended with actual location data
+  }));
+
+  // Filter data based on date range, location, and time period
   const filteredData = useMemo(() => {
-    return allRevenueData.filter(item => {
+    let filtered = allRevenueDataWithLocation.filter(item => {
       return item.fullDate >= startDate && item.fullDate <= endDate;
     });
-  }, [startDate, endDate]);
+
+    // Filter by location (if not "All Locations")
+    if (selectedLocation !== "All Locations") {
+      filtered = filtered.filter(item => item.location === selectedLocation);
+    }
+
+    // Filter/transform by time period
+    if (timePeriod === "Daily") {
+      // Already daily data, no transformation needed
+      return filtered;
+    } else if (timePeriod === "Weekly") {
+      // Group by week
+      const weeklyData = {};
+      filtered.forEach(item => {
+        const date = new Date(item.fullDate);
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+        const weekKey = weekStart.toISOString().split('T')[0];
+        
+        if (!weeklyData[weekKey]) {
+          weeklyData[weekKey] = {
+            date: `Week of ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+            fullDate: weekKey,
+            revenue: 0,
+            location: item.location
+          };
+        }
+        weeklyData[weekKey].revenue += item.revenue;
+      });
+      return Object.values(weeklyData).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+    } else if (timePeriod === "Monthly") {
+      // Group by month
+      const monthlyData = {};
+      filtered.forEach(item => {
+        const date = new Date(item.fullDate);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            date: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            fullDate: `${monthKey}-01`,
+            revenue: 0,
+            location: item.location
+          };
+        }
+        monthlyData[monthKey].revenue += item.revenue;
+      });
+      return Object.values(monthlyData).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+    }
+
+    return filtered;
+  }, [startDate, endDate, selectedLocation, timePeriod]);
 
   // Calculate average revenue for filtered data
   const avgRevenue = useMemo(() => {
@@ -70,41 +130,54 @@ const TotalRevenue = () => {
     return Math.round(sum / filteredData.length);
   }, [filteredData]);
   return (
-    <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+    <div className="bg-white shadow-sm rounded-xl p-4 sm:p-6 border border-gray-100">
+      <div className="flex flex-col gap-4 mb-6">
         <h2 className="text-xl font-semibold text-gray-800">
           Total Revenue
         </h2>
-        <div className="flex items-center gap-3">
-          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option>Locations</option>
-            <option>All Locations</option>
-            <option>Location 1</option>
-            <option>Location 2</option>
-          </select>
-          <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option>Weekly</option>
-            <option>Monthly</option>
-            <option>Daily</option>
-          </select>
-          {/* Date Picker */}
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+          {/* First Row on Mobile: Locations and Weekly */}
+          <div className="flex flex-col sm:flex-row gap-3 flex-1 sm:flex-initial">
+            <select 
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+            >
+              <option value="All Locations">All Locations</option>
+              <option value="Location 1">Location 1</option>
+              <option value="Location 2">Location 2</option>
+            </select>
+            <select 
+              value={timePeriod}
+              onChange={(e) => setTimePeriod(e.target.value)}
+              className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+            >
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Daily">Daily</option>
+            </select>
+          </div>
+          
+          {/* Date Picker - Full width on mobile, auto on desktop */}
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
             />
-            <span className="text-gray-500 text-sm">to</span>
+            <span className="text-gray-500 text-sm whitespace-nowrap">to</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               max={new Date().toISOString().split('T')[0]}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
             />
           </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+          
+          {/* Export Button - Full width on mobile */}
+          <button className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[44px] whitespace-nowrap">
             Export Report
           </button>
         </div>
@@ -122,7 +195,7 @@ const TotalRevenue = () => {
       </div>
 
       {/* Chart */}
-      <div className="w-full h-80 relative">
+      <div className="w-full h-80 relative" style={{ minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>

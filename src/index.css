@@ -130,6 +130,16 @@ html {
   }
 }
 
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 .fw1 { font-weight: 100; }
 .fw2 { font-weight: 200; }
 .fw3 { font-weight: 300; }

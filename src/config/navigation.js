@@ -91,27 +91,9 @@ export const navigationItems = [
     badgeColor: "bg-orange-500",
   },
   {
-    icon: FiUsers,
-    label: "User Management",
-    link: "/user-management",
-    roles: ["super admin"], // Super Admin only
-  },
-  {
-    icon: FiUsers,
-    label: "Users",
-    link: "/users",
-    roles: ["admin"], // Admin only
-  },
-  {
     icon: FiBookOpen,
     label: "My Lesson (Preview)",
     link: "/my-lessons",
-    roles: ["student"], // Student only
-  },
-  {
-    icon: FiUsers,
-    label: "Instructors",
-    link: "/instructors",
     roles: ["student"], // Student only
   },
   

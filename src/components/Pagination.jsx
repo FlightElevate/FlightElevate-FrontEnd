@@ -22,11 +22,11 @@ const Pagination = ({
       <div className="flex items-center justify-center flex-wrap gap-2 h-auto">
 
         <button
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-300 transition disabled:opacity-50"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-300 transition disabled:opacity-50 hover:bg-gray-50"
           onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
           disabled={page === 1}
         >
-          <img src={arrow_left} alt="Prev" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <img src={arrow_left} alt="Prev" className="w-4 h-4 sm:w-5 sm:h-5" style={{ minWidth: '16px', minHeight: '16px' }} />
         </button>
 
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
@@ -45,11 +45,11 @@ const Pagination = ({
         ))}
 
         <button
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-300 transition disabled:opacity-50"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-300 transition disabled:opacity-50 hover:bg-gray-50"
           onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
           disabled={page === totalPages}
         >
-          <img src={arrow_right} alt="Next" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <img src={arrow_right} alt="Next" className="w-4 h-4 sm:w-5 sm:h-5" style={{ minWidth: '16px', minHeight: '16px' }} />
         </button>
       </div>
     </div>

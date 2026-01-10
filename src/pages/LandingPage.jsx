@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -11,13 +11,17 @@ import {
   FiShield,
   FiChevronDown,
   FiTwitter,
-  FiFacebook
+  FiFacebook,
+  FiMenu,
+  FiX
 } from 'react-icons/fi';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -26,6 +30,28 @@ const LandingPage = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
   const [openFaq, setOpenFaq] = useState(0);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          setMobileMenuOpen(false);
+        }
+      });
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileMenuOpen]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -202,26 +228,93 @@ const LandingPage = () => {
 
             {/* Right - Actions */}
             <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+              {/* Mobile Menu Toggle */}
               <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg bg-blue-700 hover:bg-blue-800 border border-blue-800 min-w-[44px] min-h-[44px] flex items-center justify-center transition-all"
-                aria-label="Toggle theme"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden text-white hover:text-blue-100 transition-colors p-2 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Toggle menu"
               >
-                {isDarkMode ? '☀️' : '🌙'}
+                {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
               </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="px-3 sm:px-4 md:px-6 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors text-xs sm:text-sm md:text-base min-h-[44px] shadow-sm whitespace-nowrap border border-blue-200"
-              >
-                Get Started
-              </button>
-              <button
-                onClick={() => navigate('/login')}
-                className="px-3 sm:px-4 md:px-6 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors text-xs sm:text-sm md:text-base min-h-[44px] shadow-sm whitespace-nowrap border border-blue-200"
-              >
-                Sign In
-              </button>
+
+              {/* Desktop Actions */}
+              <div className="hidden md:flex items-center space-x-2 sm:space-x-3">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-lg bg-blue-700 hover:bg-blue-800 border border-blue-800 min-w-[44px] min-h-[44px] flex items-center justify-center transition-all"
+                  aria-label="Toggle theme"
+                >
+                  {isDarkMode ? '☀️' : '🌙'}
+                </button>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-4 md:px-6 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors text-sm md:text-base min-h-[44px] shadow-sm whitespace-nowrap border border-blue-200"
+                >
+                  Get Started
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-4 md:px-6 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors text-sm md:text-base min-h-[44px] shadow-sm whitespace-nowrap border border-blue-200"
+                >
+                  Sign In
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* Mobile Menu */}
+          <div
+            ref={menuRef}
+            className={`md:hidden transition-all duration-300 ease-in-out overflow-hidden ${
+              mobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <nav className="py-4 space-y-3 border-t border-blue-700">
+              <a
+                href="#features"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2 text-white hover:text-blue-100 hover:bg-blue-700 rounded-lg transition-colors font-medium"
+              >
+                Features
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2 text-white hover:text-blue-100 hover:bg-blue-700 rounded-lg transition-colors font-medium"
+              >
+                FAQ
+              </a>
+              <div className="pt-2 border-t border-blue-700 space-y-2">
+                <button
+                  onClick={() => {
+                    toggleTheme();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-white hover:text-blue-100 hover:bg-blue-700 rounded-lg transition-colors font-medium flex items-center gap-2 min-h-[44px]"
+                >
+                  <span className="text-xl">{isDarkMode ? '☀️' : '🌙'}</span>
+                  <span>Toggle Theme</span>
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/register');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors text-sm min-h-[44px] shadow-sm border border-blue-200"
+                >
+                  Get Started
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/login');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors text-sm min-h-[44px] shadow-sm border border-blue-200"
+                >
+                  Sign In
+                </button>
+              </div>
+            </nav>
           </div>
         </div>
       </header>

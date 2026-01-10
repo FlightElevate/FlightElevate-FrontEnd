@@ -99,9 +99,6 @@ export const RolesProvider = ({ children }) => {
     errorRef.current = null;
 
     try {
-      if (import.meta.env.DEV) {
-        console.log('[RolesContext] Fetching roles from API...');
-      }
       const response = await roleService.getRoles();
 
       if (!response) {
@@ -124,9 +121,6 @@ export const RolesProvider = ({ children }) => {
       lastFetchedRef.current = Date.now();
       lastErrorTimeRef.current = null; // Clear error time on success
       
-      if (import.meta.env.DEV) {
-        console.log('[RolesContext] Roles fetched successfully:', rolesData.length);
-      }
       return rolesData;
     } catch (err) {
       const errorMessage =
