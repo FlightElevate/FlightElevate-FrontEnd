@@ -80,11 +80,11 @@ const Users = () => {
   // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        openDropdownId !== null &&
-        dropdownRefs.current[openDropdownId] &&
-        !dropdownRefs.current[openDropdownId].contains(event.target)
-      ) {
+      // Check all dropdown refs (including mobile ones)
+      const clickedOutsideAllMenus = Object.values(dropdownRefs.current).every(
+        (ref) => !ref?.contains(event.target)
+      );
+      if (clickedOutsideAllMenus && openDropdownId !== null) {
         setOpenDropdownId(null);
       }
       
@@ -274,34 +274,64 @@ const Users = () => {
               )}
             </div>
             
-            {/* Add User Button */}
-            <button
-              onClick={() => setShowAddUserModal(true)}
-              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors min-h-[44px] whitespace-nowrap"
-            >
-              <FiPlus size={18} className="flex-shrink-0" />
-              <span>Add User</span>
-            </button>
           </div>
         </div>
 
-        {/* Role Filters */}
-        <div className="border-b border-[#F3F4F6] text-sm">
-          <div className="overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="flex gap-0.5 sm:gap-4 px-1 sm:px-4 py-1 sm:py-3 min-w-max sm:min-w-0">
+        {/* Role Filters - Vertical on Mobile, Horizontal on Desktop */}
+        <div className="bg-white border-b border-[#F3F4F6]">
+          {/* Mobile: Vertical Filters */}
+          <div className="md:hidden">
+            <div className="flex flex-col px-4 py-2">
               {roleFilters.map((label) => (
                 <button
                   key={label}
                   onClick={() => handleRoleFilterChange(label)}
-                  className={`py-1 sm:py-1 rounded transition-colors duration-150 whitespace-nowrap flex-shrink-0 min-h-[44px] sm:min-h-0 flex items-center justify-center text-sm font-medium ${
+                  className={`w-full text-left py-3 px-4 rounded-md text-sm font-medium transition-colors min-h-[44px] flex items-center ${
                     selected === label
-                      ? "bg-[#C6E4FF] text-black px-0 sm:px-4"
-                      : "bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 px-0 sm:px-4"
+                      ? 'bg-blue-100 text-blue-700 font-semibold'
+                      : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
                   }`}
                 >
                   {label}
                 </button>
               ))}
+              {/* Add User Button - Mobile */}
+              <button
+                onClick={() => setShowAddUserModal(true)}
+                className="w-full text-left py-3 px-4 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] flex items-center justify-center gap-2 mt-2"
+              >
+                <FiPlus size={18} />
+                <span>Add User</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop: Horizontal Filters */}
+          <div className="hidden md:block">
+            <div className="flex items-center justify-between gap-2 px-6 py-4">
+              <div className="flex gap-2">
+                {roleFilters.map((label) => (
+                  <button
+                    key={label}
+                    onClick={() => handleRoleFilterChange(label)}
+                    className={`py-2.5 px-4 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center justify-center min-h-[44px] ${
+                      selected === label
+                        ? 'bg-blue-100 text-blue-700 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* Add User Button - Desktop */}
+              <button
+                onClick={() => setShowAddUserModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] whitespace-nowrap"
+              >
+                <FiPlus size={18} />
+                <span>Add User</span>
+              </button>
             </div>
           </div>
         </div>
@@ -323,10 +353,10 @@ const Users = () => {
           </div>
         )}
 
-        {/* Users Table - Horizontal Scrolling on Mobile */}
+        {/* Desktop Table View */}
         {!loading && !error && (
           <>
-            <div className="overflow-x-auto insect-shadow-sm shadow-lg rounded-xl mt-4 -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="hidden md:block overflow-x-auto insect-shadow-sm shadow-lg rounded-xl mt-4 -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
               <div className="inline-block min-w-full align-middle">
                 <table className="w-full text-sm text-left border-b border-gray-200" style={{ minWidth: '600px' }}>
                   <thead className="bg-[rgb(249,250,251)] text-black font-inter font-medium">
@@ -373,6 +403,120 @@ const Users = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 mt-4">
+              {users.length > 0 ? (
+                users.map((user) => {
+                  const statusConfig = {
+                    active: {
+                      bg: "bg-[#E1FAEA]",
+                      text: "text-[#016626]",
+                      dot: "bg-[#019939]",
+                    },
+                    blocked: {
+                      bg: "bg-[#FFE3E3]",
+                      text: "text-[#961616]",
+                      dot: "bg-[#E12121]",
+                    },
+                    inactive: {
+                      bg: "bg-[#F1F1F1]",
+                      text: "text-[#4F4D55]",
+                      dot: "bg-[#18181C]",
+                    },
+                  };
+
+                  const status = statusConfig[user.status] || {
+                    bg: "bg-yellow-100",
+                    text: "text-yellow-600",
+                    dot: "bg-yellow-500",
+                  };
+
+                  return (
+                    <div
+                      key={user.id}
+                      onClick={() => handleRowClick(user.id)}
+                      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(user.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleSelectOne(user.id);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="min-w-[44px] min-h-[44px] flex-shrink-0"
+                            aria-label={`Select ${user.name}`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-800 truncate">{user.name}</h4>
+                            <p className="text-sm text-gray-600 truncate mt-1">{user.email}</p>
+                          </div>
+                        </div>
+                        <div
+                          className="relative flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                          ref={(el) => (dropdownRefs.current[`mobile-${user.id}`] = el)}
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === `mobile-${user.id}` ? null : `mobile-${user.id}`);
+                            }}
+                            className="text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                          >
+                            <HiDotsVertical className="w-5 h-5" />
+                          </button>
+                          {openDropdownId === `mobile-${user.id}` && (
+                            <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdownId(null);
+                                  handleRowClick(user.id);
+                                }}
+                                className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdownId(null);
+                                  handleBlockUser(user.id, user.name, user.status);
+                                }}
+                                className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                              >
+                                {user.status === 'blocked' ? 'Unblock' : 'Block'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-gray-500">Joined Date</span>
+                          <span className="text-sm text-gray-700">
+                            {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${status.bg} ${status.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
+                          {user.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No users found for "{selected}"
+                </div>
+              )}
             </div>
 
             {/* Pagination */}
