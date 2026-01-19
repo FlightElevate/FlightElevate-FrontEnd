@@ -22,7 +22,7 @@ const Inbox = () => {
   const [showAttachmentPopup, setShowAttachmentPopup] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newChatSearch, setNewChatSearch] = useState("");
-  const [showChatList, setShowChatList] = useState(false); // For mobile chat list toggle
+  const [showChatList, setShowChatList] = useState(false); 
 
   const chatBodyRef = useRef(null);
   const emojiRef = useRef(null);
@@ -34,8 +34,8 @@ const Inbox = () => {
 
   const { user } = useAuth();
 
-  // --- New state for pagination ---
-  const [chatPages, setChatPages] = useState({}); // { [conversationId]: { page: 1, hasMore: true } }
+  
+  const [chatPages, setChatPages] = useState({}); 
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const getChats = async () => {
@@ -51,15 +51,17 @@ const Inbox = () => {
     try {
       setLoadingUsers(true);
       const response = await messageService.getUsers();
-      if (response.success) setAvailableUsers(response.data);
-    } catch {
+      if (response.success) {
+        const users = Array.isArray(response.data) ? response.data : [];
+        setAvailableUsers(users);
+      }
+    } catch (err) {
       showErrorToast("Failed to fetch users");
     } finally {
       setLoadingUsers(false);
     }
   };
 
-  // --- Fetch messages with pagination ---
   const fetchMessages = async (conversationId, loadOlder = false) => {
     if (!conversationId || loadingMessages) return;
 
@@ -72,7 +74,7 @@ const Inbox = () => {
     try {
       const response = await messageService.getMessages(conversationId, { page });
       if (response.success) {
-        const messages = response.data.reverse(); // oldest at top
+        const messages = response.data.reverse(); 
 
         setSelectedChat(prev => {
           if (!prev || prev.conversation_id !== conversationId) {
@@ -94,12 +96,12 @@ const Inbox = () => {
           }
         }));
 
-        // Scroll behavior
+        
         setTimeout(() => {
           if (!loadOlder) {
             chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
           } else {
-            // Maintain scroll position when prepending older messages
+            
             const scrollHeightBefore = chatBodyRef.current.scrollHeight;
             chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight - scrollHeightBefore;
           }
@@ -117,7 +119,7 @@ const Inbox = () => {
       const payload = { direct: true, user_id: selectedUser.id };
       const response = await messageService.createConversation(payload);
       if (response.success) {
-        // Map id to conversation_id for consistency with getConversations response
+        
         const conversationData = response.data;
         const newChat = {
           ...conversationData,
@@ -126,13 +128,13 @@ const Inbox = () => {
           messages: []
         };
 
-        // Check if conversation already exists in chats list
+        
         const existingChatIndex = chats.findIndex(c => c.conversation_id === newChat.conversation_id);
         if (existingChatIndex >= 0) {
-          // Update existing chat
+          
           setChats(prev => prev.map((c, idx) => idx === existingChatIndex ? newChat : c));
         } else {
-          // Add new chat
+          
           setChats(prev => [...prev, newChat]);
         }
 
@@ -140,7 +142,7 @@ const Inbox = () => {
         setShowUserList(false);
         setNewChatSearch("");
 
-        // Fetch messages for the new conversation
+        
         fetchMessages(newChat.conversation_id);
       }
     } catch {
@@ -151,7 +153,7 @@ const Inbox = () => {
   const handleSend = async () => {
     if (!selectedChat || (!input.trim() && !attachment)) return;
 
-    // Validate conversation_id exists
+    
     if (!selectedChat.conversation_id) {
       showErrorToast("Invalid conversation. Please select a conversation first.");
       return;
@@ -239,7 +241,14 @@ const Inbox = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- Infinite scroll for older messages ---
+  // Refresh users when user list is shown
+  useEffect(() => {
+    if (showUserList && availableUsers.length === 0) {
+      getUsers();
+    }
+  }, [showUserList]);
+
+  
   const handleScroll = () => {
     if (!chatBodyRef.current || !selectedChat) return;
     if (chatBodyRef.current.scrollTop === 0) {
@@ -258,7 +267,7 @@ const Inbox = () => {
     };
   }, [selectedChat, chatPages]);
 
-  // --- Listen to real-time messages ---
+  
   useEffect(() => {
     if (!selectedChat) return;
     const channelName = `chat.${selectedChat.conversation_id}`;
@@ -280,13 +289,19 @@ const Inbox = () => {
     return () => echo.leave(channelName);
   }, [selectedChat, user.id]);
 
-  // --- filtered chats/users ---
+  
   const filteredChats = chats.filter(chat =>
     chat.user?.[0]?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const filteredUsers = availableUsers.filter(u =>
-    u.name.toLowerCase().includes(newChatSearch.toLowerCase())
-  );
+  const filteredUsers = availableUsers.filter(u => {
+    if (!u || !u.name) return false;
+    const searchTerm = newChatSearch.toLowerCase().trim();
+    if (!searchTerm) return true; // Show all users if search is empty
+    return u.name.toLowerCase().includes(searchTerm) || 
+           (u.username && u.username.toLowerCase().includes(searchTerm)) ||
+           (u.email && u.email.toLowerCase().includes(searchTerm));
+  });
+  
 
   const formatMessageTime = (time) => {
     if (!time) return "";
@@ -303,7 +318,7 @@ const Inbox = () => {
   return (
     <div className="p-2 sm:p-3 bg-[#F9FAFB]">
       <div className="flex h-[calc(90vh-50px)] sm:h-[calc(90vh-50px)] bg-white rounded-lg shadow border border-gray-100 overflow-hidden relative">
-        {/* Backdrop for mobile chat list */}
+        {}
         {showChatList && (
           <div
             className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
@@ -311,11 +326,11 @@ const Inbox = () => {
           />
         )}
 
-        {/* Chat List Sidebar - Hidden on mobile when chat is selected, shown as overlay */}
+        {}
         <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} ${showChatList ? 'flex' : 'hidden md:flex'} absolute md:relative top-0 left-0 w-full md:w-[340px] h-full bg-white border-r border-gray-100 flex-col z-40`}>
           <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-300 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Back button for mobile */}
+              {}
               {selectedChat && (
                 <button
                   onClick={() => {
@@ -376,7 +391,7 @@ const Inbox = () => {
                     key={chat.conversation_id}
                     onClick={() => {
                       fetchMessages(chat.conversation_id);
-                      setShowChatList(false); // Close chat list on mobile after selection
+                      setShowChatList(false); 
                     }}
                     className={`flex flex-col px-4 sm:px-5 py-3 cursor-pointer border-b border-gray-300 transition min-h-[44px] ${selectedChat?.conversation_id === chat.conversation_id ? "bg-blue-50" : "hover:bg-gray-50"}`}
                   >
@@ -414,7 +429,7 @@ const Inbox = () => {
           {!selectedChat ? (
             <div className="flex flex-col justify-center items-center h-full text-gray-400 px-4">
               <p className="text-center">Select a conversation to start</p>
-              {/* Mobile: Show menu button to open chat list */}
+              {}
               <button
                 onClick={() => setShowChatList(true)}
                 className="md:hidden mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition min-h-[44px]"
@@ -426,7 +441,7 @@ const Inbox = () => {
           ) : (
             <>
               <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-gray-300 bg-white">
-                {/* Mobile: Menu button to show chat list */}
+                {}
                 <button
                   onClick={() => setShowChatList(true)}
                   className="md:hidden text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -624,7 +639,7 @@ const Inbox = () => {
         {!showUserList && !selectedChat && (
           <button
             onClick={() => setShowUserList(true)}
-            className="absolute bottom-4 left-4 bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-700 transition min-w-[56px] min-h-[56px] flex items-center justify-center"
+            className="absolute bottom-4 left-4 bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-blue-700 transition min-w-[56px] min-h-[56px] flex items-center justify-center z-50"
             aria-label="New chat"
           >
             <FiPlus className="text-xl sm:text-2xl" />
@@ -632,7 +647,7 @@ const Inbox = () => {
         )}
 
         {showUserList && (
-          <div className="absolute top-0 left-0 w-full md:w-[340px] h-full bg-white border-r border-gray-100 flex flex-col z-50">
+          <div className="absolute top-0 left-0 w-full md:w-[340px] h-full bg-white border-r border-gray-100 flex flex-col z-[60]">
             <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-300 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-800">New Chat</h2>
               <button
@@ -657,28 +672,49 @@ const Inbox = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-              {filteredUsers.length === 0 ? (
-                <p className="text-center text-gray-400 py-10">No users found</p>
-              ) : filteredUsers.map((userItem) => (
-                <div
-                  key={userItem.id}
-                  onClick={() => {
-                    handleStartNewConversation(userItem);
-                    setShowUserList(false); // Close user list after selection
-                  }}
-                  className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-gray-300 hover:bg-gray-50 min-h-[44px]"
-                >
-                  <img
-                    src={userItem.avatar || "/default-avatar.png"}
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
-                    alt={userItem.name}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 truncate">{userItem.name}</p>
-                    <p className="text-xs text-gray-500 truncate">@{userItem.username}</p>
-                  </div>
+              {loadingUsers ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-              ))}
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-gray-400">No users found</p>
+                  <p className="text-xs text-gray-400 mt-2">Available: {availableUsers.length}, Filtered: {filteredUsers.length}</p>
+                </div>
+              ) : (
+                filteredUsers.map((userItem) => (
+                  <div
+                    key={userItem.id}
+                    onClick={() => {
+                      handleStartNewConversation(userItem);
+                      setShowUserList(false); 
+                    }}
+                    className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-gray-300 hover:bg-gray-50 min-h-[44px]"
+                  >
+                    <img
+                      src={userItem.avatar || "/default-avatar.png"}
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
+                      style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        minWidth: '40px', 
+                        minHeight: '40px',
+                        maxWidth: '40px',
+                        maxHeight: '40px',
+                        objectFit: 'cover'
+                      }}
+                      alt={userItem.name}
+                      onError={(e) => {
+                        e.target.src = "/default-avatar.png";
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 truncate">{userItem.name || 'No name'}</p>
+                      <p className="text-xs text-gray-500 truncate">@{userItem.username || 'no-username'}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

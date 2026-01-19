@@ -97,7 +97,7 @@ const UserProfile = () => {
       const response = await userService.blockUser(id);
       if (response.success) {
         showSuccessToast(response.data.message || 'User status updated');
-        fetchUser(); // Refresh user data
+        fetchUser(); 
       }
     } catch (error) {
       showErrorToast('Failed to update user status');
@@ -114,7 +114,7 @@ const UserProfile = () => {
     { name: "MEI", color: "bg-yellow-100 text-yellow-700" },
   ];
 
-  // Filter flight logs based on search
+  
   const filteredFlightLogs = flightLogs.filter((log) => {
     if (!searchLogs) return true;
     const searchLower = searchLogs.toLowerCase();
@@ -160,7 +160,7 @@ const UserProfile = () => {
     <div className="md:mt-5 mx-auto">
       <div className="bg-white inset-shadow-sm shadow-sm rounded-lg">
         
-        {/* Header */}
+        {}
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
             <img src={profileImg} alt="User Avatar" className="w-16 h-16 rounded-full object-cover" />
@@ -189,7 +189,7 @@ const UserProfile = () => {
           </button>
         </div>
 
-        {/* Tabs */}
+        {}
         <div className="border-b border-gray-200">
           <div className="px-6 flex gap-2">
             <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "profile" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => setActiveTab("profile")}>
@@ -201,7 +201,7 @@ const UserProfile = () => {
           </div>
         </div>
 
-        {/* Content */}
+        {}
         {activeTab === "profile" ? (
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mb-8">

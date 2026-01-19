@@ -12,17 +12,7 @@ import {
   getOrganizationTitle,
 } from '../../utils/organizationHelpers';
 
-/**
- * Organization Detail Page
- * Displays admin/organization details and lists all users in that organization
- * 
- * Features:
- * - Admin and organization information cards
- * - Tabbed interface for Admins, Instructors, and Students
- * - Paginated user lists
- * - Loading and error states
- * - Responsive design matching other SuperAdmin pages
- */
+
 const OrganizationDetail = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -33,10 +23,10 @@ const OrganizationDetail = () => {
   const [studentsPage, setStudentsPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Determine if we're fetching by organization ID or user ID
+  
   const fetchType = searchParams.get('type') || 'user';
 
-  // Fetch organization and admin details
+  
   const {
     organization,
     adminUser: adminDetails,
@@ -44,10 +34,10 @@ const OrganizationDetail = () => {
     error: detailsError,
   } = useOrganizationDetails(id, fetchType);
 
-  // Get organization ID from organization object or admin user
+  
   const organizationId = organization?.id || adminDetails?.organization_id;
 
-  // Fetch users by role and organization
+  
   const {
     users: admins,
     loading: loadingAdmins,
@@ -81,7 +71,7 @@ const OrganizationDetail = () => {
     itemsPerPage
   );
 
-  // Memoized tab counts
+  
   const tabCounts = useMemo(
     () => ({
       admins: adminsTotal,
@@ -91,7 +81,7 @@ const OrganizationDetail = () => {
     [adminsTotal, instructorsTotal, studentsTotal]
   );
 
-  // Memoized current list data
+  
   const currentListData = useMemo(() => {
     switch (activeTab) {
       case 'admins':
@@ -147,7 +137,7 @@ const OrganizationDetail = () => {
     studentsTotal,
   ]);
 
-  // Memoized user info for cards
+  
   const userInfoItems = useMemo(
     () => formatUserInfo(adminDetails),
     [adminDetails]
@@ -158,10 +148,10 @@ const OrganizationDetail = () => {
     [organization, adminDetails]
   );
 
-  // Check if organization exists
+  
   const hasOrganization = organization && organization.id;
 
-  // Handle loading state
+  
   if (loadingDetails) {
     return (
       <div className="md:mt-5 mx-auto">
@@ -174,7 +164,7 @@ const OrganizationDetail = () => {
     );
   }
 
-  // Handle error state
+  
   if (detailsError || (!organization && !adminDetails)) {
     return (
       <div className="md:mt-5 mx-auto">
@@ -199,7 +189,7 @@ const OrganizationDetail = () => {
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white inset-shadow-sm shadow-xl rounded-lg px-4 py-5">
-        {/* Back Button */}
+        {}
         <button
           onClick={() => navigate('/user-management')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 transition-colors"
@@ -209,17 +199,17 @@ const OrganizationDetail = () => {
           <span className="font-medium">Back to User Management</span>
         </button>
 
-        {/* Page Title */}
+        {}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">
             {organizationTitle}
           </h1>
         </div>
 
-        {/* Admin/Organization Details Section */}
+        {}
         <div className="mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Admin Information Card */}
+            {}
             {adminDetails && (
               <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-200">
@@ -256,7 +246,7 @@ const OrganizationDetail = () => {
               </div>
             )}
 
-            {/* Organization Information Card */}
+            {}
             {hasOrganization ? (
               <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-200">
@@ -290,7 +280,7 @@ const OrganizationDetail = () => {
           </div>
         </div>
 
-        {/* Tabs and Content */}
+        {}
         {hasOrganization ? (
           <>
             <div className="mb-6">
@@ -301,7 +291,7 @@ const OrganizationDetail = () => {
               />
             </div>
 
-            {/* Content Area */}
+            {}
             <div className="mt-6">
               <UsersTable
                 users={currentListData.users}

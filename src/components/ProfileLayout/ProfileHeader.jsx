@@ -1,15 +1,6 @@
 import React from 'react';
 
-/**
- * Reusable Profile Header Component
- * @param {object} user - User data object
- * @param {string} profileImage - Profile image URL
- * @param {string} badgeText - Badge text (e.g., "Student Pilot")
- * @param {string} buttonText - Action button text
- * @param {function} onButtonClick - Action button click handler
- * @param {string} buttonColor - Button color classes
- * @param {React.Component} buttonIcon - Button icon component
- */
+
 const ProfileHeader = ({
   user,
   profileImage,

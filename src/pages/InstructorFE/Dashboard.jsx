@@ -7,7 +7,7 @@ import InstructorUpcomingSessions from '../../components/Dashboard/InstructorUpc
 const InstructorDashboard = () => {
   const { user } = useAuth();
   
-  // Get user's first name or fallback to "John"
+  
   const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
 
   return (
@@ -18,13 +18,13 @@ const InstructorDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-6">
-        {/* Summary Cards */}
+        {}
         <InstructorSummaryCards />
         
-        {/* Flight Session Summary Chart */}
+        {}
         <InstructorFlightSession/>
         
-        {/* Upcoming Sessions Table */}
+        {}
         <InstructorUpcomingSessions/>
       </div>
     </div>

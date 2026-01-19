@@ -4,10 +4,14 @@ import { ENDPOINTS } from '../config';
 export const calendarService = {
   /**
    * Get schedule data for calendar view
-   * @param {Object} params - Query parameters (date, location)
+   * @param {Object} params - Query parameters
+   * @param {string} params.start_date - Start date (YYYY-MM-DD) - optional if date is provided
+   * @param {string} params.end_date - End date (YYYY-MM-DD) - optional if date is provided
+   * @param {string} params.date - Single date (YYYY-MM-DD) - used to calculate week if start_date/end_date not provided
+   * @param {number} params.organization_id - Organization ID filter (optional)
    */
   async getSchedule(params = {}) {
-    return await api.get(ENDPOINTS.CALENDAR.SCHEDULE, { params });
+    return await api.get(ENDPOINTS.CALENDAR.SCHEDULE, params);
   },
 
   /**
@@ -37,7 +41,7 @@ export const calendarService = {
    * @param {Object} params - Query parameters (date, instructor_id, aircraft_id, duration)
    */
   async getAvailableTimeSlots(params = {}) {
-    return await api.get(ENDPOINTS.CALENDAR.AVAILABLE_SLOTS, { params });
+    return await api.get(ENDPOINTS.CALENDAR.AVAILABLE_SLOTS, params);
   },
 };
 

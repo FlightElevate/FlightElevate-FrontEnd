@@ -2,7 +2,7 @@ import Echo from "laravel-echo";
 import Pusher from "pusher-js";
 import { API_BASE_URL } from "./api/config";
 
-// window.Pusher = Pusher;
+
 
 const echo = new Echo({
   broadcaster: "reverb",

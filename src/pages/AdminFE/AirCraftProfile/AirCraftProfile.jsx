@@ -22,32 +22,35 @@ const AirCraftProfile = () => {
   const [menuOpenId, setMenuOpenId] = useState(null);
   const menuRefs = useRef({});
   
-  // Form state
+  
   const [formData, setFormData] = useState({
     name: '',
     model: '',
+    category: '',
+    additional_attributes: {},
     serial_number: '',
     image: '',
     status: 'in_service',
     total_hours: 0,
     total_cycles: 0,
   });
+  const [additionalAttributes, setAdditionalAttributes] = useState([{ key: '', value: '' }]);
   const [submitting, setSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  // Fetch aircraft from API
+  
   useEffect(() => {
     fetchAircraft();
   }, []);
 
-  // Close dropdowns when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sortRef.current && !sortRef.current.contains(event.target)) {
         setSortOpen(false);
       }
-      // Check if click is outside any menu
+      
       const clickedOutsideAllMenus = Object.values(menuRefs.current).every(
         (ref) => !ref?.contains(event.target)
       );
@@ -102,12 +105,15 @@ const AirCraftProfile = () => {
     setFormData({
       name: '',
       model: '',
+      category: '',
+      additional_attributes: {},
       serial_number: '',
       image: '',
       status: 'in_service',
       total_hours: 0,
       total_cycles: 0,
     });
+    setAdditionalAttributes([{ key: '', value: '' }]);
     setImageFile(null);
     setImagePreview(null);
     setShowModal(true);
@@ -116,15 +122,30 @@ const AirCraftProfile = () => {
   const handleEdit = (aircraft, e) => {
     e.stopPropagation();
     setEditingAircraft(aircraft);
+    const attrs = aircraft.additional_attributes || {};
+    const attrArray = Object.keys(attrs).length > 0 
+      ? Object.entries(attrs).map(([key, value]) => ({ key, value: String(value) }))
+      : [{ key: '', value: '' }];
+    
     setFormData({
       name: aircraft.name || '',
       model: aircraft.model || '',
+      category: aircraft.category || '',
+      additional_attributes: attrs,
       serial_number: aircraft.serial_number || '',
       image: aircraft.image || '',
       status: aircraft.status || 'in_service',
       total_hours: aircraft.total_hours || 0,
       total_cycles: aircraft.total_cycles || 0,
     });
+    
+    // Set existing image preview if available
+    if (aircraft.image) {
+      setImagePreview(aircraft.image);
+    } else {
+      setImagePreview(null);
+    }
+    setAdditionalAttributes(attrArray);
     setImageFile(null);
     setImagePreview(aircraft.image || null);
     setMenuOpenId(null);
@@ -152,18 +173,18 @@ const AirCraftProfile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
+      
       if (!file.type.startsWith('image/')) {
         showErrorToast('Please select a valid image file');
         return;
       }
-      // Validate file size (5MB max)
+      
       if (file.size > 5 * 1024 * 1024) {
         showErrorToast('Image size should be less than 5MB');
         return;
       }
       setImageFile(file);
-      // Create preview
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -177,14 +198,29 @@ const AirCraftProfile = () => {
     setSubmitting(true);
 
     try {
-      // Create FormData if image file is selected, otherwise use regular data
-      const dataToSend = imageFile ? new FormData() : { ...formData };
+      // Convert additional attributes array to object
+      const attrsObject = {};
+      additionalAttributes.forEach(attr => {
+        if (attr.key && attr.key.trim()) {
+          attrsObject[attr.key.trim()] = attr.value.trim() || '';
+        }
+      });
+      
+      const finalFormData = {
+        ...formData,
+        additional_attributes: Object.keys(attrsObject).length > 0 ? attrsObject : null,
+      };
+      
+      const dataToSend = imageFile ? new FormData() : { ...finalFormData };
       
       if (imageFile) {
-        // Append all form fields to FormData
-        Object.keys(formData).forEach(key => {
-          if (key !== 'image' || !formData.image) {
-            dataToSend.append(key, formData[key]);
+        Object.keys(finalFormData).forEach(key => {
+          if (key === 'additional_attributes' && finalFormData[key]) {
+            dataToSend.append(key, JSON.stringify(finalFormData[key]));
+          } else if (key !== 'image' || !finalFormData.image) {
+            if (finalFormData[key] !== null && finalFormData[key] !== undefined) {
+              dataToSend.append(key, finalFormData[key]);
+            }
           }
         });
         dataToSend.append('image_file', imageFile);
@@ -193,7 +229,7 @@ const AirCraftProfile = () => {
       if (editingAircraft) {
         const response = imageFile 
           ? await aircraftService.updateAircraft(editingAircraft.id, dataToSend)
-          : await aircraftService.updateAircraft(editingAircraft.id, formData);
+          : await aircraftService.updateAircraft(editingAircraft.id, finalFormData);
         if (response.success) {
           showSuccessToast('Aircraft updated successfully');
           setShowModal(false);
@@ -204,7 +240,7 @@ const AirCraftProfile = () => {
       } else {
         const response = imageFile
           ? await aircraftService.createAircraft(dataToSend)
-          : await aircraftService.createAircraft(formData);
+          : await aircraftService.createAircraft(finalFormData);
         if (response.success) {
           showSuccessToast('Aircraft created successfully');
           setShowModal(false);
@@ -239,12 +275,12 @@ const AirCraftProfile = () => {
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white shadow-sm rounded-lg">
-        {/* Header */}
+        {}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
           <h2 className="text-xl font-semibold text-gray-800">Aircraft</h2>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            {/* Add Aircraft Button */}
+            {}
             {user?.permissions?.includes('create aircraft') && (
               <button
                 onClick={handleAdd}
@@ -255,7 +291,7 @@ const AirCraftProfile = () => {
               </button>
             )}
             
-            {/* Search */}
+            {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px] min-h-[44px]">
               <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
@@ -270,7 +306,7 @@ const AirCraftProfile = () => {
               </span>
             </div>
             
-            {/* Sort Dropdown */}
+            {}
             <div className="relative w-full sm:w-auto" ref={sortRef}>
               <button
                 onClick={() => setSortOpen(!sortOpen)}
@@ -313,7 +349,7 @@ const AirCraftProfile = () => {
           </div>
         </div>
 
-        {/* Content */}
+        {}
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -336,7 +372,7 @@ const AirCraftProfile = () => {
                   >
                     <div
                       onClick={(e) => {
-                        // Don't navigate if clicking on menu area
+                        
                         if (e.target.closest('.action-menu-container')) {
                           return;
                         }
@@ -364,7 +400,7 @@ const AirCraftProfile = () => {
                       </div>
                     </div>
                     
-                    {/* Action Menu */}
+                    {}
                     {(user?.permissions?.includes('edit aircraft') || user?.permissions?.includes('delete aircraft')) && (
                     <div 
                       className="action-menu-container absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -419,7 +455,7 @@ const AirCraftProfile = () => {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      {}
       {showModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -464,32 +500,107 @@ const AirCraftProfile = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                     <input
                       type="text"
-                      value={formData.serial_number}
-                      onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
+                      placeholder="e.g., Airplane, Rotorcraft, Glider"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number *</label>
+                  <input
+                    type="text"
+                    value={formData.serial_number}
+                    onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Additional Attributes</label>
+                  <div className="space-y-2">
+                    {additionalAttributes.map((attr, index) => (
+                      <div key={index} className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Attribute Key"
+                          value={attr.key}
+                          onChange={(e) => {
+                            const newAttrs = [...additionalAttributes];
+                            newAttrs[index].key = e.target.value;
+                            setAdditionalAttributes(newAttrs);
+                          }}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Attribute Value"
+                            value={attr.value}
+                            onChange={(e) => {
+                              const newAttrs = [...additionalAttributes];
+                              newAttrs[index].value = e.target.value;
+                              setAdditionalAttributes(newAttrs);
+                            }}
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          {additionalAttributes.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAdditionalAttributes(additionalAttributes.filter((_, i) => i !== index));
+                              }}
+                              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                            >
+                              <FiX size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setAdditionalAttributes([...additionalAttributes, { key: '', value: '' }])}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition"
+                    >
+                      <FiPlus size={16} />
+                      Add Attribute
+                    </button>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Aircraft Image</label>
                   
-                  {/* Image Preview */}
-                  {imagePreview && (
-                    <div className="mb-3">
+                  {}
+                  {(imagePreview || formData.image) && (
+                    <div className="mb-3 flex-shrink-0">
                       <img
-                        src={imagePreview}
+                        src={imagePreview || formData.image}
                         alt="Preview"
-                        className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                        className="object-cover rounded-lg border border-gray-300 flex-shrink-0"
+                        style={{ 
+                          width: '128px', 
+                          height: '128px', 
+                          minWidth: '128px', 
+                          minHeight: '128px',
+                          maxWidth: '128px',
+                          maxHeight: '128px'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
                       />
                     </div>
                   )}
 
-                  {/* File Upload */}
+                  {}
                   <div className="mb-2">
                     <input
                       type="file"
@@ -500,7 +611,7 @@ const AirCraftProfile = () => {
                     <p className="text-xs text-gray-500 mt-1">Upload an image file (max 5MB) or use URL below</p>
                   </div>
 
-                  {/* URL Input (Alternative) */}
+                  {}
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">OR</span>
                     <input

@@ -1,19 +1,35 @@
 import axios from 'axios';
 import { API_URL, DEFAULT_CONFIG } from './config';
 
-// Create axios instance
+
 const apiClient = axios.create({
   baseURL: API_URL,
   ...DEFAULT_CONFIG,
 });
 
-// Request interceptor - Add auth token
+
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Debug: Log FormData requests
+    if (config.data instanceof FormData) {
+      console.log('Sending FormData:', {
+        url: config.url,
+        method: config.method,
+        hasAvatar: config.data.has('avatar'),
+        contentType: config.headers['Content-Type'],
+      });
+      
+      // Ensure Content-Type is not set for FormData (axios will set it with boundary)
+      if (config.headers['Content-Type']) {
+        delete config.headers['Content-Type'];
+      }
+    }
+    
     return config;
   },
   (error) => {
@@ -21,14 +37,14 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle errors
+
 apiClient.interceptors.response.use(
   (response) => {
-    // Return data from success envelope
+    
     return response.data;
   },
   (error) => {
-    // Create a structured error object
+    
     const errorResponse = {
       message: 'An error occurred',
       errors: null,
@@ -39,13 +55,13 @@ apiClient.interceptors.response.use(
     if (error.response) {
       const { data, status } = error.response;
       
-      // Handle specific error codes
+      
       switch (status) {
         case 401:
-          // Unauthorized - clear token and redirect to landing page
+          
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user');
-          // Don't redirect if already on landing page or auth pages
+          
           const currentPath = window.location.pathname;
           if (currentPath !== '/' && currentPath !== '/login' && currentPath !== '/register') {
             window.location.href = '/';
@@ -53,18 +69,18 @@ apiClient.interceptors.response.use(
           errorResponse.message = data?.message || 'Unauthorized. Please login again.';
           break;
         case 403:
-          // Forbidden
+          
           errorResponse.message = data?.message || 'Access denied';
           if (import.meta.env.DEV) {
             console.error('Access denied:', data);
           }
           break;
         case 404:
-          // Not found
+          
           errorResponse.message = data?.message || 'Resource not found';
           break;
         case 422:
-          // Validation error
+          
           errorResponse.message = data?.message || 'Validation failed';
           errorResponse.errors = data?.errors || data;
           if (import.meta.env.DEV) {
@@ -72,7 +88,7 @@ apiClient.interceptors.response.use(
           }
           break;
         case 500:
-          // Server error
+          
           errorResponse.message = data?.message || 'Internal server error';
           if (import.meta.env.DEV) {
             console.error('Server error:', data);
@@ -82,64 +98,77 @@ apiClient.interceptors.response.use(
           errorResponse.message = data?.message || `Error: ${status}`;
       }
       
-      // Return structured error
+      
       return Promise.reject(errorResponse);
     }
     
-    // Network error or no response
+    
     errorResponse.message = error.message || 'Network error. Please check your connection.';
     return Promise.reject(errorResponse);
   }
 );
 
-// API Methods
+
 export const api = {
-  // GET request
+  
   get: (url, params = {}) => {
     return apiClient.get(url, { params });
   },
 
-  // POST request
+  
   post: (url, data, config = {}) => {
-    // If data is FormData, let browser set Content-Type with boundary automatically
+    // Handle FormData for file uploads
     if (data instanceof FormData) {
       return apiClient.post(url, data, {
         ...config,
         headers: {
           ...config.headers,
-          // Don't set Content-Type - browser will set it with boundary
+          // Don't set Content-Type - axios will set it automatically with boundary
         },
       });
     }
     return apiClient.post(url, data, config);
   },
 
-  // PUT request
+  
   put: (url, data, config = {}) => {
-    // If data is FormData, let browser set Content-Type with boundary automatically
+    // Handle FormData for file uploads
+    // Laravel sometimes has issues with PUT + FormData, so use POST with _method=PUT
     if (data instanceof FormData) {
-      return apiClient.put(url, data, {
+      // IMPORTANT: Add _method=PUT BEFORE appending files (Laravel requirement)
+      // Check if _method already exists to avoid duplicates
+      if (!data.has('_method')) {
+        data.append('_method', 'PUT');
+      }
+      
+      // Debug: Verify FormData has avatar
+      console.log('PUT with FormData - has avatar:', data.has('avatar'));
+      
+      // Use POST instead of PUT for FormData (Laravel will handle _method)
+      return apiClient.post(url, data, {
         ...config,
         headers: {
           ...config.headers,
-          // Don't set Content-Type - browser will set it with boundary
+          // Explicitly remove Content-Type to let axios set it with boundary
         },
+        // Ensure axios processes FormData correctly
+        transformRequest: [(data) => data], // Don't transform FormData
       });
     }
     return apiClient.put(url, data, config);
   },
 
-  // PATCH request
+  
   patch: (url, data) => {
     return apiClient.patch(url, data);
   },
 
-  // DELETE request
+  
   delete: (url) => {
     return apiClient.delete(url);
   },
 
-  // Upload file (multipart/form-data)
+  
   upload: (url, formData) => {
     return apiClient.post(url, formData, {
       headers: {

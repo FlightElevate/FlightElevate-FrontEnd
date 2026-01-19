@@ -26,11 +26,11 @@ const LessonTasks = () => {
           const lessonData = response.data;
           setLesson(lessonData);
           
-          // Extract tasks from lesson_content
+          
           if (lessonData.lesson_content && Array.isArray(lessonData.lesson_content) && lessonData.lesson_content.length > 0) {
             setTasks(lessonData.lesson_content);
           } else {
-            // If no tasks in lesson_content, create a default task from lesson data
+            
             setTasks([{
               id: lessonData.id,
               title: lessonData.title || lessonData.lesson_title || 'Main Lesson',
@@ -55,7 +55,7 @@ const LessonTasks = () => {
   }, [lessonId, navigate]);
 
   const handleTaskClick = (task) => {
-    // Navigate to lesson details page
+    
     navigate(`/my-lessons/${lessonId}`);
   };
 
@@ -101,7 +101,7 @@ const LessonTasks = () => {
   return (
     <div className="p-3">
       <div className="border border-gray-200 bg-white rounded-xl">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between py-5 px-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <button
@@ -114,7 +114,7 @@ const LessonTasks = () => {
           </div>
         </div>
 
-        {/* Lesson Title */}
+        {}
         <div className="py-4 px-4 border-b border-gray-200 bg-gray-50">
           <h3 className="text-lg font-semibold text-gray-900">{getLessonTitle()}</h3>
           <p className="text-sm text-gray-500 mt-1">
@@ -122,7 +122,7 @@ const LessonTasks = () => {
           </p>
         </div>
 
-        {/* Tasks List */}
+        {}
         <div className="py-4 px-4">
           <div className="space-y-0">
             {tasks.length > 0 ? (

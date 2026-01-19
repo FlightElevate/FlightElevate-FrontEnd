@@ -18,7 +18,7 @@ const StudentSummaryCards = () => {
     tickets: true,
   });
 
-  // Fetch upcoming lessons count
+  
   useEffect(() => {
     const fetchUpcomingLessons = async () => {
       if (!user?.id) {
@@ -50,7 +50,7 @@ const StudentSummaryCards = () => {
     fetchUpcomingLessons();
   }, [user?.id]);
 
-  // Fetch total flights logged
+  
   useEffect(() => {
     const fetchTotalFlights = async () => {
       if (!user?.id) {
@@ -81,7 +81,7 @@ const StudentSummaryCards = () => {
     fetchTotalFlights();
   }, [user?.id]);
 
-  // Fetch total flight hours
+  
   useEffect(() => {
     const fetchTotalHours = async () => {
       if (!user?.id) {
@@ -91,14 +91,14 @@ const StudentSummaryCards = () => {
 
       try {
         const response = await lessonService.getUserLessons(user.id, {
-          per_page: 100, // Get all to calculate total hours
+          per_page: 100, 
           page: 1,
           type: 'student',
         });
 
         if (response.success) {
           const lessons = response.data || [];
-          // Calculate total hours from duration_minutes
+          
           const totalMinutes = lessons.reduce((sum, lesson) => {
             return sum + (parseInt(lesson.duration_minutes) || 0);
           }, 0);
@@ -116,7 +116,7 @@ const StudentSummaryCards = () => {
     fetchTotalHours();
   }, [user?.id]);
 
-  // Fetch support tickets count
+  
   useEffect(() => {
     const fetchSupportTickets = async () => {
       try {

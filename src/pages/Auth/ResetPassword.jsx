@@ -4,10 +4,7 @@ import { FiLock, FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff } from 'react-icons
 import { authService } from '../../api/services/authService';
 import { showSuccessToast, showErrorToast } from '../../utils/notifications';
 
-/**
- * Reset Password Page
- * Professional styling matching project design
- */
+
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -24,7 +21,7 @@ const ResetPassword = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    // Get token and email from URL params
+    
     const urlToken = searchParams.get('token');
     const urlEmail = searchParams.get('email');
 
@@ -86,7 +83,7 @@ const ResetPassword = () => {
         setSuccess(true);
         showSuccessToast('Password reset successfully! Redirecting to login...');
         
-        // Redirect to login after 2 seconds
+        
         setTimeout(() => {
           navigate('/login');
         }, 2000);
@@ -99,7 +96,7 @@ const ResetPassword = () => {
       const errorMessage = err.response?.data?.message || err.message || 'An error occurred. Please try again.';
       setError(errorMessage);
       
-      // Set field-specific errors if available
+      
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       }
@@ -142,7 +139,7 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-xl shadow-xl p-8">
-          {/* Back Button */}
+          {}
           <Link
             to="/login"
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-6 transition-colors"
@@ -151,7 +148,7 @@ const ResetPassword = () => {
             Back to Login
           </Link>
 
-          {/* Header */}
+          {}
           <div className="text-center mb-8">
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
               <FiLock className="h-8 w-8 text-blue-600" />

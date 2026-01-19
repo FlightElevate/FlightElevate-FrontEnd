@@ -1,201 +1,201 @@
-// import React, { useState } from "react";
-// import { useParams } from "react-router-dom";
 
-// const aircraftsData = [
-//   {
-//     id: 1,
-//     name: "Cessna 600",
-//     image:
-//       "https://images.pexels.com/photos/358220/pexels-photo-358220.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "In Service",
-//   },
-//   {
-//     id: 2,
-//     name: "Piperx 100",
-//     image:
-//       "https://images.pexels.com/photos/912050/pexels-photo-912050.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "Not In Service",
-//   },
-//   {
-//     id: 3,
-//     name: "Cessna 600",
-//     image:
-//       "https://images.pexels.com/photos/46148/aircraft-landing-gear-tires-airplane-46148.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "Not In Service",
-//   },
-//   {
-//     id: 4,
-//     name: "Piperx 100",
-//     image:
-//       "https://images.pexels.com/photos/163771/airport-airplane-landing-jet-163771.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "Not In Service",
-//   },
-//   {
-//     id: 5,
-//     name: "Cessna 600",
-//     image:
-//       "https://images.pexels.com/photos/358220/pexels-photo-358220.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "Not In Service",
-//   },
-//   {
-//     id: 6,
-//     name: "Piperx 100",
-//     image:
-//       "https://images.pexels.com/photos/912050/pexels-photo-912050.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "Not In Service",
-//   },
-//   {
-//     id: 7,
-//     name: "Piperx 100",
-//     image:
-//       "https://images.pexels.com/photos/163771/airport-airplane-landing-jet-163771.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "Not In Service",
-//   },
-//   {
-//     id: 8,
-//     name: "Cessna 600",
-//     image:
-//       "https://images.pexels.com/photos/358220/pexels-photo-358220.jpeg?auto=compress&cs=tinysrgb&w=800",
-//     status: "In Service",
-//   },
-// ];
 
-// const AirCraftDetail = () => {
-//   const { id } = useParams();
-//   const [activeTab, setActiveTab] = useState("details");
 
-//   // ✅ Find the selected aircraft
-//   const aircraft = aircraftsData.find((item) => item.id === parseInt(id));
 
-//   if (!aircraft) {
-//     return (
-//       <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-sm  p-6 text-center">
-//         <h2 className="text-lg text-red-600 font-medium">Aircraft not found</h2>
-//       </div>
-//     );
-//   }
 
-//   return (
-//     <div className="max-w-6xl mx-auto bg-white rounded-lg mt-6 p-6">
-//       {/* Header */}
-//       <div className="flex items-center justify-between max-w-6xl mx-auto  border border-[#F3F4F6] py-5 px-4 bg-[#FFFFFF]">
-//         <h1 className="text-xl font-semibold text-gray-800">{aircraft.name}</h1>
-//         <div className="flex items-center gap-2">
-//           <button className="text-sm text-gray-700 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-100">
-//             Find a Time
-//           </button>
-//           <button className="text-sm text-white bg-blue-600 rounded-md px-3 py-1.5 hover:bg-blue-700">
-//             Book Now
-//           </button>
-//         </div>
-//       </div>
 
-//       {/* Tabs */}
-//       <div className="flex border border-[#F3F4F6] py-3 px-4 gap-4 bg-[#FFFFFF]">
-//         <button
-//           className={`px-4 py-2 text-sm font-medium ${
-//             activeTab === "details"
-//               ? " text-[#3D3D3D]  bg-[#F6F6F6]"
-//               : "text-[#8A8A8A]  bg-[#FFFFFF]"
-//           }`}
-//           onClick={() => setActiveTab("details")}
-//         >
-//           Aircraft Details
-//         </button>
-//         <button
-//           className={`px-4 py-2 text-sm font-medium ${
-//             activeTab === "times"
-//               ? " text-[#3D3D3D]  bg-[#F6F6F6]"
-//               : "text-[#8A8A8A]  bg-[#FFFFFF]"
-//           }`}
-//           onClick={() => setActiveTab("times")}
-//         >
-//           Aircraft Times
-//         </button>
-//       </div>
 
-//       {activeTab === "details" && (
-//         <div className=" flex flex-col gap-7.5  border border-[#F3F4F6] p-4 bg-[#FFFFFF]  ">
-//           <div className="">
-//             <img
-//               src={aircraft.image}
-//               alt={aircraft.name}
-//               className="rounded-lg w-[223px] h-[223px] object-cover"
-//             />
-//           </div>
-//           <div className="md:col-span-2 text-sm  gap-2 ">
-//             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 py-3 ">
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Registration Number
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6">N5D7HH</p>
-//               </div>
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Type
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6">PA-28</p>
-//               </div>
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Category
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6">Single Engine</p>
-//               </div>
-//             </div>
 
-//             <h3 className="text-blue-600 font-semibold mt-4">
-//               Meters (current)
-//             </h3>
 
-//             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 py-3">
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Hobbs
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6">0.8</p>
-//               </div>
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Heater Hobbs
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6">114.8</p>
-//               </div>
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Engine 1 Tach
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6">8,234</p>
-//               </div>
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Engine Tach 2
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6">8,234</p>
-//               </div>
-//               <div className="flex flex-col gap-3">
-//                 <p className="text-[#101828] text-base fw6 leading-[100%] tracking-[0px]">
-//                   Next Maintenance Due
-//                 </p>
-//                 <p className="fw4 text-[#3D3D3D] leading-6 gap-2">
-//                   2 Feb 2025 | 22:05
-//                 </p>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//       {activeTab === "times" && (
-//         <div className="text-gray-600 text-sm mt-4">
-//           <p>No aircraft time logs available yet.</p>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
 
-// export default AirCraftDetail;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -222,7 +222,7 @@ const AirCraftDetail = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [duration, setDuration] = useState(60);
 
-  // Fetch aircraft details
+  
   useEffect(() => {
     if (id) {
       fetchAircraftDetails();
@@ -248,7 +248,7 @@ const AirCraftDetail = () => {
     }
   };
 
-  // Fetch available time slots
+  
   const fetchAvailableSlots = async (aircraftId, date) => {
     if (!aircraftId || !date) return;
     
@@ -272,7 +272,7 @@ const AirCraftDetail = () => {
     }
   };
 
-  // Handle Find a Time button click
+  
   const handleFindTime = () => {
     if (!aircraft) return;
     setShowFindTimeModal(true);
@@ -280,7 +280,7 @@ const AirCraftDetail = () => {
     fetchAvailableSlots(aircraft.id, new Date().toISOString().split('T')[0]);
   };
 
-  // Handle Book Now button click - navigate to calendar with aircraft pre-selected
+  
   const handleBookNow = () => {
     if (!aircraft) return;
     navigate('/calendar', { 
@@ -291,7 +291,7 @@ const AirCraftDetail = () => {
     });
   };
 
-  // Handle date change in Find a Time modal
+  
   const handleDateChange = (e) => {
     const newDate = e.target.value;
     setSelectedDate(newDate);
@@ -300,7 +300,7 @@ const AirCraftDetail = () => {
     }
   };
 
-  // Handle duration change
+  
   const handleDurationChange = (e) => {
     const newDuration = parseInt(e.target.value);
     setDuration(newDuration);
@@ -349,7 +349,7 @@ const AirCraftDetail = () => {
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white shadow-sm rounded-lg">
-        {/* Header */}
+        {}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <button
@@ -381,7 +381,7 @@ const AirCraftDetail = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {}
         <div className="flex border-b border-gray-200 px-4">
           <button
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -405,14 +405,14 @@ const AirCraftDetail = () => {
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="p-6">
           {activeTab === "details" && <ACDetails aircraft={aircraft} />}
           {activeTab === "times" && <AirCraftTimes aircraftId={aircraft.id} />}
         </div>
       </div>
 
-      {/* Find a Time Modal */}
+      {}
       {showFindTimeModal && aircraft && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -433,7 +433,7 @@ const AirCraftDetail = () => {
             </div>
             
             <div className="p-6 space-y-4">
-              {/* Date and Duration Selection */}
+              {}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
@@ -461,7 +461,7 @@ const AirCraftDetail = () => {
                 </div>
               </div>
 
-              {/* Available Time Slots */}
+              {}
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-3">
                   Available Time Slots ({availableSlots.length} available)
@@ -478,7 +478,7 @@ const AirCraftDetail = () => {
                       <button
                         key={index}
                         onClick={() => {
-                          // Navigate to calendar with pre-selected time and aircraft
+                          
                           navigate('/calendar', {
                             state: {
                               preSelectedAircraft: aircraft.id,

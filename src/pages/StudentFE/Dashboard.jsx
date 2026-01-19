@@ -7,7 +7,7 @@ import StudentFlightLogs from '../../components/Dashboard/StudentFlightLogs';
 const StudentDashboard = () => {
   const { user } = useAuth();
   
-  // Get user's first name or fallback to "John"
+  
   const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
 
   return (
@@ -18,13 +18,13 @@ const StudentDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-6">
-        {/* Summary Cards */}
+        {}
         <StudentSummaryCards />
         
-        {/* Flight Session Summary Chart */}
+        {}
         <StudentFlightSession/>
         
-        {/* Flight Logs Table */}
+        {}
         <StudentFlightLogs/>
       </div>
     </div>

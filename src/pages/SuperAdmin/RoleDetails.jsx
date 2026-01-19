@@ -51,17 +51,17 @@ const RoleDetails = () => {
       let updatedPermissions;
 
       if (isChecked) {
-        // Add permission
+        
         updatedPermissions = [...currentPermissions, permissionName];
       } else {
-        // Remove permission
+        
         updatedPermissions = currentPermissions.filter(p => p !== permissionName);
       }
 
       const response = await roleService.updateRolePermissions(role.id, updatedPermissions);
       if (response.success) {
         showSuccessToast('Permission updated successfully');
-        // Update local state
+        
         setRole({ ...role, permissions: updatedPermissions });
       }
     } catch (err) {
@@ -111,7 +111,7 @@ const RoleDetails = () => {
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white shadow-sm rounded-lg">
-        {/* Header */}
+        {}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1 p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <button
@@ -126,7 +126,7 @@ const RoleDetails = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
+        {}
         <div className="p-4 border-b border-gray-200">
           <div className="relative max-w-md">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -140,7 +140,7 @@ const RoleDetails = () => {
           </div>
         </div>
 
-        {/* Permissions Table */}
+        {}
         <div className="p-4">
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full border-collapse">

@@ -6,6 +6,8 @@ import profileImg from "../../../assets/img/profile.jpg";
 import { userService } from "../../../api/services/userService";
 import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
+import { aircraftService } from "../../../api/services/aircraftService";
+import { calendarService } from "../../../api/services/calendarService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast, showInfoToast } from "../../../utils/notifications";
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { useAuth } from "../../../context/AuthContext";
@@ -25,10 +27,20 @@ const InstructorProfile = () => {
   const [openMenu, setOpenMenu] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [aircraft, setAircraft] = useState([]);
+  const [loadingAircraft, setLoadingAircraft] = useState(false);
+  const [availabilityStatus, setAvailabilityStatus] = useState({
+    instructor: null,
+    aircraft: null,
+    checking: false,
+  });
+  const [availabilityMessage, setAvailabilityMessage] = useState('');
+  const [availableAircraft, setAvailableAircraft] = useState([]);
   const [requestForm, setRequestForm] = useState({
     lesson_date: '',
     lesson_time: '',
     flight_type: '',
+    aircraft_id: '',
     duration_minutes: 60,
     notes: '',
   });
@@ -71,15 +83,15 @@ const InstructorProfile = () => {
     }
   };
 
-  // Generate dummy profile picture URL based on instructor ID
+  
   const getInstructorImage = (instructor) => {
     if (instructor?.avatar || instructor?.image || instructor?.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
     }
-    // Generate consistent dummy image based on instructor ID
+    
     const imageIds = [1, 5, 8, 12, 15, 20, 25, 33, 47, 51, 68, 70];
     const imageId = imageIds[instructor?.id % imageIds.length] || 1;
-    return `https://i.pravatar.cc/300?img=${imageId}`;
+    return `https://i.pravatar.cc/150?img=${imageId}`;
   };
 
   const fetchFlightLogs = async () => {
@@ -113,7 +125,137 @@ const InstructorProfile = () => {
 
   const handleRequestSession = () => {
     setShowRequestModal(true);
+    fetchAircraft();
   };
+
+  // Fetch aircraft list
+  const fetchAircraft = async () => {
+    setLoadingAircraft(true);
+    try {
+      const response = await aircraftService.getAircraft();
+      if (response.success) {
+        setAircraft(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching aircraft:', error);
+      setAircraft([]);
+    } finally {
+      setLoadingAircraft(false);
+    }
+  };
+
+  // Check availability for instructor and aircraft
+  const checkAvailability = async () => {
+    if (!requestForm.lesson_date || !requestForm.lesson_time || !requestForm.duration_minutes) {
+      return;
+    }
+
+    if (!instructorId) {
+      return;
+    }
+
+    setAvailabilityStatus(prev => ({ ...prev, checking: true }));
+    setAvailabilityMessage('');
+
+    try {
+      const params = {
+        date: requestForm.lesson_date,
+        duration: requestForm.duration_minutes || 60,
+        instructor_id: parseInt(instructorId),
+      };
+
+      // Check availability for instructor
+      const response = await calendarService.getAvailableTimeSlots(params);
+      
+      if (response.success) {
+        const selectedTime = requestForm.lesson_time;
+        const availableSlots = response.data.available_slots || [];
+        
+        // Check if selected time is in available slots for instructor
+        const isInstructorAvailable = availableSlots.some(slot => {
+          const slotTime = slot.time.split(':');
+          const selectedTimeParts = selectedTime.split(':');
+          return slotTime[0] === selectedTimeParts[0] && slotTime[1] === selectedTimeParts[1];
+        });
+
+        // Now check aircraft availability
+        const availableAircraftList = [];
+        
+        for (const ac of aircraft) {
+          const aircraftParams = {
+            date: requestForm.lesson_date,
+            duration: requestForm.duration_minutes || 60,
+            aircraft_id: ac.id,
+          };
+
+          const aircraftResponse = await calendarService.getAvailableTimeSlots(aircraftParams);
+          
+          if (aircraftResponse.success) {
+            const aircraftSlots = aircraftResponse.data.available_slots || [];
+            const isAircraftAvailable = aircraftSlots.some(slot => {
+              const slotTime = slot.time.split(':');
+              const selectedTimeParts = selectedTime.split(':');
+              return slotTime[0] === selectedTimeParts[0] && slotTime[1] === selectedTimeParts[1];
+            });
+
+            if (isAircraftAvailable && isInstructorAvailable) {
+              availableAircraftList.push(ac);
+            }
+          }
+        }
+
+        setAvailableAircraft(availableAircraftList);
+
+        // Update availability status
+        setAvailabilityStatus({
+          instructor: isInstructorAvailable,
+          aircraft: availableAircraftList.length > 0,
+          checking: false,
+        });
+
+        // Set availability message
+        if (isInstructorAvailable && availableAircraftList.length > 0) {
+          setAvailabilityMessage(`✅ Instructor and ${availableAircraftList.length} aircraft(s) are available at this time.`);
+        } else if (isInstructorAvailable && availableAircraftList.length === 0) {
+          setAvailabilityMessage('⚠️ Instructor is available but no aircraft are available at this time.');
+        } else if (!isInstructorAvailable && availableAircraftList.length > 0) {
+          setAvailabilityMessage('⚠️ Aircraft are available but instructor is not available at this time.');
+        } else {
+          setAvailabilityMessage('❌ Neither instructor nor aircraft are available at this time. Please choose a different time.');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      setAvailabilityStatus(prev => ({ ...prev, checking: false }));
+      setAvailabilityMessage('⚠️ Unable to check availability. Please try again.');
+    }
+  };
+
+  // Debounced availability check
+  useEffect(() => {
+    if (!requestForm.lesson_date || !requestForm.lesson_time || !requestForm.duration_minutes) {
+      setAvailabilityStatus({
+        instructor: null,
+        aircraft: null,
+        checking: false,
+      });
+      setAvailabilityMessage('');
+      setAvailableAircraft([]);
+      return;
+    }
+
+    if (aircraft.length === 0 && !loadingAircraft) {
+      // Don't check if aircraft list is not loaded yet
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      checkAvailability();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestForm.lesson_date, requestForm.lesson_time, requestForm.duration_minutes, instructorId, aircraft.length, loadingAircraft]);
 
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
@@ -123,24 +265,37 @@ const InstructorProfile = () => {
       return;
     }
 
-    // Validate form
+    
     if (!requestForm.lesson_date || !requestForm.lesson_time || !requestForm.flight_type) {
       showErrorToast('Please fill in all required fields');
+      return;
+    }
+
+    // Check availability before submitting
+    if (availabilityStatus.checking) {
+      showErrorToast('Please wait while we check availability...');
+      return;
+    }
+
+    if (availabilityStatus.instructor === false || availabilityStatus.aircraft === false) {
+      showErrorToast('Cannot submit request: Selected time slot is not available. Please choose a different time.');
       return;
     }
 
     setSubmittingRequest(true);
     try {
       const requestData = {
-        student_id: currentUser.id,
-        instructor_id: instructorId,
+        // Convert single IDs to arrays for many-to-many relationship
+        student_ids: [currentUser.id],
+        instructor_ids: [parseInt(instructorId)],
         flight_type: requestForm.flight_type,
         lesson_date: requestForm.lesson_date,
         lesson_time: requestForm.lesson_time,
         duration_minutes: requestForm.duration_minutes || 60,
         notes: requestForm.notes || '',
-        is_request: true, // Mark as request
-        status: 'requested', // Set status to requested
+        aircraft_id: requestForm.aircraft_id || null,
+        is_request: true, 
+        status: 'requested', 
       };
 
       const response = await lessonService.createLesson(requestData);
@@ -152,9 +307,17 @@ const InstructorProfile = () => {
           lesson_date: '',
           lesson_time: '',
           flight_type: '',
+          aircraft_id: '',
           duration_minutes: 60,
           notes: '',
         });
+        setAvailabilityStatus({
+          instructor: null,
+          aircraft: null,
+          checking: false,
+        });
+        setAvailabilityMessage('');
+        setAvailableAircraft([]);
       } else {
         showErrorToast(response.message || 'Failed to submit request');
       }
@@ -176,9 +339,17 @@ const InstructorProfile = () => {
       lesson_date: '',
       lesson_time: '',
       flight_type: '',
+      aircraft_id: '',
       duration_minutes: 60,
       notes: '',
     });
+    setAvailabilityStatus({
+      instructor: null,
+      aircraft: null,
+      checking: false,
+    });
+    setAvailabilityMessage('');
+    setAvailableAircraft([]);
   };
 
   const toggleMenu = (index) => {
@@ -191,7 +362,7 @@ const InstructorProfile = () => {
     { name: "MEI", color: "bg-yellow-100 text-yellow-700" },
   ];
 
-  // Filter flight logs based on search
+  
   const filteredFlightLogs = flightLogs.filter((log) => {
     if (!searchLogs) return true;
     const searchLower = searchLogs.toLowerCase();
@@ -236,8 +407,6 @@ const InstructorProfile = () => {
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white inset-shadow-sm shadow-sm rounded-lg">
-        
-        {/* Header */}
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200">
@@ -246,7 +415,7 @@ const InstructorProfile = () => {
                 alt={user?.name || 'Instructor'} 
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  // Fallback to initials if image fails to load
+                  
                   e.target.style.display = 'none';
                   const parent = e.target.parentElement;
                   const fallback = document.createElement('div');
@@ -276,8 +445,6 @@ const InstructorProfile = () => {
             <span className="text-sm font-medium">Request Session</span>
           </button>
         </div>
-
-        {/* Tabs */}
         <div className="border-b border-gray-200">
           <div className="px-6 flex gap-2">
             <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "profile" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => setActiveTab("profile")}>
@@ -289,7 +456,7 @@ const InstructorProfile = () => {
           </div>
         </div>
 
-        {/* Content */}
+        {}
         {activeTab === "profile" ? (
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mb-8">
@@ -401,7 +568,7 @@ const InstructorProfile = () => {
         )}
       </div>
 
-      {/* Request Session Modal */}
+      {}
       {showRequestModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -485,6 +652,74 @@ const InstructorProfile = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+
+                {/* Aircraft Dropdown - Show when we have date/time/duration and aircraft list */}
+                {requestForm.lesson_date && requestForm.lesson_time && requestForm.duration_minutes && aircraft.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Aircraft (Optional)
+                    </label>
+                    {loadingAircraft ? (
+                      <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                        Loading aircraft...
+                      </div>
+                    ) : (
+                      <select
+                        value={requestForm.aircraft_id}
+                        onChange={(e) => setRequestForm({ ...requestForm, aircraft_id: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        disabled={availabilityStatus.checking}
+                      >
+                        <option value="">No aircraft selected</option>
+                        {aircraft.map((ac) => {
+                          // Check if this aircraft is available (only if we've checked availability)
+                          const isAvailable = availableAircraft.length > 0 
+                            ? availableAircraft.some(avAc => avAc.id === ac.id)
+                            : true; // Show all as available if we haven't checked yet
+                          
+                          return (
+                            <option 
+                              key={ac.id} 
+                              value={ac.id}
+                              disabled={!isAvailable && availableAircraft.length > 0 && !availabilityStatus.checking}
+                              style={!isAvailable && availableAircraft.length > 0 ? { color: '#999' } : {}}
+                            >
+                              {ac.name} {ac.model ? `(${ac.model})` : ''} 
+                              {availableAircraft.length > 0 && !isAvailable && !availabilityStatus.checking ? ' (Not available)' : ''}
+                              {isAvailable && availableAircraft.length > 0 && !availabilityStatus.checking ? ' ✓ Available' : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    )}
+                    {availabilityStatus.checking && (
+                      <p className="text-xs text-gray-500 mt-1">Checking aircraft availability...</p>
+                    )}
+                    {!availabilityStatus.checking && availableAircraft.length === 0 && availabilityStatus.instructor === true && (
+                      <p className="text-xs text-yellow-600 mt-1">No aircraft available at this time, but you can still submit the request.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Availability Status */}
+                {availabilityMessage && (
+                  <div className={`p-3 rounded-lg text-sm ${
+                    availabilityMessage.includes('✅') 
+                      ? 'bg-green-50 text-green-800 border border-green-200' 
+                      : availabilityMessage.includes('⚠️')
+                      ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}>
+                    {availabilityStatus.checking ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span>Checking availability...</span>
+                      </div>
+                    ) : (
+                      availabilityMessage
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

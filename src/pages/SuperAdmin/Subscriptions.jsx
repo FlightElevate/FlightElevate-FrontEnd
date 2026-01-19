@@ -26,7 +26,7 @@ const Subscription = () => {
     }
   }, [selected]);
 
-  // Set tab from navigation state
+  
   useEffect(() => {
     if (state?.tab) {
       setSelected(state.tab);
@@ -83,7 +83,7 @@ const Subscription = () => {
 
   const buttons = ["Subscribers", "Subscription Plans"];
 
-  // For subscribers - using dummy data for now
+  
   const subscribersData = [];
   const currentUsers = selected === "Subscription Plans" ? plans : subscribersData;
   const isAllSelected = selectedIds.length === currentUsers.length && currentUsers.length > 0;
@@ -126,7 +126,7 @@ const Subscription = () => {
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   if (selected === "Subscription Plans") {
-                    // Debounce search
+                    
                     setTimeout(() => fetchPlans(), 500);
                   }
                 }}

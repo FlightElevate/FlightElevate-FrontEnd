@@ -2,16 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { userService } from '../api/services/userService';
 import { showErrorToast } from '../utils/notifications';
 
-/**
- * Custom hook for fetching users by organization and role
- * Provides loading state, error handling, and pagination
- * 
- * @param {number|null} organizationId - Organization ID to filter by
- * @param {string} role - Role to filter by (Admin, Instructor, Student)
- * @param {number} page - Current page number
- * @param {number} itemsPerPage - Items per page
- * @returns {Object} - { users, loading, error, total, refetch }
- */
+
 export const useOrganizationUsers = (organizationId, role, page = 1, itemsPerPage = 10) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);

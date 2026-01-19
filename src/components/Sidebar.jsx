@@ -5,21 +5,18 @@ import { getNavigationItemsByRole } from "../config/navigation";
 import { organizationService } from "../api/services/organizationService";
 import logo from "../assets/SVG/logo.svg";
 
-/**
- * Sidebar Component with Role-Based Navigation
- * Displays navigation items based on user's role
- */
+
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const { user } = useAuth();
   const [organizationName, setOrganizationName] = useState(null);
   const [organizationLogo, setOrganizationLogo] = useState(null);
 
-  // Get navigation items filtered by user role and remove duplicates
+  
   const navLinks = useMemo(() => {
     if (!user?.roles) return [];
     const items = getNavigationItemsByRole(user.roles);
-    // Remove duplicates based on link to prevent duplicate keys
+    
     const seen = new Set();
     return items.filter(item => {
       if (seen.has(item.link)) {
@@ -30,17 +27,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     });
   }, [user?.roles]);
 
-  // Fetch organization name and logo
+  
   useEffect(() => {
     const fetchOrganizationData = async () => {
-      // Check if user already has organization data
+      
       if (user?.organization?.name) {
         setOrganizationName(user.organization.name);
         setOrganizationLogo(user.organization.logo);
         return;
       }
 
-      // If user has organization_id, fetch organization details
+      
       if (user?.organization_id) {
         try {
           const response = await organizationService.getOrganization(user.organization_id);
@@ -54,12 +51,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           }
         } catch (err) {
           console.warn('Failed to fetch organization:', err);
-          // Fallback to FlightElevate if fetch fails
+          
           setOrganizationName(null);
           setOrganizationLogo(null);
         }
       } else {
-        // No organization_id, use fallback
+        
         setOrganizationName(null);
         setOrganizationLogo(null);
       }
@@ -70,12 +67,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     }
   }, [user]);
 
-  // Get display name: organization name or fallback to FlightElevate
+  
   const displayName = organizationName || "FlightElevate";
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {}
       <div
         className={`fixed inset-0 bg-opacity-90 z-30 transition-opacity md:hidden ${
           isOpen ? "block" : "hidden"
@@ -83,14 +80,14 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Sidebar */}
+      {}
       <aside
         className={`fixed top-0 left-0 z-40 bg-blue-700 text-white shadow-md
           h-screen transform transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0 md:static md:h-auto md:w-3/14`}
       >
-        {/* Logo and Branding */}
+        {}
         <div className="ps-5 p-4 border-b border-blue-600">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -115,7 +112,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           </div>
         </div>
 
-        {/* Navigation */}
+        {}
         <div className="p-5">
           <nav className="flex flex-col gap-2">
             {navLinks.length > 0 ? (
@@ -124,10 +121,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   location.pathname === link ||
                   location.pathname.startsWith(link + "/");
                 const isDisabled = badge === "Coming Soon";
-                // Use combination of link and index to ensure unique keys
+                
                 const uniqueKey = `${link}-${index}`;
                 
-                // If item is disabled (Coming Soon), render as div instead of Link
+                
                 if (isDisabled) {
                   return (
                     <div

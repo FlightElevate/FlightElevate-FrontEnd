@@ -1,13 +1,6 @@
-/**
- * Organization Helper Utilities
- * Utility functions for organization-related operations
- */
 
-/**
- * Gets status badge configuration
- * @param {string} status - User status
- * @returns {Object} - Status config with className and text
- */
+
+
 export const getStatusConfig = (status) => {
   const statusMap = {
     active: {
@@ -27,11 +20,7 @@ export const getStatusConfig = (status) => {
   return statusMap[status] || statusMap.active;
 };
 
-/**
- * Formats user information for display in info cards
- * @param {Object} user - User object
- * @returns {Array} - Array of { label, value, bold, status } objects
- */
+
 export const formatUserInfo = (user) => {
   if (!user) return [];
 
@@ -43,17 +32,12 @@ export const formatUserInfo = (user) => {
     {
       label: 'Status',
       value: user.status || 'Active',
-      status: user.status, // Pass status for component to render badge
+      status: user.status, 
     },
   ];
 };
 
-/**
- * Formats organization information for display in info cards
- * @param {Object} organization - Organization object
- * @param {Object} user - User object (for dates)
- * @returns {Array} - Array of { label, value, bold } objects
- */
+
 export const formatOrganizationInfo = (organization, user) => {
   const items = [];
 
@@ -84,11 +68,7 @@ export const formatOrganizationInfo = (organization, user) => {
   return items;
 };
 
-/**
- * Gets the display title for organization detail page
- * @param {Object} user - User object with organization
- * @returns {string} - Display title
- */
+
 export const getOrganizationTitle = (user) => {
   return user?.organization?.name || 'Organization Details';
 };

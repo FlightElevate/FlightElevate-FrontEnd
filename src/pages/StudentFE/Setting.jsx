@@ -11,22 +11,28 @@ import { MdFilterList } from 'react-icons/md';
 import { HiDotsVertical } from 'react-icons/hi';
 
 const Setting = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { isSuperAdmin, isAdmin } = useRole();
   
-  // Initialize activeTab from localStorage or default to 'profile'
+  
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem('settingsActiveTab');
     return savedTab || 'profile';
   });
   const [loading, setLoading] = useState(false);
   
-  // Update localStorage when tab changes (for persistence across reloads)
+  
   useEffect(() => {
     if (activeTab) {
       localStorage.setItem('settingsActiveTab', activeTab);
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (isSuperAdmin() && activeTab === 'documents') {
+      setActiveTab('profile');
+    }
+  }, [isSuperAdmin, activeTab]);
   const [loadingUserData, setLoadingUserData] = useState(true);
   const [documents, setDocuments] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
@@ -48,7 +54,7 @@ const Setting = () => {
   const [paymentMenuOpen, setPaymentMenuOpen] = useState(null);
   const paymentMenuRefs = useRef({});
   
-  // Organization profile state (for Admin only)
+  
   const [organization, setOrganization] = useState(null);
   const [organizationName, setOrganizationName] = useState('');
   const [organizationLogoFile, setOrganizationLogoFile] = useState(null);
@@ -56,7 +62,7 @@ const Setting = () => {
   const [uploadingOrgLogo, setUploadingOrgLogo] = useState(false);
   const [loadingOrganization, setLoadingOrganization] = useState(false);
 
-  // Profile form state
+  
   const [profileData, setProfileData] = useState({
     first_name: '',
     last_name: '',
@@ -70,7 +76,7 @@ const Setting = () => {
     postal_code: '',
   });
 
-  // Password form state
+  
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
@@ -82,21 +88,21 @@ const Setting = () => {
     confirm: false,
   });
 
-  // Fetch organization data for Admin users
+  
   useEffect(() => {
     const fetchOrganizationData = async () => {
-      // Get organization ID from multiple possible sources
+      
       const orgId = user?.organization_id || user?.organization?.id;
       
       if (!isAdmin() || !orgId) {
-        // Reset if not admin or no organization_id
+        
         setOrganization(null);
         setOrganizationName('');
         setOrganizationLogoPreview(null);
         return;
       }
       
-      // Check if user already has organization data
+      
       if (user?.organization?.name) {
         setOrganization(user.organization);
         setOrganizationName(user.organization.name || '');
@@ -107,7 +113,7 @@ const Setting = () => {
         return;
       }
       
-      // If we already have organization data with name, don't refetch
+      
       if (organization?.name && organizationName) {
         return;
       }
@@ -134,13 +140,13 @@ const Setting = () => {
     }
   }, [user?.organization_id, user?.organization?.id, user?.organization?.name, user?.organization?.logo, user]);
 
-  // Also fetch when organization tab becomes active (if data not loaded)
+  
   useEffect(() => {
-    // Get organization ID from multiple possible sources
+    
     const orgId = user?.organization_id || user?.organization?.id || organization?.id;
     
     if (activeTab === 'organization' && isAdmin() && orgId) {
-      // If we don't have organization name yet, fetch it
+      
       if (!organizationName && (!organization || !organization.name)) {
         const fetchData = async () => {
           setLoadingOrganization(true);
@@ -164,7 +170,7 @@ const Setting = () => {
     }
   }, [activeTab, user?.organization_id, user?.organization?.id, organization?.id, organizationName, organization]);
 
-  // Fetch settings data when component mounts
+  
   useEffect(() => {
     const fetchSettingsData = async () => {
       setLoadingUserData(true);
@@ -172,7 +178,7 @@ const Setting = () => {
         const response = await settingsService.getSettings();
         if (response.success && response.data) {
           const settingsData = response.data;
-          // Split name into first and last name
+          
           const nameParts = (settingsData.name || '').split(' ');
           setProfileData({
             first_name: nameParts[0] || '',
@@ -187,7 +193,7 @@ const Setting = () => {
             postal_code: settingsData.postal_code || '',
           });
           
-          // Populate password data with current password from API
+          
           if (settingsData.password) {
             setPasswordData(prev => ({
               ...prev,
@@ -195,12 +201,12 @@ const Setting = () => {
             }));
           }
           
-          // Set avatar preview if available
+          
           if (settingsData.avatar) {
             setAvatarPreview(settingsData.avatar);
           }
 
-          // Extract organization data from settings response (for Admin users)
+          
           if (isAdmin() && settingsData.organization) {
             setOrganization(settingsData.organization);
             setOrganizationName(settingsData.organization.name || '');
@@ -212,7 +218,7 @@ const Setting = () => {
       } catch (err) {
         console.error('Error fetching settings data:', err);
         showErrorToast('Failed to load settings data');
-        // Fallback to context user if API fails
+        
         if (user) {
           const nameParts = (user.name || '').split(' ');
           setProfileData({
@@ -234,15 +240,19 @@ const Setting = () => {
     };
 
     fetchSettingsData();
-  }, []); // Run once on mount
+  }, []); 
 
   useEffect(() => {
+    if (isSuperAdmin() && activeTab === 'documents') {
+      setActiveTab('profile');
+      return;
+    }
     if (activeTab === 'documents') {
       fetchDocuments();
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, isSuperAdmin]);
 
-  // Close payment menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       const clickedOutsideAllMenus = Object.values(paymentMenuRefs.current).every(
@@ -266,7 +276,7 @@ const Setting = () => {
       if (response.success) {
         const docs = response.data || [];
         setDocuments(docs);
-        // Pre-select all documents by default
+        
         setSelectedDocuments(docs.map(doc => doc.id));
       }
     } catch (err) {
@@ -303,7 +313,7 @@ const Setting = () => {
 
     setLoading(true);
     try {
-      // Create FormData for file upload
+      
       const formData = new FormData();
       formData.append('title', newDocument.title);
       if (newDocument.expiry_date) {
@@ -323,7 +333,7 @@ const Setting = () => {
         setNewDocument({ title: '', expiry_date: '', details: '', file: null });
         setSelectedFile(null);
         setShowAddDocument(false);
-        // Refresh documents list
+        
         await fetchDocuments();
       }
     } catch (err) {
@@ -349,9 +359,9 @@ const Setting = () => {
       const response = await documentService.deleteDocument(user.id, docId);
       if (response.success) {
         showSuccessToast('Document deleted successfully');
-        // Remove from selected documents if it was selected
+        
         setSelectedDocuments(prev => prev.filter(id => id !== docId));
-        // Refresh documents list
+        
         await fetchDocuments();
       }
     } catch (err) {
@@ -374,13 +384,13 @@ const Setting = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file size (max 2MB)
+      
       if (file.size > 2 * 1024 * 1024) {
         showErrorToast('Image size must be less than 2MB');
         return;
       }
       
-      // Validate file type
+      
       if (!file.type.startsWith('image/')) {
         showErrorToast('Please select a valid image file');
         return;
@@ -388,7 +398,7 @@ const Setting = () => {
 
       setAvatarFile(file);
       
-      // Create preview
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
@@ -398,26 +408,68 @@ const Setting = () => {
   };
 
   const handleAvatarUpload = async () => {
-    if (!avatarFile || !user?.id) return;
+    if (!avatarFile || !(avatarFile instanceof File) || !user?.id) {
+      console.error('Invalid avatar file:', avatarFile);
+      showErrorToast('Please select a valid image file');
+      return;
+    }
     
     setUploadingAvatar(true);
     try {
+      // Create FormData with avatar file
       const formData = new FormData();
-      formData.append('avatar', avatarFile);
+      // IMPORTANT: Append file with name parameter
+      formData.append('avatar', avatarFile, avatarFile.name);
+      
+      // Debug: Log FormData contents
+      console.log('Uploading avatar:', {
+        fileName: avatarFile.name,
+        fileSize: avatarFile.size,
+        fileType: avatarFile.type,
+        hasFile: formData.has('avatar'),
+      });
+      
+      // Debug: Log FormData entries
+      console.log('FormData entries:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ', pair[1]);
+      }
       
       const response = await settingsService.updateSettingsWithFile(formData);
+      
+      console.log('Avatar upload response:', response);
       
       if (response.success) {
         showSuccessToast('Profile picture updated successfully');
         setAvatarFile(null);
-        // Update local user data
-        const updatedUser = { ...user, avatar: response.data?.avatar || avatarPreview };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        // Refresh page to update context
-        setTimeout(() => window.location.reload(), 1000);
+        setAvatarPreview(null);
+        
+        // Response structure: { success: true, data: { avatar: 'url', ... }, meta: 'message' }
+        const avatarUrl = response.data?.avatar;
+        
+        if (avatarUrl) {
+          const updatedUser = { 
+            ...user, 
+            avatar: avatarUrl
+          };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Refresh user in AuthContext to update header avatar immediately
+          await refreshUser();
+          
+          // Refresh page after short delay to ensure all components update
+          setTimeout(() => window.location.reload(), 500);
+        } else {
+          console.error('Avatar URL not found in response:', response);
+          showErrorToast('Avatar URL not received in response');
+        }
+      } else {
+        console.error('Avatar upload failed:', response);
+        showErrorToast(response.errors?.message || response.message || 'Failed to update profile picture');
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Failed to update profile picture';
+      console.error('Avatar upload error:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to update profile picture';
       showErrorToast(errorMsg);
     } finally {
       setUploadingAvatar(false);
@@ -429,28 +481,102 @@ const Setting = () => {
     setLoading(true);
     try {
       const fullName = `${profileData.first_name} ${profileData.last_name}`.trim();
-      const response = await settingsService.updateSettings({
-        name: fullName,
-        email: profileData.email,
-        phone: profileData.phone,
-        username: user.username, // Keep existing username
-        date_of_birth: profileData.date_of_birth || null,
-        gender: profileData.gender || null,
-        address: profileData.address || null,
-        country: profileData.country || null,
-        city: profileData.city || null,
-        postal_code: profileData.postal_code || null,
-      });
-      if (response.success) {
-        showSuccessToast('Settings updated successfully');
-        // Update local user data
-        const updatedUser = { ...user, ...response.data };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        // Refresh page to update context
-        setTimeout(() => window.location.reload(), 1000);
+      
+      // Check if avatar file is present - if yes, use FormData, otherwise use JSON
+      if (avatarFile && avatarFile instanceof File) {
+        // Use FormData to include both profile data and avatar file
+        const formData = new FormData();
+        
+        // Append all profile fields
+        formData.append('name', fullName);
+        formData.append('email', profileData.email || '');
+        formData.append('phone', profileData.phone || '');
+        formData.append('username', user.username || '');
+        if (profileData.date_of_birth) formData.append('date_of_birth', profileData.date_of_birth);
+        if (profileData.gender) formData.append('gender', profileData.gender);
+        if (profileData.address) formData.append('address', profileData.address);
+        if (profileData.country) formData.append('country', profileData.country);
+        if (profileData.city) formData.append('city', profileData.city);
+        if (profileData.postal_code) formData.append('postal_code', profileData.postal_code);
+        
+        // IMPORTANT: Append avatar file with explicit filename
+        formData.append('avatar', avatarFile, avatarFile.name);
+        
+        // Verify file is in FormData
+        if (!formData.has('avatar')) {
+          console.error('ERROR: Avatar file not added to FormData!');
+          showErrorToast('Failed to prepare avatar file for upload');
+          setLoading(false);
+          return;
+        }
+        
+        // Debug: Log FormData contents
+        console.log('Saving profile with avatar:', {
+          name: fullName,
+          email: profileData.email,
+          hasAvatar: formData.has('avatar'),
+          avatarFile: avatarFile ? {
+            name: avatarFile.name,
+            size: avatarFile.size,
+            type: avatarFile.type,
+            isFile: avatarFile instanceof File,
+          } : null,
+        });
+        
+        // Debug: Log all FormData entries
+        console.log('FormData entries:');
+        for (let pair of formData.entries()) {
+          console.log(pair[0] + ': ', pair[1] instanceof File ? `[File: ${pair[1].name}]` : pair[1]);
+        }
+        
+        const response = await settingsService.updateSettingsWithFile(formData);
+        
+        if (response.success) {
+          showSuccessToast('Settings updated successfully');
+          
+          const updatedUser = { ...user, ...response.data };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Refresh user in AuthContext to update header avatar immediately
+          await refreshUser();
+          
+          // Clear avatar file state after successful upload
+          setAvatarFile(null);
+          setAvatarPreview(null);
+          
+          // Small delay before reload to ensure state is updated
+          setTimeout(() => window.location.reload(), 500);
+        }
+      } else {
+        // No avatar file - use regular JSON request
+        const response = await settingsService.updateSettings({
+          name: fullName,
+          email: profileData.email,
+          phone: profileData.phone,
+          username: user.username, 
+          date_of_birth: profileData.date_of_birth || null,
+          gender: profileData.gender || null,
+          address: profileData.address || null,
+          country: profileData.country || null,
+          city: profileData.city || null,
+          postal_code: profileData.postal_code || null,
+        });
+        
+        if (response.success) {
+          showSuccessToast('Settings updated successfully');
+          
+          const updatedUser = { ...user, ...response.data };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Refresh user in AuthContext to update header avatar
+          await refreshUser();
+          
+          setTimeout(() => window.location.reload(), 500);
+        }
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Failed to update settings';
+      console.error('Profile save error:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to update settings';
       showErrorToast(errorMsg);
     } finally {
       setLoading(false);
@@ -473,18 +599,18 @@ const Setting = () => {
       if (response.success) {
         showSuccessToast('Password updated successfully');
         
-        // Refresh settings data to show updated password
+        
         try {
           const settingsResponse = await settingsService.getSettings();
           if (settingsResponse.success && settingsResponse.data) {
-            // Update local user data with new password
+            
             const updatedUser = { ...user, password: settingsResponse.data.password };
             localStorage.setItem('user', JSON.stringify(updatedUser));
             
-            // Update passwordData - set new password as current and clear new/confirm fields
+            
             if (settingsResponse.data.password) {
               setPasswordData({
-                current_password: settingsResponse.data.password, // Show new password as current
+                current_password: settingsResponse.data.password, 
                 new_password: '',
                 confirm_password: '',
               });
@@ -492,7 +618,7 @@ const Setting = () => {
           }
         } catch (settingsErr) {
           console.error('Error refreshing settings:', settingsErr);
-          // If settings API fails, still clear new password fields
+          
           setPasswordData(prev => ({
             ...prev,
             new_password: '',
@@ -533,17 +659,17 @@ const Setting = () => {
     });
   };
 
-  // Organization profile handlers
+  
   const handleOrganizationLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file size (max 5MB)
+      
       if (file.size > 5 * 1024 * 1024) {
         showErrorToast('Image size must be less than 5MB');
         return;
       }
       
-      // Validate file type
+      
       if (!file.type.startsWith('image/')) {
         showErrorToast('Please select a valid image file');
         return;
@@ -551,7 +677,7 @@ const Setting = () => {
 
       setOrganizationLogoFile(file);
       
-      // Create preview
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setOrganizationLogoPreview(reader.result);
@@ -561,7 +687,7 @@ const Setting = () => {
   };
 
   const handleOrganizationLogoUpload = async () => {
-    // Get organization ID from multiple possible sources
+    
     const orgId = user?.organization_id || user?.organization?.id || organization?.id;
     
     if (!organizationLogoFile || !orgId) {
@@ -571,13 +697,13 @@ const Setting = () => {
     
     setUploadingOrgLogo(true);
     try {
-      // Include current organization name to preserve it when uploading logo only
+      
       const currentName = organizationName || organization?.name || '';
       const updateData = {
         logo_file: organizationLogoFile,
       };
       
-      // Include name if available to preserve it
+      
       if (currentName) {
         updateData.name = currentName;
       }
@@ -591,13 +717,13 @@ const Setting = () => {
           setOrganizationLogoPreview(response.data.logo);
           setOrganization(prev => ({ ...prev, logo: response.data.logo }));
         }
-        // Update organization name if it was included in response
+        
         if (response.data?.name) {
           setOrganizationName(response.data.name);
         }
-        // Save active tab to localStorage before reload
+        
         localStorage.setItem('settingsActiveTab', 'organization');
-        // Refresh page to update sidebar
+        
         setTimeout(() => window.location.reload(), 1000);
       } else {
         showErrorToast(response.message || 'Failed to update organization logo');
@@ -612,7 +738,7 @@ const Setting = () => {
   };
 
   const handleOrganizationSave = async () => {
-    // Get organization ID from multiple possible sources
+    
     const orgId = user?.organization_id || user?.organization?.id || organization?.id;
     
     if (!orgId) {
@@ -620,7 +746,7 @@ const Setting = () => {
       return;
     }
 
-    // Validate organization name
+    
     const nameToSave = organizationName || organization?.name || '';
     if (!nameToSave.trim()) {
       showErrorToast('Organization name is required');
@@ -633,7 +759,7 @@ const Setting = () => {
         name: nameToSave.trim(),
       };
 
-      // Only include logo_file if a new file was selected
+      
       if (organizationLogoFile) {
         updateData.logo_file = organizationLogoFile;
       }
@@ -648,9 +774,9 @@ const Setting = () => {
         if (response.data?.logo) {
           setOrganizationLogoPreview(response.data.logo);
         }
-        // Save active tab to localStorage before reload
+        
         localStorage.setItem('settingsActiveTab', 'organization');
-        // Refresh page to update sidebar
+        
         setTimeout(() => window.location.reload(), 1000);
       } else {
         showErrorToast(response.message || 'Failed to update organization');
@@ -672,7 +798,7 @@ const Setting = () => {
     setOrganizationLogoFile(null);
   };
 
-  // Mock payment history data (replace with API call later)
+  
   const mockPayments = [
     { id: 1, invoice: 'Piper 100', amount: '$600.37', date: '7/1/19', status: 'Paid' },
     { id: 2, invoice: 'Piper 200', amount: '$718.36', date: '5/10/17', status: 'Paid' },
@@ -689,7 +815,7 @@ const Setting = () => {
   const tabs = [
     { id: 'profile', label: 'Profile' },
     { id: 'password', label: 'Password' },
-    { id: 'documents', label: 'Documents' },
+    ...(!isSuperAdmin() ? [{ id: 'documents', label: 'Documents' }] : []),
     { id: 'payment', label: 'Payment' },
     ...(isAdmin() ? [{ id: 'organization', label: 'Organization' }] : []),
   ];
@@ -701,9 +827,9 @@ const Setting = () => {
           Settings
         </h2>
 
-        {/* Tabs - Vertical on Mobile, Horizontal on Desktop */}
+        {}
         <div className="bg-white border-b border-gray-200">
-          {/* Mobile: Vertical Tabs */}
+          {}
           <div className="md:hidden">
             <div className="flex flex-col px-4 py-2">
               {tabs.map((tab) => (
@@ -722,7 +848,7 @@ const Setting = () => {
             </div>
           </div>
 
-          {/* Desktop: Horizontal Tabs */}
+          {}
           <div className="hidden md:block">
             <div className="flex gap-2 px-6 py-4">
               {tabs.map((tab) => (
@@ -742,16 +868,16 @@ const Setting = () => {
           </div>
         </div>
 
-        {/* Tab Content */}
+        {}
         <div className="p-4 sm:p-6">
-          {/* Loading State */}
+          {}
           {loadingUserData && activeTab === 'profile' && (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           )}
 
-          {/* Profile Tab */}
+          {}
           {activeTab === 'profile' && !loadingUserData && (
             <div className="bg-white rounded-lg">
               <div className="flex flex-col sm:flex-row justify-between items-start mb-6 sm:mb-8 gap-4">
@@ -773,29 +899,30 @@ const Setting = () => {
                 </div>
               </div>
 
-              {/* Profile Picture - Centered */}
+              {}
               <div className="flex justify-center mb-8">
                 <div className="text-center">
-                  <div className="relative w-24 h-24 mx-auto mb-3">
+                  <div className="relative w-32 h-32 mx-auto mb-3 flex-shrink-0">
                     {avatarPreview ? (
                       <img
                         src={avatarPreview}
                         alt="Profile"
-                        className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                        className="w-32 h-32 rounded-full object-cover border-4 border-gray-300 shadow-md flex-shrink-0"
+                        style={{ width: '128px', height: '128px', minWidth: '128px', minHeight: '128px', maxWidth: '128px', maxHeight: '128px' }}
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-semibold">
+                      <div className="w-32 h-32 rounded-full bg-blue-500 flex items-center justify-center text-white text-3xl font-semibold shadow-md flex-shrink-0" style={{ width: '128px', height: '128px', minWidth: '128px', minHeight: '128px' }}>
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                     )}
-                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700 transition shadow-lg">
+                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2.5 cursor-pointer hover:bg-blue-700 transition shadow-lg min-w-[40px] min-h-[40px] flex items-center justify-center">
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleAvatarChange}
                         className="hidden"
                       />
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
@@ -828,7 +955,7 @@ const Setting = () => {
                 </div>
               </div>
 
-              {/* Personal Information */}
+              {}
               <div className="mb-8">
                 <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-8">
                   <h4 className="text-sm font-semibold text-gray-700 w-full sm:w-48 flex-shrink-0">Personal Information</h4>
@@ -886,7 +1013,7 @@ const Setting = () => {
                 </div>
               </div>
 
-              {/* Contact Information */}
+              {}
               <div>
                 <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-8">
                   <h4 className="text-sm font-semibold text-gray-700 w-full sm:w-48 flex-shrink-0">Contact Information</h4>
@@ -1099,7 +1226,7 @@ const Setting = () => {
             </div>
           )}
 
-          {/* Password Tab */}
+          {}
           {activeTab === 'password' && (
             <div className="bg-white rounded-lg">
               <div className="flex flex-col sm:flex-row justify-between items-start mb-6 sm:mb-8 gap-4">
@@ -1188,7 +1315,7 @@ const Setting = () => {
             </div>
           )}
 
-          {/* Documents Tab */}
+          {}
           {activeTab === 'documents' && (
             <div className="bg-white rounded-lg">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
@@ -1203,7 +1330,7 @@ const Setting = () => {
                 )}
               </div>
 
-              {/* Add New Document Form */}
+              {}
               {showAddDocument && (
                 <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
                   <h4 className="text-md font-semibold text-gray-700 mb-4">Add New Document</h4>
@@ -1340,7 +1467,7 @@ const Setting = () => {
             </div>
           )}
 
-          {/* Payment Tab */}
+          {}
           {activeTab === 'payment' && (
             <div className="bg-white rounded-lg">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
@@ -1363,7 +1490,7 @@ const Setting = () => {
                 </div>
               </div>
 
-              {/* Desktop Table View */}
+              {}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm text-left border-b border-gray-200">
                   <thead className="bg-gray-50">
@@ -1409,7 +1536,7 @@ const Setting = () => {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setPaymentMenuOpen(null);
-                                    // Add view action here
+                                    
                                     showSuccessToast('View payment details');
                                   }}
                                   className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
@@ -1420,7 +1547,7 @@ const Setting = () => {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setPaymentMenuOpen(null);
-                                    // Add download action here
+                                    
                                     showSuccessToast('Downloading invoice...');
                                   }}
                                   className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
@@ -1437,7 +1564,7 @@ const Setting = () => {
                 </table>
               </div>
 
-              {/* Mobile Card View */}
+              {}
               <div className="md:hidden space-y-3">
                 {filteredPayments.map((payment) => (
                   <div key={payment.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
@@ -1474,7 +1601,7 @@ const Setting = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setPaymentMenuOpen(null);
-                                // Add view action here
+                                
                                 showSuccessToast('View payment details');
                               }}
                               className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
@@ -1485,7 +1612,7 @@ const Setting = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setPaymentMenuOpen(null);
-                                // Add download action here
+                                
                                 showSuccessToast('Downloading invoice...');
                               }}
                               className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
@@ -1502,7 +1629,7 @@ const Setting = () => {
             </div>
           )}
 
-          {/* Organization Tab - Admin Only */}
+          {}
           {activeTab === 'organization' && isAdmin() && (
             <div className="bg-white rounded-lg">
               {loadingOrganization ? (
@@ -1533,9 +1660,9 @@ const Setting = () => {
                     </div>
                   </div>
 
-                  {/* Organization Profile - Desktop: Name Left, Logo Right | Mobile: Stacked */}
+                  {}
                   <div className="flex flex-col md:flex-row gap-6 md:gap-8 mb-8">
-                    {/* Left Side - Organization Name (Desktop) / Top (Mobile) */}
+                    {}
                     <div className="w-full md:w-1/2 lg:w-2/5">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Organization Name <span className="text-red-500">*</span>
@@ -1549,31 +1676,43 @@ const Setting = () => {
                       />
                     </div>
 
-                    {/* Right Side - Organization Logo (Desktop) / Bottom (Mobile) */}
+                    {}
                     <div className="flex-shrink-0 w-full md:w-auto">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Organization Logo
                       </label>
                       <div className="flex flex-col items-center md:items-start">
                         <div className="relative inline-block">
-                          <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center overflow-hidden border-2 border-gray-300">
+                          <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center overflow-hidden border-2 border-gray-300 flex-shrink-0" style={{ width: '96px', height: '96px', minWidth: '96px', minHeight: '96px', maxWidth: '96px', maxHeight: '96px' }}>
                             {organizationLogoPreview ? (
                               <img
                                 src={organizationLogoPreview}
                                 alt="Organization Logo"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover flex-shrink-0"
+                                style={{ 
+                                  width: '100%', 
+                                  height: '100%', 
+                                  minWidth: '100%', 
+                                  minHeight: '100%',
+                                  maxWidth: '100%',
+                                  maxHeight: '100%',
+                                  objectFit: 'cover'
+                                }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
                               />
                             ) : (
-                              <span className="text-2xl text-white font-bold">
+                              <span className="text-2xl text-white font-bold flex-shrink-0" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {organizationName?.charAt(0)?.toUpperCase() || 'O'}
                               </span>
                             )}
                           </div>
                           <label
                             htmlFor="org-logo-upload"
-                            className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1.5 cursor-pointer hover:bg-blue-700 transition min-w-[36px] min-h-[36px] flex items-center justify-center shadow-lg"
+                            className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2.5 cursor-pointer hover:bg-blue-700 transition min-w-[40px] min-h-[40px] flex items-center justify-center shadow-lg"
                           >
-                            <FiCamera size={16} />
+                            <FiCamera size={18} />
                             <input
                               id="org-logo-upload"
                               type="file"

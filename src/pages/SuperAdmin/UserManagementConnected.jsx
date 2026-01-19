@@ -22,7 +22,7 @@ const UserManagementConnected = () => {
 
   const buttons = ["Instructor", "Student", "Organization"];
 
-  // Fetch users from API
+  
   useEffect(() => {
     fetchUsers();
   }, [currentPage, itemsPerPage, selected, searchTerm]);
@@ -80,7 +80,7 @@ const UserManagementConnected = () => {
       const response = await userService.deleteUser(userId);
       if (response.success) {
         alert('User deleted successfully');
-        fetchUsers(); // Refresh list
+        fetchUsers(); 
       }
     } catch (err) {
       alert('Failed to delete user');
@@ -149,14 +149,14 @@ const UserManagementConnected = () => {
           ))}
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         )}
 
-        {/* Error State */}
+        {}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative m-4">
             {error}
@@ -166,7 +166,7 @@ const UserManagementConnected = () => {
           </div>
         )}
 
-        {/* Table */}
+        {}
         {!loading && !error && (
           <>
             <div className="overflow-x-auto insect-shadow-sm shadow-lg rounded-xl">

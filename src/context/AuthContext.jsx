@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check if user is logged in on mount
+  
   useEffect(() => {
     const token = authService.getToken();
     const storedUser = authService.getUser();
@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // Login function
+  
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register function
+  
   const register = async (userData) => {
     try {
       const response = await authService.register(userData);
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
+  
   const logout = async () => {
     try {
       await authService.logout();
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Refresh current user data (useful after role/permission changes)
+  
   const refreshUser = async () => {
     try {
       const response = await authService.me();
@@ -91,13 +91,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user has specific role (handles both string and object formats)
+  
   const hasRole = (role) => {
     if (!user?.roles) return false;
     return checkRole(user.roles, role);
   };
 
-  // Check if user has specific permission
+  
   const hasPermission = (permission) => {
     if (!user?.permissions) return false;
     const userPermissions = Array.isArray(user.permissions) 
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }) => {
     return userPermissions.includes(permission);
   };
 
-  // Helper functions for common role checks
+  
   const userIsSuperAdmin = () => {
     return user?.roles ? isSuperAdmin(user.roles) : false;
   };
@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use auth context
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

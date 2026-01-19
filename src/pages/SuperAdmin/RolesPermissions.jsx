@@ -12,7 +12,7 @@ import { isSuperAdmin } from "../../utils/roleUtils";
 const RolesPermissions = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const { roles: contextRoles, fetchRoles: refetchRoles } = useRolesContext();
+  const { roles: contextRoles, fetchRoles: refetchRoles, refetch: forceRefreshRoles } = useRolesContext();
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
   const [allPermissions, setAllPermissions] = useState([]); // Store all permissions
@@ -27,8 +27,16 @@ const RolesPermissions = () => {
   
   // Check if current user is super admin
   const userIsSuperAdmin = useMemo(() => {
-    return user?.roles ? isSuperAdmin(user.roles) : false;
-  }, [user?.roles]);
+    const isSuper = user?.roles ? isSuperAdmin(user.roles) : false;
+    if (import.meta.env.DEV) {
+      console.log('[RolesPermissions] User Super Admin check:', {
+        userRoles: user?.roles,
+        isSuperAdmin: isSuper,
+        userObject: user ? { id: user.id, name: user.name, organization_id: user.organization_id, roles: user.roles } : null
+      });
+    }
+    return isSuper;
+  }, [user?.roles, user]);
   
   // Get admin's accessible navigation items (excluding Super Admin only items)
   const adminNavItems = useMemo(() => {
@@ -38,7 +46,6 @@ const RolesPermissions = () => {
     // Filter out Super Admin only items
     const superAdminOnlyLabels = [
       "User Logs",
-      "Announcements", 
       "User Management",
       "Subscriptions"
     ];
@@ -98,9 +105,13 @@ const RolesPermissions = () => {
   const [savingRole, setSavingRole] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    // For Super Admin, always force refresh on mount to ensure we get all roles
+    // For Admin, use cached data if available
+    if (userIsSuperAdmin !== undefined) {
+      fetchData(userIsSuperAdmin);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only fetch once on mount, use context roles
+  }, [userIsSuperAdmin]); // Fetch when userIsSuperAdmin is determined
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -112,27 +123,32 @@ const RolesPermissions = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenu]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      // Use context roles directly (they're already cached and loaded)
-      // Don't fetch roles again if we have them in context
+      // If force refresh is requested, always fetch fresh data from API
+      // Otherwise, use context roles if available
       let rolesData = contextRoles;
       
-      // Only fetch from API if context has no roles
-      if (!rolesData || rolesData.length === 0) {
+      // Fetch from API if context has no roles OR if force refresh is requested
+      if (!rolesData || rolesData.length === 0 || forceRefresh) {
         if (import.meta.env.DEV) {
-          console.log('[RolesPermissions] No roles in context, fetching...');
+          console.log('[RolesPermissions] Fetching roles from API', { forceRefresh, hasContextRoles: !!rolesData });
         }
-        rolesData = await refetchRoles();
+        // Force refresh context cache to get latest data
+        if (forceRefresh) {
+          rolesData = await forceRefreshRoles();
+        } else {
+          rolesData = await refetchRoles();
+        }
       } else {
         if (import.meta.env.DEV) {
           console.log('[RolesPermissions] Using roles from context');
         }
       }
       
-      // Debug: Log raw roles data
+      // Debug: Log raw roles data and user info
       if (import.meta.env.DEV) {
         console.log('[RolesPermissions] Raw roles data:', {
           count: rolesData?.length || 0,
@@ -144,12 +160,59 @@ const RolesPermissions = () => {
           })) || [],
           userOrgId: user?.organization_id,
           userOrgIdType: typeof user?.organization_id,
-          userIsSuperAdmin
+          userIsSuperAdmin,
+          userRoles: user?.roles,
+          userRolesType: typeof user?.roles,
+          userRolesIsArray: Array.isArray(user?.roles),
+          fullUserObject: user ? {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            organization_id: user.organization_id,
+            roles: user.roles,
+            rolesLength: user.roles?.length
+          } : null
         });
       }
 
-      // Filter roles for Admin users
-      if (!userIsSuperAdmin && rolesData && rolesData.length > 0) {
+      // Debug: Log before filtering
+      if (import.meta.env.DEV) {
+        console.log('[RolesPermissions] Before filtering:', {
+          userIsSuperAdmin,
+          rolesCount: rolesData?.length || 0,
+          roles: rolesData?.map(r => ({ id: r.id, name: r.name, admin_identify_id: r.admin_identify_id })) || []
+        });
+      }
+
+      // IMPORTANT: Super Admin should see ALL roles (including Super Admin, Admin, Instructor, Student, and all custom roles)
+      // Only filter for non-Super Admin users
+      // If userIsSuperAdmin is false but backend returned all roles, we should still show all roles
+      // This handles cases where Super Admin detection might fail but backend knows the user is Super Admin
+      
+      // Check if backend returned Super Admin or Admin roles - if yes, user is likely Super Admin
+      const hasSuperAdminRole = rolesData?.some(r => {
+        const name = r.name?.toLowerCase() || '';
+        return name === 'super admin' || name === 'super-admin' || name === 'admin';
+      });
+      
+      // Check if backend returned roles from multiple organizations (only Super Admin can see this)
+      // If roles have different admin_identify_id values (including null), user is likely Super Admin
+      const hasMultipleOrgRoles = rolesData && rolesData.length > 0 && (() => {
+        const orgIds = new Set(rolesData.map(r => r.admin_identify_id));
+        // If we have roles with different admin_identify_id (including null), it means multiple orgs
+        return orgIds.size > 1 || (orgIds.size === 1 && orgIds.has(null) && rolesData.some(r => r.admin_identify_id !== null));
+      })();
+      
+      // If backend returns many roles (5+), it's likely Super Admin (regular Admin sees max 2-3 roles)
+      // Regular Admin sees: Instructor, Student, and maybe 1-2 custom roles = max 4 roles
+      // Super Admin sees: Super Admin, Admin, Instructor, Student, and all custom roles = 5+ roles
+      const hasManyRoles = rolesData && rolesData.length >= 5;
+      
+      // If backend returned Super Admin/Admin roles OR roles from multiple organizations OR many roles, treat user as Super Admin
+      // Backend is source of truth - if it returns all roles, frontend should show all
+      const shouldShowAllRoles = userIsSuperAdmin || hasSuperAdminRole || hasMultipleOrgRoles || hasManyRoles;
+      
+      if (!shouldShowAllRoles && rolesData && rolesData.length > 0) {
         // For Admin: Exclude Super Admin and Admin, show only Instructor, Student, and admin-created roles
         rolesData = rolesData.filter(role => {
           const roleName = role.name?.toLowerCase() || '';
@@ -175,7 +238,8 @@ const RolesPermissions = () => {
                   roleId: role.id,
                   roleAdminId: roleOrgId,
                   userOrgId: userOrgId,
-                  match: roleOrgId === userOrgId
+                  match: roleOrgId === userOrgId,
+                  willShow: roleOrgId === userOrgId
                 });
               }
               
@@ -183,8 +247,19 @@ const RolesPermissions = () => {
               if (roleOrgId === userOrgId) {
                 return true; // Show this admin-created role
               }
+            } else {
+              // User has no organization_id - log this case
+              if (import.meta.env.DEV) {
+                console.log('[RolesPermissions] Admin-created role filtered out - user has no organization_id:', {
+                  roleName: role.name,
+                  roleId: role.id,
+                  roleAdminId: role.admin_identify_id,
+                  userOrgId: user?.organization_id,
+                  userObject: user ? { id: user.id, name: user.name } : null
+                });
+              }
             }
-            // Don't show admin-created roles to other admins
+            // Don't show admin-created roles to other admins or users without organization_id
             return false;
           }
           
@@ -213,6 +288,20 @@ const RolesPermissions = () => {
             roles: rolesData.map(r => ({ name: r.name, admin_identify_id: r.admin_identify_id }))
           });
         }
+      } else {
+        // Super Admin: No filtering - should see ALL roles
+        if (import.meta.env.DEV) {
+          console.log('[RolesPermissions] Super Admin - showing all roles without filtering:', {
+            userIsSuperAdmin,
+            hasSuperAdminRole,
+            hasMultipleOrgRoles,
+            hasManyRoles,
+            shouldShowAllRoles,
+            rolesCount: rolesData?.length || 0,
+            roles: rolesData?.map(r => ({ id: r.id, name: r.name, admin_identify_id: r.admin_identify_id })) || [],
+            note: 'Super Admin sees ALL roles including Admin-created custom roles'
+          });
+        }
       }
 
       // Fetch permissions (separate endpoint, no caching needed here)
@@ -221,10 +310,14 @@ const RolesPermissions = () => {
       // Always set roles, even if empty array (to clear previous state)
       setRoles(rolesData || []);
       
+      // Always log in dev mode to debug role visibility issues
       if (import.meta.env.DEV) {
         console.log('[RolesPermissions] Setting roles to state:', {
           count: rolesData?.length || 0,
-          roles: rolesData?.map(r => ({ id: r.id, name: r.name, admin_identify_id: r.admin_identify_id })) || []
+          userIsSuperAdmin,
+          userOrgId: user?.organization_id,
+          roles: rolesData?.map(r => ({ id: r.id, name: r.name, admin_identify_id: r.admin_identify_id })) || [],
+          filtered: !userIsSuperAdmin
         });
       }
       
@@ -263,7 +356,7 @@ const RolesPermissions = () => {
     } finally {
       setLoading(false);
     }
-  }, [contextRoles, refetchRoles, userIsSuperAdmin, user?.organization_id]);
+  }, [contextRoles, refetchRoles, forceRefreshRoles, userIsSuperAdmin, user?.organization_id]);
   
   // Update filtered permissions when allPermissions or adminNavItems change
   useEffect(() => {
@@ -314,7 +407,8 @@ const RolesPermissions = () => {
       const response = await roleService.deleteRole(id);
       if (response.success) {
         showSuccessToast('Role deleted successfully');
-        fetchData();
+        // Force refresh to get updated roles list
+        fetchData(true);
       }
     } catch (err) {
       showErrorToast(err.response?.data?.message || 'Failed to delete role');
@@ -377,7 +471,7 @@ const RolesPermissions = () => {
         }
         
         // Refetch roles to ensure we have the latest data (especially if org-specific copy was created)
-        await fetchData();
+        await fetchData(true);
         
         // If this was Instructor/Student role and org-specific copy was created,
         // users were migrated - refresh current user data to get updated roles
@@ -429,7 +523,8 @@ const RolesPermissions = () => {
         setShowAddRoleModal(false);
         setNewRoleName("");
         setSelectedPermissions([]);
-        fetchData();
+        // Force refresh to get the newly created role
+        fetchData(true);
       }
     } catch (err) {
       showErrorToast(err.response?.data?.message || 'Failed to create role');
@@ -547,7 +642,7 @@ const RolesPermissions = () => {
         {error && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative m-4">
             {error}
-            <button onClick={fetchData} className="ml-4 underline font-semibold">
+            <button onClick={() => fetchData(true)} className="ml-4 underline font-semibold">
               Retry
             </button>
           </div>

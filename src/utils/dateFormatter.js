@@ -1,10 +1,6 @@
-/**
- * Reusable date and time formatting utilities
- */
 
-/**
- * Format date to "Jun 15" or "15 Jun" format
- */
+
+
 export const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   
@@ -19,14 +15,12 @@ export const formatDate = (dateString) => {
   }
 };
 
-/**
- * Format time to "9 AM" or "3 PM" format
- */
+
 export const formatTime = (timeString) => {
   if (!timeString) return 'N/A';
   
   try {
-    // If it's a full datetime
+    
     if (timeString.includes('T') || timeString.includes(' ')) {
       const date = new Date(timeString);
       return date.toLocaleTimeString('en-US', { 
@@ -36,7 +30,7 @@ export const formatTime = (timeString) => {
       });
     }
     
-    // If it's just time (HH:MM:SS)
+    
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours);
     const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -48,9 +42,7 @@ export const formatTime = (timeString) => {
   }
 };
 
-/**
- * Format full datetime
- */
+
 export const formatDateTime = (dateString) => {
   if (!dateString) return 'N/A';
   
@@ -69,9 +61,7 @@ export const formatDateTime = (dateString) => {
   }
 };
 
-/**
- * Format date with year
- */
+
 export const formatFullDate = (dateString) => {
   if (!dateString) return 'N/A';
   

@@ -11,21 +11,21 @@ const ACDetails = ({ aircraft }) => {
 
   return (
     <div className="space-y-6">
-      {/* Aircraft Image */}
+      {}
       <div className="flex justify-center sm:justify-start">
         <div className="w-64 h-64 bg-gray-100 rounded-lg overflow-hidden">
           <img
-            src={aircraft.image || 'https://via.placeholder.com/400x400?text=No+Image'}
+            src={aircraft.image || 'https://via.placeholder.com/400'}
             alt={aircraft.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/400x400?text=No+Image';
+              e.target.src = 'https://via.placeholder.com/400';
             }}
           />
         </div>
       </div>
 
-      {/* Basic Information */}
+      {}
       <div className="border-b border-gray-200 pb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -36,6 +36,10 @@ const ACDetails = ({ aircraft }) => {
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium text-gray-500">Model</p>
             <p className="text-base text-gray-800">{aircraft.model || 'N/A'}</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-gray-500">Category</p>
+            <p className="text-base text-gray-800">{aircraft.category || 'N/A'}</p>
           </div>
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium text-gray-500">Status</p>
@@ -54,7 +58,22 @@ const ACDetails = ({ aircraft }) => {
         </div>
       </div>
 
-      {/* Flight Hours & Cycles */}
+      {}
+      {aircraft.additional_attributes && Object.keys(aircraft.additional_attributes).length > 0 && (
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Additional Attributes</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {Object.entries(aircraft.additional_attributes).map(([key, value]) => (
+              <div key={key} className="flex flex-col gap-2">
+                <p className="text-sm font-medium text-gray-500 capitalize">{key.replace(/_/g, ' ')}</p>
+                <p className="text-base text-gray-800">{value || 'N/A'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {}
       <div className="border-b border-gray-200 pb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Flight Hours & Cycles</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -77,7 +96,7 @@ const ACDetails = ({ aircraft }) => {
         </div>
       </div>
 
-      {/* Organization */}
+      {}
       {aircraft.organization && (
         <div>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Organization</h3>

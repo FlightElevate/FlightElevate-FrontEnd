@@ -9,13 +9,13 @@ const Plans = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   
-  // Determine if this is edit mode - check both planId and state
+  
   const isEdit = (planId && planId !== 'new') || (state?.plan && state.plan.id);
   
   const [loading, setLoading] = useState(isEdit && !state?.plan);
   const [submitting, setSubmitting] = useState(false);
   
-  // Initialize form data - check state first, then empty
+  
   const getInitialData = () => {
     if (state?.plan) {
       const plan = state.plan;
@@ -42,7 +42,7 @@ const Plans = () => {
 
   const [formData, setFormData] = useState(getInitialData());
 
-  // Update form when state becomes available
+  
   useEffect(() => {
     if (state?.plan) {
       const plan = state.plan;
@@ -59,12 +59,12 @@ const Plans = () => {
     }
   }, [state]);
 
-  // Fetch plan if state not available and we have planId
+  
   useEffect(() => {
     if (planId && planId !== 'new' && !state?.plan) {
       fetchPlan();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [planId]);
 
   const fetchPlan = async () => {

@@ -2,9 +2,7 @@ import { api } from '../apiClient';
 import { ENDPOINTS } from '../config';
 
 export const logbookService = {
-  /**
-   * Get all logbook entries with filters
-   */
+  
   getLogbooks: async (params = {}) => {
     try {
       const response = await api.get(ENDPOINTS.LOGBOOKS.LIST, { params });
@@ -15,9 +13,7 @@ export const logbookService = {
     }
   },
 
-  /**
-   * Get a single logbook entry
-   */
+  
   getLogbook: async (id) => {
     try {
       const response = await api.get(`${ENDPOINTS.LOGBOOKS.BASE}/${id}`);
@@ -28,9 +24,7 @@ export const logbookService = {
     }
   },
 
-  /**
-   * Create a new logbook entry
-   */
+  
   createLogbook: async (data) => {
     try {
       const response = await api.post(ENDPOINTS.LOGBOOKS.CREATE, data);
@@ -41,9 +35,7 @@ export const logbookService = {
     }
   },
 
-  /**
-   * Update an existing logbook entry
-   */
+  
   updateLogbook: async (id, data) => {
     try {
       const response = await api.put(`${ENDPOINTS.LOGBOOKS.BASE}/${id}`, data);
@@ -54,9 +46,7 @@ export const logbookService = {
     }
   },
 
-  /**
-   * Delete a logbook entry
-   */
+  
   deleteLogbook: async (id) => {
     try {
       const response = await api.delete(`${ENDPOINTS.LOGBOOKS.BASE}/${id}`);

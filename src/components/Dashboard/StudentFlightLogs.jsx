@@ -5,7 +5,7 @@ import { lessonService } from "../../api/services/lessonService";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-// Get status colors with case-insensitive matching
+
 const getStatusColor = (status) => {
   if (!status) return "bg-gray-100 text-gray-600";
   
@@ -22,7 +22,7 @@ const getStatusColor = (status) => {
   }
 };
 
-// Format status for display (capitalize first letter)
+
 const formatStatus = (status) => {
   if (!status) return "Pending";
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
@@ -47,7 +47,7 @@ const StudentFlightLogs = () => {
       setLoading(true);
       try {
         const response = await lessonService.getUserLessons(user.id, {
-          per_page: 10, // Show last 10 lessons
+          per_page: 10, 
           page: 1,
           type: 'student',
         });
@@ -75,7 +75,7 @@ const StudentFlightLogs = () => {
     fetchLessons();
   }, [user?.id]);
 
-  // Close menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (openMenu !== null && menuRefs.current[openMenu] && !menuRefs.current[openMenu].contains(event.target)) {

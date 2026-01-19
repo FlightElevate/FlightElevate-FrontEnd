@@ -23,7 +23,7 @@ const LandingPage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // Redirect authenticated users to dashboard
+  
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       navigate('/dashboard', { replace: true });
@@ -31,7 +31,7 @@ const LandingPage = () => {
   }, [isAuthenticated, authLoading, navigate]);
   const [openFaq, setOpenFaq] = useState(0);
 
-  // Close mobile menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -113,35 +113,35 @@ const LandingPage = () => {
       title: "Marketing Maven",
       quote: "I used to juggle multiple tools, but this platform brought everything under one roof. Now I'm a marketing wizard with time to spare for a coffee break!",
       date: "Apr 17, 2023",
-      image: "https://i.pravatar.cc/150?img=12"
+      image: "https://i.pravatar.cc/150?img=2"
     },
     {
       name: "Sarah Johnson",
       title: "Small Business Owner",
       quote: "As a small business owner, I needed an affordable solution. This SaaS platform delivered beyond my expectations, helping my business compete with the big guys.",
       date: "March 17, 2023",
-      image: "https://i.pravatar.cc/150?img=9"
+      image: "https://i.pravatar.cc/150?img=3"
     },
     {
       name: "Michael Chen",
       title: "E-Commerce Enthusiast",
       quote: "This SaaS platform transformed my online store into a smooth-running operation. Now I have more time to explore new business opportunities!",
       date: "Apr 17, 2023",
-      image: "https://i.pravatar.cc/150?img=33"
+      image: "https://i.pravatar.cc/150?img=4"
     },
     {
       name: "Sophie Williams",
       title: "Creative Designer",
       quote: "Customizable branding features? Sign me up! This platform lets me unleash my creativity and give our brand a unique identity.",
       date: "March 17, 2023",
-      image: "https://i.pravatar.cc/150?img=47"
+      image: "https://i.pravatar.cc/150?img=5"
     },
     {
       name: "Robert Turner",
       title: "CFO of Money Matters Corp.",
       quote: "The advanced reporting and analytics have revolutionized our financial decision-making. Our numbers have never looked better!",
       date: "June 4, 2023",
-      image: "https://i.pravatar.cc/150?img=68"
+      image: "https://i.pravatar.cc/150?img=6"
     }
   ];
 
@@ -205,18 +205,18 @@ const LandingPage = () => {
 
   return (
     <div className={`min-h-screen ${themeClasses.bg} transition-colors duration-300 overflow-x-hidden`}>
-      {/* Header */}
+      {}
       <header className="bg-blue-600 border-b border-blue-700 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Left - Logo */}
+            {}
             <div className="flex items-center flex-shrink-0">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
                 Flight Elevate
               </h1>
             </div>
 
-            {/* Center - Navigation (Desktop) */}
+            {}
             <nav className="hidden md:flex items-center space-x-8 flex-1 justify-center">
               <a href="#features" className="text-white hover:text-blue-100 transition-colors font-medium">
                 Features
@@ -226,9 +226,9 @@ const LandingPage = () => {
               </a>
             </nav>
 
-            {/* Right - Actions */}
+            {}
             <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-              {/* Mobile Menu Toggle */}
+              {}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden text-white hover:text-blue-100 transition-colors p-2 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -237,7 +237,7 @@ const LandingPage = () => {
                 {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
               </button>
 
-              {/* Desktop Actions */}
+              {}
               <div className="hidden md:flex items-center space-x-2 sm:space-x-3">
                 <button
                   onClick={toggleTheme}
@@ -262,7 +262,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Mobile Menu */}
+          {}
           <div
             ref={menuRef}
             className={`md:hidden transition-all duration-300 ease-in-out overflow-hidden ${
@@ -319,7 +319,7 @@ const LandingPage = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {}
       <section className={`py-12 sm:py-20 ${themeClasses.bg}`}>
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-2 mb-4 sm:mb-6">
@@ -345,7 +345,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Dashboard Preview */}
+          {}
           <div className="mt-8 sm:mt-16 rounded-lg overflow-hidden shadow-2xl border border-gray-200 w-full">
             <div className={`${themeClasses.bgSecondary} px-3 sm:px-4 py-2 flex items-center space-x-2 border-b ${themeClasses.border}`}>
               <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
@@ -354,7 +354,7 @@ const LandingPage = () => {
               <span className={`ml-2 sm:ml-4 text-xs sm:text-sm ${themeClasses.textSecondary} truncate`}>flightelevate.com</span>
             </div>
             <div className={`${themeClasses.bg} p-4 sm:p-8`}>
-              {/* Dashboard content preview */}
+              {}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className={`${themeClasses.card} p-4 rounded-lg border`}>
                   <p className={`text-sm ${themeClasses.textSecondary} mb-1`}>Upcoming Flight Lessons</p>
@@ -378,7 +378,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Student & Instructor Experience Section */}
+      {}
       <section className={`py-20 ${themeClasses.bgSecondary}`} id="features">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-4">
@@ -551,7 +551,7 @@ const LandingPage = () => {
                       alt={testimonial.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        // Fallback to initials if image fails to load
+                        
                         e.target.style.display = 'none';
                         e.target.parentElement.innerHTML = `<div class="w-full h-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm">${testimonial.name.split(' ').map(n => n[0]).join('')}</div>`;
                       }}

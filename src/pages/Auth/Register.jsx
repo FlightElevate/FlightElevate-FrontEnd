@@ -23,7 +23,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { register, isAuthenticated, loading: authLoading } = useAuth();
 
-  // Redirect if already authenticated
+  
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       navigate('/dashboard');
@@ -36,7 +36,7 @@ const Register = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error for this field
+    
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -112,7 +112,7 @@ const Register = () => {
       setError(errorMessage);
       showErrorToast(errorMessage);
       
-      // Set field-specific errors if available
+      
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       }
@@ -121,7 +121,7 @@ const Register = () => {
     }
   };
 
-  // Password strength indicator
+  
   const getPasswordStrength = () => {
     if (!formData.password) return { strength: 0, label: '', color: '' };
     const length = formData.password.length;
@@ -147,7 +147,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      {/* Left Side - Blue Background (matching sidebar theme) */}
+      {}
       <div className="hidden lg:flex lg:w-1/2 bg-blue-700 items-center justify-center p-12">
         <div className="max-w-md text-white">
           <h1 className="text-4xl font-bold mb-4">Get Started Today!</h1>

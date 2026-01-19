@@ -1,11 +1,6 @@
 import React from 'react';
 
-/**
- * Reusable Profile Tabs Component
- * @param {string} activeTab - Currently active tab
- * @param {function} setActiveTab - Function to change active tab
- * @param {array} tabs - Array of tab objects [{id, label}]
- */
+
 const ProfileTabs = ({ activeTab, setActiveTab, tabs = [] }) => {
   const defaultTabs = [
     { id: 'profile', label: 'Profile Details' },

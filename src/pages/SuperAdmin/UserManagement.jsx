@@ -9,45 +9,42 @@ import Pagination from "../../components/Pagination";
 import AddUserModal from "../../components/User/AddUserModal";
 import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../utils/notifications";
 
-/**
- * User Management Page - Super Admin View
- * Displays and manages users with filtering, search, and CRUD operations
- */
+
 const UserManagement = () => {
   const navigate = useNavigate();
   
-  // Filter and selection state
+  
   const [selected, setSelected] = useState("Instructor");
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Data state
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // UI state
+  
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const dropdownRefs = useRef({});
   
-  // Pagination state
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
   const roleFilters = ["Instructor", "Student", "Organization", "Admin"];
 
-  // Fetch users when dependencies change
+  
   useEffect(() => {
     fetchUsers();
   }, [currentPage, itemsPerPage, selected, searchTerm]);
 
-  // Handle click outside dropdown
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Check all dropdown refs (including mobile ones)
+      
       const clickedOutsideAllMenus = Object.values(dropdownRefs.current).every(
         (ref) => !ref?.contains(event.target)
       );
@@ -60,17 +57,14 @@ const UserManagement = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openDropdownId]);
 
-  /**
-   * Fetches data from API with current filters
-   * If "Organization" is selected, fetches organizations, otherwise fetches users
-   */
+  
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       let response;
 
-      // If Organization tab is selected, fetch organizations
+      
       if (selected === "Organization") {
         response = await organizationService.getOrganizations({
           page: currentPage,
@@ -80,7 +74,7 @@ const UserManagement = () => {
           order: 'desc'
         });
       } else {
-        // Otherwise fetch users
+        
         response = await userService.getUsers({
           page: currentPage,
           per_page: itemsPerPage,
@@ -106,26 +100,20 @@ const UserManagement = () => {
     }
   }, [currentPage, itemsPerPage, selected, searchTerm]);
 
-  /**
-   * Handles role filter change
-   */
+  
   const handleRoleFilterChange = useCallback((role) => {
     setSelected(role);
     setSelectedIds([]);
     setCurrentPage(1);
   }, []);
 
-  /**
-   * Handles select all checkbox
-   */
+  
   const isAllSelected = selectedIds.length === users.length && users.length > 0;
   const handleSelectAll = useCallback(() => {
     setSelectedIds(isAllSelected ? [] : users.map((user) => user.id));
   }, [isAllSelected, users]);
 
-  /**
-   * Handles individual checkbox selection
-   */
+  
   const handleSelectOne = useCallback((id) => {
     setSelectedIds(prev => 
       prev.includes(id) 
@@ -134,9 +122,7 @@ const UserManagement = () => {
     );
   }, []);
 
-  /**
-   * Handles blocking/unblocking a user
-   */
+  
   const handleBlockUser = useCallback(async (userId, userName, currentStatus) => {
     const action = currentStatus === 'blocked' ? 'unblock' : 'block';
     const confirmed = await showDeleteConfirm(
@@ -161,25 +147,21 @@ const UserManagement = () => {
     }
   }, [fetchUsers]);
 
-  /**
-   * Handles user creation success
-   */
+  
   const handleUserCreated = useCallback(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  /**
-   * Handles row click navigation
-   */
+  
   const handleRowClick = useCallback(async (item) => {
     if (selected === "Organization") {
-      // For Organization, navigate directly with organization ID and type
+      
       navigate(`/user-management/organization/${item.id}?type=organization`);
     } else if (selected === "Admin") {
-      // For Admin, go to organization detail (user type)
+      
       navigate(`/user-management/organization/${item.id}?type=user`);
     } else {
-      // For other roles, go to user profile
+      
       navigate(`/user-management/profile/${item.id}`);
     }
   }, [navigate, selected]);
@@ -187,13 +169,13 @@ const UserManagement = () => {
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white inset-shadow-sm shadow-xl rounded-lg px-4 py-5">
-        {/* Header */}
+        {}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
           <h2 className="text-xl font-inter font-semibold text-gray-800">
             User Management
           </h2>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            {/* Search */}
+            {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm flex-grow sm:flex-grow-0 sm:w-[250px]">
               <FiSearch className="text-gray-400 mr-2" size={16} />
               <input
@@ -211,9 +193,9 @@ const UserManagement = () => {
           </div>
         </div>
 
-        {/* Role Filters - Vertical on Mobile, Horizontal on Desktop */}
+        {}
         <div className="bg-white border-b border-[#F3F4F6]">
-          {/* Mobile: Vertical Filters */}
+          {}
           <div className="md:hidden">
             <div className="flex flex-col px-4 py-2">
               {roleFilters.map((label) => (
@@ -229,7 +211,7 @@ const UserManagement = () => {
                   {label}
                 </button>
               ))}
-              {/* Add User Button - Mobile */}
+              {}
               <button
                 onClick={() => setShowAddUserModal(true)}
                 className="w-full text-left py-3 px-4 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] flex items-center justify-center gap-2 mt-2"
@@ -240,7 +222,7 @@ const UserManagement = () => {
             </div>
           </div>
 
-          {/* Desktop: Horizontal Filters */}
+          {}
           <div className="hidden md:block">
             <div className="flex items-center justify-between gap-2 px-6 py-4">
               <div className="flex gap-2">
@@ -258,7 +240,7 @@ const UserManagement = () => {
                   </button>
                 ))}
               </div>
-              {/* Add User Button - Desktop */}
+              {}
               <button
                 onClick={() => setShowAddUserModal(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] whitespace-nowrap"
@@ -270,14 +252,14 @@ const UserManagement = () => {
           </div>
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         )}
 
-        {/* Error State */}
+        {}
         {error && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative m-4">
             {error}
@@ -287,7 +269,7 @@ const UserManagement = () => {
           </div>
         )}
 
-        {/* Desktop Table View */}
+        {}
         {!loading && !error && (
           <>
             <div className="hidden md:block overflow-x-auto insect-shadow-sm shadow-lg rounded-xl">
@@ -318,7 +300,7 @@ const UserManagement = () => {
                 <tbody>
                   {users.length > 0 ? (
                     users.map((item) => {
-                      // If Organization tab, render organization row, otherwise user row
+                      
                       if (selected === "Organization") {
                         return (
                           <OrganizationRow
@@ -363,11 +345,11 @@ const UserManagement = () => {
               </table>
             </div>
 
-            {/* Mobile Card View */}
+            {}
             <div className="md:hidden space-y-3 mt-4">
               {users.length > 0 ? (
                 users.map((item) => {
-                  // If Organization tab, render organization card
+                  
                   if (selected === "Organization") {
                     return (
                       <div
@@ -450,7 +432,7 @@ const UserManagement = () => {
                     );
                   }
                   
-                  // User card
+                  
                   const statusConfig = {
                     active: {
                       bg: "bg-[#E1FAEA]",
@@ -571,7 +553,7 @@ const UserManagement = () => {
               )}
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="py-2.5 gap-3 flex justify-center">
               <Pagination
                 page={currentPage}
@@ -585,7 +567,7 @@ const UserManagement = () => {
         )}
       </div>
 
-      {/* Add User Modal */}
+      {}
       <AddUserModal
         isOpen={showAddUserModal}
         onClose={() => setShowAddUserModal(false)}
@@ -595,9 +577,7 @@ const UserManagement = () => {
   );
 };
 
-/**
- * Super Admin User Row Component - Includes Organization column
- */
+
 const SuperAdminUserRow = React.memo(({
   user,
   selectedRole,
@@ -678,9 +658,7 @@ const SuperAdminUserRow = React.memo(({
 
 SuperAdminUserRow.displayName = 'SuperAdminUserRow';
 
-/**
- * Super Admin User Actions Dropdown Component
- */
+
 const SuperAdminUserActionsDropdown = React.forwardRef(({
   userId,
   userName,
@@ -721,10 +699,7 @@ const SuperAdminUserActionsDropdown = React.forwardRef(({
 
 SuperAdminUserActionsDropdown.displayName = 'SuperAdminUserActionsDropdown';
 
-/**
- * Organization Row Component
- * Displays organization information in the table
- */
+
 const OrganizationRow = React.memo(({
   organization,
   isSelected,
@@ -798,9 +773,7 @@ const OrganizationRow = React.memo(({
 
 OrganizationRow.displayName = 'OrganizationRow';
 
-/**
- * Organization Actions Dropdown Component
- */
+
 const OrganizationActionsDropdown = React.forwardRef(({
   organizationId,
   organizationName,
@@ -810,7 +783,7 @@ const OrganizationActionsDropdown = React.forwardRef(({
   const navigate = useNavigate();
   
   const handleViewDetails = () => {
-    // Navigate directly with organization ID
+    
     navigate(`/user-management/organization/${organizationId}?type=organization`);
   };
 

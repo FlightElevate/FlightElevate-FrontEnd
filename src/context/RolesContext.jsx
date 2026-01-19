@@ -3,18 +3,7 @@ import { roleService } from '../api/services/roleService';
 import { showErrorToast } from '../utils/notifications';
 import { useAuth } from './AuthContext';
 
-/**
- * Roles Context
- * Provides global roles state with caching to prevent unnecessary API calls
- * 
- * Features:
- * - 5-minute cache duration
- * - Prevents duplicate simultaneous requests using ref
- * - Auto-fetches on mount
- * - Memoized values to prevent re-renders
- * - Uses refs to avoid dependency issues
- * - Error handling with no retry on failure
- */
+
 const RolesContext = createContext(null);
 
 export const RolesProvider = ({ children }) => {
@@ -23,44 +12,35 @@ export const RolesProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Use refs to track state without causing re-renders
+  
   const lastFetchedRef = useRef(null);
   const isFetchingRef = useRef(false);
   const rolesRef = useRef([]);
   const errorRef = useRef(null);
   const lastErrorTimeRef = useRef(null);
 
-  // Cache duration: 5 minutes
+  
   const CACHE_DURATION = 5 * 60 * 1000;
-  // Error retry cooldown: 30 seconds (prevent rapid retries on error)
+  
   const ERROR_COOLDOWN = 30 * 1000;
 
-  /**
-   * Check if cache is still valid
-   */
+  
   const isCacheValid = useCallback(() => {
     if (!lastFetchedRef.current || rolesRef.current.length === 0) return false;
     const now = Date.now();
     return (now - lastFetchedRef.current) < CACHE_DURATION;
   }, [CACHE_DURATION]);
 
-  /**
-   * Check if we should retry after error
-   */
+  
   const shouldRetryAfterError = useCallback(() => {
     if (!lastErrorTimeRef.current) return true;
     const now = Date.now();
     return (now - lastErrorTimeRef.current) > ERROR_COOLDOWN;
   }, [ERROR_COOLDOWN]);
 
-  /**
-   * Fetch roles from API
-   * Prevents multiple simultaneous calls using ref
-   * Handles errors gracefully without retrying
-   * Only fetches if user is authenticated
-   */
+  
   const fetchRoles = useCallback(async (forceRefresh = false) => {
-    // Don't fetch if user is not authenticated
+    
     if (!isAuthenticated) {
       if (import.meta.env.DEV) {
         console.log('[RolesContext] User not authenticated, skipping roles fetch');
@@ -68,7 +48,7 @@ export const RolesProvider = ({ children }) => {
       return [];
     }
 
-    // Return cached data if valid and not forcing refresh
+    
     if (!forceRefresh && isCacheValid()) {
       if (import.meta.env.DEV) {
         console.log('[RolesContext] Using cached roles');
@@ -76,7 +56,7 @@ export const RolesProvider = ({ children }) => {
       return rolesRef.current;
     }
 
-    // Prevent multiple simultaneous requests
+    
     if (isFetchingRef.current) {
       if (import.meta.env.DEV) {
         console.log('[RolesContext] Fetch already in progress, skipping...');
@@ -84,7 +64,7 @@ export const RolesProvider = ({ children }) => {
       return rolesRef.current;
     }
 
-    // If we have an error and it's too soon, don't retry
+    
     if (errorRef.current && !forceRefresh && !shouldRetryAfterError()) {
       if (import.meta.env.DEV) {
         console.log('[RolesContext] Error cooldown active, skipping retry...');
@@ -92,7 +72,7 @@ export const RolesProvider = ({ children }) => {
       return rolesRef.current;
     }
 
-    // Mark as fetching
+    
     isFetchingRef.current = true;
     setLoading(true);
     setError(null);
@@ -115,27 +95,27 @@ export const RolesProvider = ({ children }) => {
         throw new Error(response.message || 'Failed to fetch roles');
       }
 
-      // Update both state and ref
+      
       setRoles(rolesData);
       rolesRef.current = rolesData;
       lastFetchedRef.current = Date.now();
-      lastErrorTimeRef.current = null; // Clear error time on success
+      lastErrorTimeRef.current = null; 
       
       return rolesData;
     } catch (err) {
       const errorMessage =
         err.message || err.response?.data?.message || err.response?.data?.errors?.message || 'Failed to load roles';
       
-      // Store error in ref and state
+      
       errorRef.current = errorMessage;
       lastErrorTimeRef.current = Date.now();
       setError(errorMessage);
       
-      // Only show toast if we have no cached data
+      
       if (rolesRef.current.length === 0) {
         showErrorToast(errorMessage);
       } else {
-        // If we have cached data, just log the error
+        
         if (import.meta.env.DEV) {
           console.warn('[RolesContext] Error fetching roles, using cached data:', errorMessage);
         }
@@ -143,7 +123,7 @@ export const RolesProvider = ({ children }) => {
       
       console.error('[RolesContext] Error fetching roles:', err);
       
-      // Return existing roles on error (don't clear cache)
+      
       return rolesRef.current.length > 0 ? rolesRef.current : [];
     } finally {
       setLoading(false);
@@ -151,22 +131,19 @@ export const RolesProvider = ({ children }) => {
     }
   }, [isAuthenticated, isCacheValid, shouldRetryAfterError]);
 
-  /**
-   * Initialize roles on mount if not cached and user is authenticated
-   * Also refetches when authentication status changes
-   */
+  
   useEffect(() => {
     let isMounted = true;
 
-    // Wait for auth to finish loading
+    
     if (authLoading) {
       return;
     }
 
     const initializeRoles = async () => {
-      // Only fetch if authenticated
+      
       if (!isAuthenticated) {
-        // Clear roles if user is not authenticated
+        
         if (rolesRef.current.length > 0) {
           setRoles([]);
           rolesRef.current = [];
@@ -191,28 +168,22 @@ export const RolesProvider = ({ children }) => {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, authLoading]); // Run when auth status changes
+    
+  }, [isAuthenticated, authLoading]); 
 
-  /**
-   * Sync refs when roles state changes
-   */
+  
   useEffect(() => {
     rolesRef.current = roles;
   }, [roles]);
 
-  /**
-   * Sync error ref when error state changes
-   */
+  
   useEffect(() => {
     if (error) {
       errorRef.current = error;
     }
   }, [error]);
 
-  /**
-   * Memoized context value to prevent unnecessary re-renders
-   */
+  
   const value = useMemo(() => {
     const cacheValid = isCacheValid();
     return {
@@ -220,7 +191,7 @@ export const RolesProvider = ({ children }) => {
       loading,
       error,
       fetchRoles,
-      refetch: () => fetchRoles(true), // Force refresh
+      refetch: () => fetchRoles(true), 
       isCacheValid: cacheValid,
     };
   }, [roles, loading, error, fetchRoles, isCacheValid]);
@@ -228,9 +199,7 @@ export const RolesProvider = ({ children }) => {
   return <RolesContext.Provider value={value}>{children}</RolesContext.Provider>;
 };
 
-/**
- * Hook to use roles context
- */
+
 export const useRolesContext = () => {
   const context = useContext(RolesContext);
   if (!context) {

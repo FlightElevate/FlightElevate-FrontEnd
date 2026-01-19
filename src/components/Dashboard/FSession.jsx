@@ -11,7 +11,7 @@ import {
   Rectangle,
 } from "recharts";
 
-// Full dataset with location information
+
 const allData = [
   { month: "June", single: 200, multi: 330, location: "All Locations" },
   { month: "July", single: 230, multi: 320, location: "All Locations" },
@@ -20,7 +20,7 @@ const allData = [
   { month: "Oct", single: 290, multi: 420, location: "All Locations" },
   { month: "Nov", single: 370, multi: 250, location: "All Locations" },
   { month: "Dec", single: 323, multi: 324, location: "All Locations" },
-  // Location 1 data
+  
   { month: "June", single: 100, multi: 150, location: "Location 1" },
   { month: "July", single: 120, multi: 160, location: "Location 1" },
   { month: "Aug", single: 90, multi: 130, location: "Location 1" },
@@ -28,7 +28,7 @@ const allData = [
   { month: "Oct", single: 140, multi: 200, location: "Location 1" },
   { month: "Nov", single: 180, multi: 120, location: "Location 1" },
   { month: "Dec", single: 160, multi: 160, location: "Location 1" },
-  // Location 2 data
+  
   { month: "June", single: 100, multi: 180, location: "Location 2" },
   { month: "July", single: 110, multi: 160, location: "Location 2" },
   { month: "Aug", single: 100, multi: 140, location: "Location 2" },
@@ -38,16 +38,16 @@ const allData = [
   { month: "Dec", single: 163, multi: 164, location: "Location 2" },
 ];
 
-// ✅ Custom Bar Shape — outlines if no value
+
 const CustomBarShape = (props) => {
   const { x, y, width, height, fill, value } = props;
 
-  // If value missing or empty, draw border only
+  
   if (value === "" || value === null || value === undefined) {
     return (
       <Rectangle
         x={x}
-        y={y - 2} // small offset
+        y={y - 2} 
         width={width}
         height={height + 2}
         stroke="#9CA3AF"
@@ -58,7 +58,7 @@ const CustomBarShape = (props) => {
     );
   }
 
-  // Otherwise draw normal filled bar
+  
   return (
     <Rectangle x={x} y={y} width={width} height={height} fill={fill} radius={[6, 6, 0, 0]} />
   );
@@ -68,14 +68,14 @@ const FSession = () => {
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [timePeriod, setTimePeriod] = useState("Monthly");
 
-  // Filter data based on selected location
+  
   const filteredData = useMemo(() => {
     let locationFiltered = allData;
     
     if (selectedLocation !== "All Locations") {
       locationFiltered = allData.filter(item => item.location === selectedLocation);
     } else {
-      // For "All Locations", aggregate data by month
+      
       const aggregated = {};
       allData.forEach(item => {
         if (!aggregated[item.month]) {
@@ -87,12 +87,12 @@ const FSession = () => {
       locationFiltered = Object.values(aggregated);
     }
 
-    // Filter by time period (for now, we only have monthly data, but this can be extended)
-    // If Weekly or Daily is selected, we could show different data or transform the monthly data
+    
+    
     return locationFiltered;
   }, [selectedLocation, timePeriod]);
 
-  // Calculate summary totals
+  
   const summary = useMemo(() => {
     const totalSingle = filteredData.reduce((sum, item) => sum + (item.single || 0), 0);
     const totalMulti = filteredData.reduce((sum, item) => sum + (item.multi || 0), 0);
@@ -127,7 +127,7 @@ const FSession = () => {
         </div>
       </div>
 
-      {/* Summary numbers */}
+      {}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10 mb-6">
         <div>
           <p className="text-sm text-gray-500">Single Engine</p>
@@ -145,7 +145,7 @@ const FSession = () => {
         </div>
       </div>
 
-      {/* Chart */}
+      {}
       <div className="w-full h-80" style={{ minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={filteredData} barGap={3}>
@@ -168,7 +168,7 @@ const FSession = () => {
               iconSize={10}
             />
 
-            {/* Single Engine Bars */}
+            {}
             <Bar
               dataKey="single"
               name="Single Engine"
@@ -176,7 +176,7 @@ const FSession = () => {
               shape={<CustomBarShape />}
             />
 
-            {/* Multi Engine Bars */}
+            {}
             <Bar
               dataKey="multi"
               name="Multi Engine"

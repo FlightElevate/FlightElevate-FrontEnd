@@ -15,7 +15,7 @@ const UserPolicy = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
+      {}
       <div className="bg-blue-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <button
@@ -31,10 +31,10 @@ const UserPolicy = () => {
         </div>
       </div>
 
-      {/* Main Content */}
+      {}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
+          {}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-4 sticky top-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Quick Navigation</h3>
@@ -56,10 +56,10 @@ const UserPolicy = () => {
             </div>
           </div>
 
-          {/* Content Area */}
+          {}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-sm">
-              {/* Important Notice */}
+              {}
               <div className="bg-orange-50 border-l-4 border-orange-400 p-6 mb-6 rounded-tr-lg rounded-br-lg">
                 <div className="flex">
                   <FiAlertCircle className="text-orange-400 w-6 h-6 mr-3 flex-shrink-0 mt-1" />
@@ -73,7 +73,7 @@ const UserPolicy = () => {
               </div>
 
               <div className="p-6 md:p-8">
-                {/* PART 1: Platform Liability and Payment Processing */}
+                {}
                 <section id="payment" className="mb-12 scroll-mt-4">
                   <div className="flex items-center mb-6">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
@@ -156,7 +156,7 @@ const UserPolicy = () => {
                   </div>
                 </section>
 
-                {/* Digital Wallet */}
+                {}
                 <section id="wallet" className="mb-12 scroll-mt-4">
                   <div className="flex items-center mb-6">
                     <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
@@ -190,7 +190,7 @@ const UserPolicy = () => {
                   </div>
                 </section>
 
-                {/* Service Agreement */}
+                {}
                 <section id="service" className="mb-12 scroll-mt-4">
                   <div className="flex items-center mb-6">
                     <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
@@ -255,7 +255,7 @@ const UserPolicy = () => {
                   </div>
                 </section>
 
-                {/* Service Availability */}
+                {}
                 <section id="availability" className="mb-12 scroll-mt-4">
                   <div className="flex items-center mb-6">
                     <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
@@ -302,7 +302,7 @@ const UserPolicy = () => {
                   </div>
                 </section>
 
-                {/* Additional Terms */}
+                {}
                 <section className="border-t border-gray-200 pt-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -335,7 +335,7 @@ const UserPolicy = () => {
                   </div>
                 </section>
 
-                {/* Footer Actions */}
+                {}
                 <div className="mt-12 pt-8 border-t border-gray-200">
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <Link

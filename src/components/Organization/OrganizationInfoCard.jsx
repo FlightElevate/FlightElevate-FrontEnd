@@ -1,21 +1,14 @@
 import React from 'react';
 import { getStatusConfig } from '../../utils/organizationHelpers';
 
-/**
- * Organization Info Card Component
- * Reusable card component for displaying information sections
- * 
- * @param {string} title - Card title
- * @param {Array} items - Array of { label, value, bold, status } objects to display
- * @param {string} className - Additional CSS classes
- */
+
 export const OrganizationInfoCard = ({ title, items = [], className = '' }) => {
   if (!items || items.length === 0) {
     return null;
   }
 
   const renderValue = (item) => {
-    // If item has status, render status badge
+    
     if (item.status !== undefined) {
       const statusConfig = getStatusConfig(item.status);
       return (
@@ -27,7 +20,7 @@ export const OrganizationInfoCard = ({ title, items = [], className = '' }) => {
       );
     }
 
-    // Otherwise render plain text
+    
     return (
       <p className={`text-gray-800 font-medium`}>
         {item.value || 'N/A'}

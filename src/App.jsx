@@ -41,7 +41,7 @@ import UserPolicy from "./pages/UserPolicy";
 const App = () => {
   return (
     <Routes>
-        {/* Public Routes */}
+        {}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -49,7 +49,7 @@ const App = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/user-policy" element={<UserPolicy />} />
         
-        {/* Protected Routes */}
+        {}
         <Route element={
           <ProtectedRoute>
             <MainLayout />
@@ -57,10 +57,10 @@ const App = () => {
         }>
           <Route path="/dashboard" element={<DashboardRouter />} />
           
-          {/* User Management - Original (static data) */}
+          {}
           <Route path="/user-management" element={<UserManagement />} />
           
-          {/* User Management - API Connected (new) */}
+          {}
           <Route path="/user-management-api" element={
             <ProtectedRoute requiredPermission="view users">
               <UserManagementConnected />
@@ -71,7 +71,7 @@ const App = () => {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/inbox" element={<Inbox />} />
           
-          {/* Roles & Permissions - Super Admin and Admin */}
+          {}
           <Route path="/roles-permissions" element={
             <ProtectedRoute requiredRoles={["Super Admin", "Admin"]}>
               <RolesPermissions />
@@ -87,11 +87,15 @@ const App = () => {
           <Route path="/my-lessons/:id/tasks" element={<LessonTasks />} />
           <Route path="/lessons" element={<InstructorLessons />} />
           <Route path="/lessons/:id" element={<LessonDetails />} />
-          <Route path="/logbook" element={<Logbook />} />
+          <Route path="/logbook" element={
+            <ProtectedRoute requiredRoles={["Admin"]}>
+              <Logbook />
+            </ProtectedRoute>
+          } />
           <Route path="/instructors" element={<Instructors />} />
           <Route path="/setting" element={<Setting />} />
 
-          {/* Nested Routes */}
+          {}
           <Route path="/roles-permissions/create" element={<Roles />} />
           <Route path="/roles-permissions/:id" element={<RoleDetails />} />
           <Route path="/announcements/compose" element={<Compose />} />

@@ -4,8 +4,10 @@ import { Link } from "react-router-dom";
 import { announcementService } from "../api/services/announcementService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../utils/notifications";
 import Pagination from "../components/Pagination";
+import { useRole } from "../hooks/useRole";
 
 const Announcements = () => {
+  const { isSuperAdmin } = useRole();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -89,23 +91,25 @@ const Announcements = () => {
           <div className="bg-white shadow-xs">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-4 sm:py-5 gap-3 sm:gap-0">
               <h2 className="text-xl font-semibold text-gray-800">Announcements</h2>
+              {isSuperAdmin() && (
               <Link
                 to="/announcements/compose"
                 className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-[#1376CD] text-white rounded-lg hover:bg-blue-700 transition text-center min-h-[44px] flex items-center justify-center text-sm sm:text-base"
               >
                 Add Announcement
               </Link>
+              )}
             </div>
           </div>
 
-          {/* Loading State */}
+          {}
           {loading && (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           )}
 
-          {/* Error State */}
+          {}
           {error && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative m-4">
               {error}
@@ -117,7 +121,7 @@ const Announcements = () => {
 
           {!loading && !error && (
             <div className="bg-[#FFFFFF] inset-shadow-sm shadow-sm rounded-xl mt-3">
-              {/* Desktop Table View */}
+              {}
               <div className="hidden md:block overflow-x-auto border-gray-200">
                 <table className="table-auto w-full text-left">
                   <thead>
@@ -139,6 +143,8 @@ const Announcements = () => {
                           <td className="px-3 py-4 text-sm sm:text-base">{item.time}</td>
                           <td className="px-3 py-4 text-sm sm:text-base">{item.announcement}</td>
                           <td className="px-4 py-4 text-right relative" onClick={(e) => e.stopPropagation()}>
+                            {isSuperAdmin() && (
+                              <>
                             {actionLoading === item.id ? (
                               <div className="flex justify-center">
                                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
@@ -170,6 +176,8 @@ const Announcements = () => {
                                   </div>
                                 )}
                               </div>
+                                )}
+                              </>
                             )}
                           </td>
                         </tr>
@@ -188,7 +196,7 @@ const Announcements = () => {
                 </table>
               </div>
 
-              {/* Mobile Card View */}
+              {}
               <div className="md:hidden">
                 {announcements.length > 0 ? (
                   <div className="divide-y divide-gray-200">
@@ -206,6 +214,7 @@ const Announcements = () => {
                             </div>
                             <p className="text-sm text-[#475467] break-words">{item.announcement}</p>
                           </div>
+                          {isSuperAdmin() && (
                           <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                             {actionLoading === item.id ? (
                               <div className="flex justify-center min-w-[44px] min-h-[44px] items-center">
@@ -240,6 +249,7 @@ const Announcements = () => {
                               </div>
                             )}
                           </div>
+                          )}
                         </div>
                       </div>
                     ))}
