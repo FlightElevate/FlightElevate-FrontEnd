@@ -14,7 +14,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, loading: authLoading } = useAuth();
 
-  // Redirect if already authenticated
+  
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       navigate('/dashboard');
@@ -46,7 +46,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      {/* Left Side - Blue Background (matching sidebar theme) */}
+      {}
       <div className="hidden lg:flex lg:w-1/2 bg-blue-700 items-center justify-center p-12">
         <div className="max-w-md text-white">
           <h1 className="text-4xl font-bold mb-4">Welcome Back!</h1>
@@ -82,7 +82,7 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
+      {}
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center lg:hidden mb-8">

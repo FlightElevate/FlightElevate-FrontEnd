@@ -7,7 +7,7 @@ import TotalRevenue from '../../components/Dashboard/TotalRevenue';
 const Dashboard = () => {
   const { user } = useAuth();
   
-  // Get user's first name or fallback to "John"
+  
   const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
 
   return (

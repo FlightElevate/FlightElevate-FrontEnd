@@ -8,7 +8,7 @@ import UpcomingBookings from '../../components/Dashboard/UpcomingBookings';
 const AdminDashboard = () => {
   const { user } = useAuth();
   
-  // Get user's first name or fallback to "John"
+  
   const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
 
   return (
@@ -19,14 +19,14 @@ const AdminDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-6">
-        {/* Summary Cards */}
+        {}
         <SummaryCards />
         
-        {/* Charts */}
+        {}
         <FSession/>
         <TotalRevenue/>
         
-        {/* Upcoming Bookings Table */}
+        {}
         <UpcomingBookings/>
       </div>
     </div>

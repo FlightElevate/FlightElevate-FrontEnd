@@ -1,14 +1,7 @@
 import React from 'react';
 import { FiUsers, FiBookOpen, FiUser } from 'react-icons/fi';
 
-/**
- * Organization Tabs Component
- * Reusable tabs component for organization detail views
- * 
- * @param {string} activeTab - Currently active tab ID
- * @param {Function} onTabChange - Callback when tab changes
- * @param {Object} tabCounts - Object with counts for each tab { admins, instructors, students }
- */
+
 export const OrganizationTabs = ({ activeTab, onTabChange, tabCounts = {} }) => {
   const tabs = [
     { id: 'admins', label: 'Admins', icon: FiUsers, count: tabCounts.admins || 0 },

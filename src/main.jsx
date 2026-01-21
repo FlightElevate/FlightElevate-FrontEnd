@@ -8,20 +8,52 @@ import { AuthProvider } from './context/AuthContext';
 import { RolesProvider } from './context/RolesContext';
 import { ToastContainer } from 'react-toastify';
 
-// Suppress browser extension errors in console
+
+// Suppress browser extension errors that are harmless
 const originalError = console.error;
+const originalWarn = console.warn;
+
 console.error = (...args) => {
   const errorMessage = args[0]?.toString() || '';
-  // Filter out browser extension errors
+  
   if (
     errorMessage.includes('runtime.lastError') ||
     errorMessage.includes('message port closed') ||
-    errorMessage.includes('Extension context invalidated')
+    errorMessage.includes('Extension context invalidated') ||
+    errorMessage.includes('Unchecked runtime.lastError')
   ) {
-    return; // Suppress these errors
+    return; 
   }
   originalError.apply(console, args);
 };
+
+console.warn = (...args) => {
+  const warnMessage = args[0]?.toString() || '';
+  
+  if (
+    warnMessage.includes('runtime.lastError') ||
+    warnMessage.includes('message port closed') ||
+    warnMessage.includes('Extension context invalidated') ||
+    warnMessage.includes('Unchecked runtime.lastError')
+  ) {
+    return; 
+  }
+  originalWarn.apply(console, args);
+};
+
+// Suppress unhandled errors from browser extensions
+window.addEventListener('error', (event) => {
+  const errorMessage = event.message?.toString() || '';
+  if (
+    errorMessage.includes('runtime.lastError') ||
+    errorMessage.includes('message port closed') ||
+    errorMessage.includes('Extension context invalidated') ||
+    errorMessage.includes('Unchecked runtime.lastError')
+  ) {
+    event.preventDefault();
+    return false;
+  }
+});
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

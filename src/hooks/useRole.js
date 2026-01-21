@@ -9,11 +9,7 @@ import {
   getPrimaryRole,
 } from '../utils/roleUtils';
 
-/**
- * Custom hook for role-based access control
- * Provides easy access to role checking functions
- * @returns {Object} - Role checking functions and user role info
- */
+
 export const useRole = () => {
   const { user } = useAuth();
 

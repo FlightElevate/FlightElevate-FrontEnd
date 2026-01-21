@@ -13,11 +13,11 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { lessonService } from '../../api/services/lessonService';
 
-// Custom Bar Shape — outlines if no value
+
 const CustomBarShape = (props) => {
   const { x, y, width, height, fill, value } = props;
 
-  // If value missing or empty, draw border only
+  
   if (value === "" || value === null || value === undefined) {
     return (
       <Rectangle
@@ -33,7 +33,7 @@ const CustomBarShape = (props) => {
     );
   }
 
-  // Otherwise draw normal filled bar
+  
   return (
     <Rectangle x={x} y={y} width={width} height={height} fill={fill} radius={[6, 6, 0, 0]} />
   );
@@ -56,7 +56,7 @@ const InstructorFlightSession = () => {
       }
 
       try {
-        // Fetch all lessons for this instructor
+        
         const response = await lessonService.getUserLessons(user.id, {
           type: 'instructor',
           per_page: 1000,
@@ -65,7 +65,7 @@ const InstructorFlightSession = () => {
         if (response.success) {
           const lessons = response.data || [];
           
-          // Group lessons by month and calculate hours
+          
           const monthlyData = {};
           let totalSingleEngine = 0;
           let totalMultiEngine = 0;
@@ -82,7 +82,7 @@ const InstructorFlightSession = () => {
               };
             }
 
-            // Calculate flight hours
+            
             const flightDual = parseFloat(lesson.flight_dual_hours || 0);
             const flightSolo = parseFloat(lesson.flight_solo_hours || 0);
             const flightCrossCountryDual = parseFloat(lesson.flight_cross_country_dual_hours || 0);
@@ -90,7 +90,7 @@ const InstructorFlightSession = () => {
             
             const totalHours = flightDual + flightSolo + flightCrossCountryDual + flightCrossCountrySolo;
 
-            // Determine engine type
+            
             const aircraftCategory = (lesson.aircraft_category || '').toLowerCase();
             const flightType = (lesson.flight_type || '').toLowerCase();
             
@@ -103,13 +103,13 @@ const InstructorFlightSession = () => {
             }
           });
 
-          // Convert to array and sort by month
+          
           const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
           const sortedData = Object.values(monthlyData).sort((a, b) => {
             return months.indexOf(a.month) - months.indexOf(b.month);
           });
 
-          // Get last 6-7 months
+          
           const recentMonths = sortedData.slice(-7);
           
           setChartData(recentMonths);
@@ -120,7 +120,7 @@ const InstructorFlightSession = () => {
         }
       } catch (error) {
         console.error('Error fetching flight session data:', error);
-        // Use default data if API fails
+        
         setChartData([
           { month: "June", single: 200, multi: 330 },
           { month: "July", single: 230, multi: 320 },
@@ -165,7 +165,8 @@ const InstructorFlightSession = () => {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <div className="w-full" style={{ height: '300px', minWidth: '300px' }}>
+        <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
           <XAxis
@@ -204,7 +205,8 @@ const InstructorFlightSession = () => {
             radius={[6, 6, 0, 0]}
           />
         </BarChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

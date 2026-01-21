@@ -10,31 +10,31 @@ const SummaryCards = () => {
   useEffect(() => {
     const fetchSupportTickets = async () => {
       try {
-        // Fetch support tickets to get count
+        
         const response = await api.get(ENDPOINTS.SUPPORT.LIST, {
           params: {
-            per_page: 1, // We only need the total count
-            status: 'open', // Get open tickets
+            per_page: 1, 
+            status: 'open', 
           },
         });
 
         if (response.success) {
-          // Handle different response structures
+          
           let total = 0;
           
-          // Check if response has pagination meta
+          
           if (response.data?.meta?.total) {
             total = response.data.meta.total;
           } 
-          // Check if response has direct total
+          
           else if (response.data?.total) {
             total = response.data.total;
           }
-          // Check if response is an array
+          
           else if (Array.isArray(response.data)) {
             total = response.data.length;
           }
-          // Check if response.data.data exists (nested structure)
+          
           else if (response.data?.data) {
             if (response.data.meta?.total) {
               total = response.data.meta.total;
@@ -46,7 +46,7 @@ const SummaryCards = () => {
           setSupportTicketsCount(total);
         }
       } catch (err) {
-        // API endpoint might not be implemented yet, show 0
+        
         console.error('Error fetching support tickets:', err);
         setSupportTicketsCount(0);
       } finally {

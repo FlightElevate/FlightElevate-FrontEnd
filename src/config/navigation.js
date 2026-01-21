@@ -8,85 +8,82 @@ import {
 } from "react-icons/md";
 import { normalizeRoleName } from "../utils/roleUtils";
 
-/**
- * Navigation configuration with role-based access control
- * Each menu item can specify which roles can access it
- */
+
 
 export const navigationItems = [
   {
     icon: FiGrid,
     label: "Dashboard",
     link: "/",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles
+    roles: ["super admin", "admin", "instructor", "student"], 
   },
   {
     icon: FiUsers,
     label: "User Management",
     link: "/user-management",
-    roles: ["super admin"], // Super Admin only
+    roles: ["super admin"], 
   },
   {
     icon: FiUsers,
     label: "Users",
     link: "/users",
-    roles: ["admin"], // Admin only
+    roles: ["admin"], 
   },
   {
     icon: FiFileText,
     label: "User Logs",
     link: "/user-logs",
-    roles: ["super admin"], // Super Admin only
+    roles: ["super admin"], 
   },
   
   {
     icon: FiUsers,
     label: "Instructors",
     link: "/instructors",
-    roles: ["student"], // Student only
+    roles: ["student"], 
   },
   
   {
     icon: FiCalendar,
     label: "Calendar",
     link: "/calendar",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles
+    roles: ["super admin", "admin", "instructor", "student"], 
   },
   {
     icon: FiInbox,
     label: "Inbox",
     link: "/inbox",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles
+    roles: ["super admin", "admin", "instructor", "student"], 
   },
   {
     icon: MdSecurity,
     label: "Roles & Permissions",
     link: "/roles-permissions",
-    roles: ["super admin", "admin"], // Super Admin and Admin
+    roles: ["super admin", "admin"], 
   },
   {
     icon: MdCampaign,
     label: "Announcements",
     link: "/announcements",
-    roles: ["super admin"], // Super Admin only
+    roles: ["super admin", "admin"], 
   },
   {
     icon: FiBook,
     label: "Lessons",
     link: "/lessons",
-    roles: ["instructor"], // Instructor only
+    roles: ["instructor", "admin"], 
   },
   {
     icon: MdBook,
     label: "Logbook",
     link: "/logbook",
-    roles: ["instructor"], // Instructor only
+    roles: ["admin"], 
   },
   {
     icon: FiDollarSign,
     label: "Billing",
     link: "/billing",
-    roles: ["student"], // Student only
+    roles: ["student"], 
     badge: "Coming Soon",
     badgeColor: "bg-orange-500",
   },
@@ -94,48 +91,55 @@ export const navigationItems = [
     icon: FiBookOpen,
     label: "My Lesson (Preview)",
     link: "/my-lessons",
-    roles: ["student"], // Student only
+    roles: ["student"], 
   },
   
   {
     icon: FiUsers,
     label: "Aircraft Profile",
     link: "/air-craft-profile",
-    roles: ["admin", "instructor"], // Admin and Instructor only
+    roles: ["admin", "instructor"], 
   },
   {
     icon: MdSupportAgent,
     label: "Support",
     link: "/support",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles (second last)
+    roles: ["super admin", "admin", "instructor", "student"], 
   },
   {
     icon: FiSettings,
     label: "Settings",
     link: "/setting",
-    roles: ["super admin", "admin", "instructor", "student"], // All roles (last)
+    roles: ["super admin", "admin", "instructor", "student"], 
   },
 ];
 
-/**
- * Gets navigation items filtered by user role
- * @param {Array} userRoles - User's roles array
- * @returns {Array} - Filtered navigation items
- */
+
 export const getNavigationItemsByRole = (userRoles = []) => {
   if (!userRoles || userRoles.length === 0) return [];
 
-  // Normalize user roles once for efficiency
+  
   const normalizedUserRoles = userRoles.map(role => normalizeRoleName(role));
+  
+  // Check if user is ONLY a student (no other roles)
+  const isOnlyStudent = normalizedUserRoles.length === 1 && normalizedUserRoles.includes('student');
 
   return navigationItems.filter(item => {
-    // Show item if no role restriction
+    
     if (!item.roles || item.roles.length === 0) return true;
     
-    // Check if user has any of the required roles
+    // If user is ONLY a student, only show items that explicitly include "student" role
+    if (isOnlyStudent) {
+      return item.roles.some(requiredRole => {
+        const normalizedRequiredRole = normalizeRoleName(requiredRole);
+        return normalizedRequiredRole === 'student';
+      });
+    }
+    
+    // For users with multiple roles or non-student roles, use normal filtering
     return item.roles.some(requiredRole => {
       const normalizedRequiredRole = normalizeRoleName(requiredRole);
-      // Check if any normalized user role matches the normalized required role
+      
       return normalizedUserRoles.includes(normalizedRequiredRole);
     });
   });

@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Full dataset
+
 const allRevenueData = [
   { date: "Feb 20", revenue: 48000, fullDate: "2024-02-20" },
   { date: "Feb 21", revenue: 51000, fullDate: "2024-02-21" },
@@ -27,7 +27,7 @@ const allRevenueData = [
   { date: "Mar 3", revenue: 70000, fullDate: "2024-03-03" },
 ];
 
-// Get current date to highlight
+
 const getCurrentDate = () => {
   const today = new Date();
   const month = today.toLocaleString('default', { month: 'short' });
@@ -42,14 +42,14 @@ const getCurrentFullDate = () => {
 
 const TotalRevenue = () => {
   const [startDate, setStartDate] = useState(() => {
-    // Default to 5 days ago
+    
     const date = new Date();
     date.setDate(date.getDate() - 5);
     return date.toISOString().split('T')[0];
   });
   
   const [endDate, setEndDate] = useState(() => {
-    // Default to today
+    
     return new Date().toISOString().split('T')[0];
   });
 
@@ -59,34 +59,34 @@ const TotalRevenue = () => {
   const currentDate = getCurrentDate();
   const currentFullDate = getCurrentFullDate();
 
-  // Enhanced dataset with location information
+  
   const allRevenueDataWithLocation = allRevenueData.map(item => ({
     ...item,
-    location: "All Locations" // Default location, can be extended with actual location data
+    location: "All Locations" 
   }));
 
-  // Filter data based on date range, location, and time period
+  
   const filteredData = useMemo(() => {
     let filtered = allRevenueDataWithLocation.filter(item => {
       return item.fullDate >= startDate && item.fullDate <= endDate;
     });
 
-    // Filter by location (if not "All Locations")
+    
     if (selectedLocation !== "All Locations") {
       filtered = filtered.filter(item => item.location === selectedLocation);
     }
 
-    // Filter/transform by time period
+    
     if (timePeriod === "Daily") {
-      // Already daily data, no transformation needed
+      
       return filtered;
     } else if (timePeriod === "Weekly") {
-      // Group by week
+      
       const weeklyData = {};
       filtered.forEach(item => {
         const date = new Date(item.fullDate);
         const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+        weekStart.setDate(date.getDate() - date.getDay()); 
         const weekKey = weekStart.toISOString().split('T')[0];
         
         if (!weeklyData[weekKey]) {
@@ -101,7 +101,7 @@ const TotalRevenue = () => {
       });
       return Object.values(weeklyData).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
     } else if (timePeriod === "Monthly") {
-      // Group by month
+      
       const monthlyData = {};
       filtered.forEach(item => {
         const date = new Date(item.fullDate);
@@ -123,7 +123,7 @@ const TotalRevenue = () => {
     return filtered;
   }, [startDate, endDate, selectedLocation, timePeriod]);
 
-  // Calculate average revenue for filtered data
+  
   const avgRevenue = useMemo(() => {
     if (filteredData.length === 0) return 0;
     const sum = filteredData.reduce((acc, item) => acc + item.revenue, 0);
@@ -136,7 +136,7 @@ const TotalRevenue = () => {
           Total Revenue
         </h2>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
-          {/* First Row on Mobile: Locations and Weekly */}
+          {}
           <div className="flex flex-col sm:flex-row gap-3 flex-1 sm:flex-initial">
             <select 
               value={selectedLocation}
@@ -158,7 +158,7 @@ const TotalRevenue = () => {
             </select>
           </div>
           
-          {/* Date Picker - Full width on mobile, auto on desktop */}
+          {}
           <div className="flex items-center gap-2 flex-1 sm:flex-initial">
             <input
               type="date"
@@ -176,14 +176,14 @@ const TotalRevenue = () => {
             />
           </div>
           
-          {/* Export Button - Full width on mobile */}
+          {}
           <button className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[44px] whitespace-nowrap">
             Export Report
           </button>
         </div>
       </div>
 
-      {/* Average line indicator */}
+      {}
       <div className="mb-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-0.5 border-t-2 border-dashed border-gray-400"></div>
@@ -194,8 +194,8 @@ const TotalRevenue = () => {
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="w-full h-80 relative" style={{ minWidth: 0 }}>
+      {}
+      <div className="w-full relative" style={{ height: '320px', minWidth: '300px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>
@@ -203,7 +203,7 @@ const TotalRevenue = () => {
                 <stop offset="5%" stopColor="#1D4ED8" stopOpacity={0.3}/>
                 <stop offset="95%" stopColor="#1D4ED8" stopOpacity={0}/>
               </linearGradient>
-              {/* Pattern for current date area */}
+              {}
               <pattern id="currentDatePattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
                 <line x1="0" y1="0" x2="20" y2="20" stroke="#1D4ED8" strokeWidth="1" opacity="0.1"/>
               </pattern>
@@ -252,14 +252,14 @@ const TotalRevenue = () => {
                 "Revenue"
               ]}
             />
-            {/* Blue shaded area below the line */}
+            {}
             <Area
               type="monotone"
               dataKey="revenue"
               stroke="none"
               fill="url(#colorRevenue)"
             />
-            {/* Revenue line */}
+            {}
             <Line
               type="monotone"
               dataKey="revenue"
@@ -285,7 +285,7 @@ const TotalRevenue = () => {
             />
           </LineChart>
         </ResponsiveContainer>
-        {/* Current date indicator - striped background area */}
+        {}
         {filteredData.some(item => item.fullDate === currentFullDate || item.date === currentDate) && (
           <div 
             className="absolute top-0 right-0 w-32 h-full pointer-events-none"

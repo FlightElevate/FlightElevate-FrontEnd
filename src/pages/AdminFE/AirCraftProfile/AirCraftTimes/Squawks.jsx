@@ -47,7 +47,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
     }
   }, [aircraftId, searchTerm, sortBy]);
 
-  // Close menu on outside click
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (Object.values(menuRefs.current).every((ref) => !ref?.contains(e.target))) {
@@ -207,7 +207,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
 
   return (
     <div className="space-y-4">
-      {/* Add Button */}
+      {}
       <div className="flex justify-end">
         <button
           onClick={handleAdd}
@@ -218,7 +218,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
         </button>
       </div>
 
-      {/* Table */}
+      {}
       <div className="overflow-x-auto mt-4">
         <table className="min-w-full text-sm text-gray-700 border-collapse relative">
           <thead className="bg-[#FAFAFA] text-left">
@@ -296,7 +296,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
         </table>
       </div>
 
-      {/* Add/Edit Modal */}
+      {}
       {showModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">

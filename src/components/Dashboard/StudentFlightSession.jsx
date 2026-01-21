@@ -26,14 +26,14 @@ const StudentFlightSession = () => {
 
       try {
         const response = await lessonService.getUserLessons(user.id, {
-          per_page: 100, // Get all lessons to calculate monthly data
+          per_page: 100, 
           type: 'student',
         });
 
         if (response.success) {
           const lessons = response.data || [];
           
-          // Group lessons by month and calculate totals
+          
           const monthlyData = {};
           
           lessons.forEach((lesson) => {
@@ -43,14 +43,14 @@ const StudentFlightSession = () => {
             let date;
             
             try {
-              // Try parsing the date string
+              
               date = new Date(dateStr);
-              // Check if date is valid
+              
               if (isNaN(date.getTime())) {
-                return; // Skip invalid dates
+                return; 
               }
             } catch (e) {
-              return; // Skip if date parsing fails
+              return; 
             }
             
             const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
@@ -63,19 +63,19 @@ const StudentFlightSession = () => {
               };
             }
             
-            // Add hours (duration_minutes / 60)
+            
             const hours = (parseInt(lesson.duration_minutes) || 0) / 60;
             monthlyData[monthKey].hours += hours;
             monthlyData[monthKey].flights += 1;
           });
 
-          // Convert to array and sort by date
+          
           const sortedData = Object.values(monthlyData).sort((a, b) => {
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             return months.indexOf(a.month) - months.indexOf(b.month);
           });
 
-          // Round hours to 1 decimal place
+          
           const formattedData = sortedData.map(item => ({
             ...item,
             hours: Math.round(item.hours * 10) / 10,
@@ -120,7 +120,7 @@ const StudentFlightSession = () => {
         </div>
       </div>
 
-      {/* Legend */}
+      {}
       <div className="flex items-center justify-end gap-4 mb-6">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-blue-500"></div>
@@ -132,8 +132,8 @@ const StudentFlightSession = () => {
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="w-full h-80">
+      {}
+      <div className="w-full" style={{ height: '320px', minWidth: '300px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />

@@ -6,7 +6,7 @@ const UpcomingBookings = () => {
   const [openMenu, setOpenMenu] = useState(null);
   const menuRefs = useRef({});
 
-  // Close menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (openMenu !== null && menuRefs.current[openMenu] && !menuRefs.current[openMenu].contains(event.target)) {
@@ -17,7 +17,7 @@ const UpcomingBookings = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenu]);
 
-  // Sample data - replace with API call later
+  
   const bookings = [
     {
       id: 1,

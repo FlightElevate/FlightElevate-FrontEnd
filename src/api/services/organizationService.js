@@ -1,16 +1,9 @@
 import { api } from '../apiClient';
 import { ENDPOINTS } from '../config';
 
-/**
- * Organization Service
- * Handles all organization-related API calls
- */
+
 export const organizationService = {
-  /**
-   * Get all organizations with pagination and filters
-   * @param {Object} params - Query parameters (page, per_page, search, sort, order)
-   * @returns {Promise<Object>} - Response object with success, data, and meta
-   */
+  
   async getOrganizations(params = {}) {
     try {
       return await api.get(ENDPOINTS.ORGANIZATIONS.LIST, params);
@@ -20,11 +13,7 @@ export const organizationService = {
     }
   },
 
-  /**
-   * Get a specific organization by ID
-   * @param {number} id - Organization ID
-   * @returns {Promise<Object>} - Response object with success and data
-   */
+  
   async getOrganization(id) {
     try {
       return await api.get(ENDPOINTS.ORGANIZATIONS.SHOW(id));
@@ -34,37 +23,56 @@ export const organizationService = {
     }
   },
 
-  /**
-   * Update an organization
-   * @param {number} id - Organization ID
-   * @param {Object} data - Organization data to update (name, logo_file)
-   * @returns {Promise<Object>} - Response object with success and data
-   */
+  
   async updateOrganization(id, data) {
     try {
-      const formData = new FormData();
+      // Check if we have a file to upload
+      const hasFile = data.logo_file instanceof File;
       
-      // Always append name if provided
-      if (data.name !== undefined && data.name !== null) {
-        formData.append('name', String(data.name).trim());
-      }
+      let requestData;
       
-      // Append logo_file if provided
-      if (data.logo_file) {
+      if (hasFile) {
+        // Use FormData for file uploads
+        const formData = new FormData();
+        
+        // Append name if provided
+        if (data.name !== undefined && data.name !== null) {
+          formData.append('name', String(data.name).trim());
+        }
+        
+        // Append logo file
         formData.append('logo_file', data.logo_file);
+        
+        if (import.meta.env.DEV) {
+          console.log('Updating organization with FormData:', {
+            id,
+            name: data.name,
+            hasLogoFile: true,
+            fileName: data.logo_file.name,
+            fileSize: data.logo_file.size,
+            fileType: data.logo_file.type,
+          });
+        }
+        
+        requestData = formData;
+      } else {
+        // Use regular JSON for non-file updates
+        requestData = {};
+        if (data.name !== undefined && data.name !== null) {
+          requestData.name = String(data.name).trim();
+        }
+        
+        if (import.meta.env.DEV) {
+          console.log('Updating organization with JSON:', {
+            id,
+            name: data.name,
+            hasLogoFile: false,
+          });
+        }
       }
-
-      // Debug: Log what we're sending
-      if (import.meta.env.DEV) {
-        console.log('Updating organization:', {
-          id,
-          name: data.name,
-          hasLogoFile: !!data.logo_file,
-        });
-      }
-
-      // Don't set Content-Type header - let browser set it with boundary for FormData
-      return await api.put(ENDPOINTS.ORGANIZATIONS.UPDATE(id), formData);
+      
+      // Use PUT which will handle FormData conversion to POST with _method=PUT
+      return await api.put(ENDPOINTS.ORGANIZATIONS.UPDATE(id), requestData);
     } catch (error) {
       console.error('Error updating organization:', error);
       throw error;

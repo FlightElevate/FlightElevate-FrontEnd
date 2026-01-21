@@ -37,7 +37,7 @@ const UserLogs = () => {
     fetchActivityLogs();
   }, [currentPage, itemsPerPage, selected, searchTerm, sortField, sortOrder]);
 
-  // Handle click outside dropdown
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -85,7 +85,7 @@ const UserLogs = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
           <h2 className="text-xl font-semibold text-gray-800">Activity Logs</h2>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            {/* Search */}
+            {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px] min-h-[44px]">
               <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
@@ -100,7 +100,7 @@ const UserLogs = () => {
               </span>
             </div>
             
-            {/* Sort Dropdown */}
+            {}
             <div className="relative w-full sm:w-auto" ref={sortDropdownRef}>
               <button
                 onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
@@ -157,9 +157,9 @@ const UserLogs = () => {
           </div>
         </div>
 
-        {/* Role Filters - Vertical on Mobile, Horizontal on Desktop */}
+        {}
         <div className="bg-white border-b border-[#F3F4F6]">
-          {/* Mobile: Vertical Filters */}
+          {}
           <div className="md:hidden">
             <div className="flex flex-col px-4 py-2">
               {buttons.map((label) => (
@@ -181,7 +181,7 @@ const UserLogs = () => {
             </div>
           </div>
 
-          {/* Desktop: Horizontal Filters */}
+          {}
           <div className="hidden md:block">
             <div className="flex gap-2 px-6 py-4">
               {buttons.map((label) => (
@@ -204,14 +204,14 @@ const UserLogs = () => {
           </div>
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         )}
 
-        {/* Error State */}
+        {}
         {error && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative m-4">
             {error}
@@ -223,7 +223,7 @@ const UserLogs = () => {
 
         {!loading && !error && (
           <>
-            {/* Desktop Table View */}
+            {}
             <div className="hidden md:block overflow-x-auto shadow-lg rounded-xl mt-4">
               <table className="w-full text-sm text-left border-b border-gray-200">
                 <thead className="bg-[#F9FAFB] text-black font-inter font-medium">
@@ -262,7 +262,7 @@ const UserLogs = () => {
               </table>
             </div>
 
-            {/* Mobile Card View */}
+            {}
             <div className="md:hidden space-y-3 mt-4">
               {activityLogs.length > 0 ? (
                 activityLogs.map((log) => (

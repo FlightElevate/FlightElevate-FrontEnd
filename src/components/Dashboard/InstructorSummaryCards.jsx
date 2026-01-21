@@ -21,24 +21,24 @@ const InstructorSummaryCards = () => {
       }
 
       try {
-        // Fetch all lessons for this instructor
+        
         const response = await lessonService.getUserLessons(user.id, {
           type: 'instructor',
-          per_page: 1000, // Get all lessons to calculate stats
+          per_page: 1000, 
         });
 
         if (response.success) {
           const lessons = response.data || [];
           
-          // Calculate statistics from lessons
+          
           let totalFlight = 0;
           let totalGround = 0;
           let singleEngine = 0;
           let multiEngine = 0;
 
           lessons.forEach((lesson) => {
-            // Total flight hours (sum of all flight time types)
-            // Access from lesson object (API response)
+            
+            
             const flightDual = parseFloat(lesson.flight_dual_hours || 0);
             const flightSolo = parseFloat(lesson.flight_solo_hours || 0);
             const flightCrossCountryDual = parseFloat(lesson.flight_cross_country_dual_hours || 0);
@@ -47,32 +47,32 @@ const InstructorSummaryCards = () => {
             const flightAtd = parseFloat(lesson.flight_atd_hours || 0);
             const flightNight = parseFloat(lesson.flight_night_hours || 0);
             
-            // Calculate total flight hours
+            
             const lessonFlightHours = flightDual + flightSolo + flightCrossCountryDual + 
                           flightCrossCountrySolo + flightInstrument + flightAtd + flightNight;
             
             totalFlight += lessonFlightHours;
 
-            // Ground training hours
+            
             totalGround += parseFloat(lesson.ground_hours || 0);
 
-            // Single Engine vs Multi Engine (based on aircraft category or flight type)
+            
             const aircraftCategory = (lesson.aircraft_category || '').toLowerCase();
             const flightType = (lesson.flight_type || '').toLowerCase();
             
-            // Calculate engine-specific hours (only dual, solo, and cross country count)
+            
             const engineHours = flightDual + flightSolo + flightCrossCountryDual + flightCrossCountrySolo;
             
             if (aircraftCategory.includes('multi') || flightType.includes('multi')) {
               multiEngine += engineHours;
             } else {
-              // Default: assume single engine if not specified
+              
               singleEngine += engineHours;
             }
           });
 
           setStats({
-            totalFlightHours: Math.round(totalFlight * 10) / 10, // Round to 1 decimal
+            totalFlightHours: Math.round(totalFlight * 10) / 10, 
             totalGroundHours: Math.round(totalGround * 10) / 10,
             singleEngineHours: Math.round(singleEngine * 10) / 10,
             multiEngineHours: Math.round(multiEngine * 10) / 10,

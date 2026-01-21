@@ -25,16 +25,16 @@ const ChatSupport = () => {
   const [attachmentType, setAttachmentType] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [attachmentPreview, setAttachmentPreview] = useState(null); // { file, type, url, name }
+  const [attachmentPreview, setAttachmentPreview] = useState(null); 
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const emojiRef = useRef(null);
   const attachRef = useRef(null);
   const audioBlobRef = useRef(null);
-  const fileRef = useRef(null); // Store file object for documents/images/videos
+  const fileRef = useRef(null); 
 
-  // Fetch ticket details and messages
+  
   useEffect(() => {
     const fetchTicketData = async () => {
       if (!ticketId) {
@@ -44,13 +44,13 @@ const ChatSupport = () => {
 
       setLoading(true);
       try {
-        // Fetch ticket details
+        
         const ticketResponse = await supportService.getTicket(ticketId);
         if (ticketResponse.success) {
           setTicket(ticketResponse.data);
         }
 
-        // Fetch messages
+        
         const messagesResponse = await supportService.getMessages(ticketId);
         if (messagesResponse.success) {
           const formattedMessages = (messagesResponse.data || []).map((msg) => ({
@@ -76,7 +76,7 @@ const ChatSupport = () => {
     fetchTicketData();
   }, [ticketId]);
 
-  // Subscribe to Reverb channel for real-time messages
+  
   useEffect(() => {
     if (!ticketId) return;
 
@@ -85,21 +85,21 @@ const ChatSupport = () => {
     
     const channel = echo.private(channelName);
 
-    // Handle subscription success
+    
     channel.subscribed(() => {
       console.log('Successfully subscribed to channel:', channelName);
     });
 
-    // Handle subscription error
+    
     channel.error((error) => {
       console.error('Error subscribing to channel:', error);
       toast.error('Failed to connect to real-time updates');
     });
 
-    // Listen for new messages
-    // When using broadcastAs(), Laravel Echo listens to the custom event name
-    // The backend broadcasts as 'message.sent' (from broadcastAs method)
-    // Also try listening to the class name as fallback
+    
+    
+    
+    
     const handleMessage = (payload) => {
       console.log('Received real-time message:', payload);
       const newMessage = {
@@ -113,7 +113,7 @@ const ChatSupport = () => {
         file_name: payload.file_name,
       };
 
-      // Add message in real-time (check for duplicates to avoid re-adding add check in new Message Added instead of previous)
+      
       setMessages((prev) => {
         const exists = prev.some((msg) => msg.id === newMessage.id);
         if (exists && newMessage?.sender_id !== user.id) {
@@ -129,13 +129,13 @@ const ChatSupport = () => {
         }
       });
 
-      // Scroll to bottom
+      
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     };
 
-    // Listen to the custom event name (from broadcastAs)
+    
     channel.listen('.message.sent', handleMessage);
     
 
@@ -145,12 +145,12 @@ const ChatSupport = () => {
     };
   }, [ticketId]);
 
-  // Auto-scroll to bottom when messages change
+  
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Click outside handlers
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -174,7 +174,7 @@ const ChatSupport = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Send message via API
+  
   const handleSend = async () => {
     if ((!inputMessage.trim() && !attachmentPreview) || !ticketId || sending) return;
 
@@ -182,15 +182,15 @@ const ChatSupport = () => {
     try {
       let response;
       
-      // If there's an attachment preview, send it
+      
       if (attachmentPreview) {
         const formData = new FormData();
         
-        // Always recreate File object from blob to ensure it's valid
+        
         let fileToSend = null;
         let blobToUse = null;
         
-        // For audio: Get blob from state or ref (fallback)
+        
         if (attachmentPreview.type === 'audio') {
           blobToUse = attachmentPreview.blob || audioBlobRef.current;
           
@@ -212,9 +212,9 @@ const ChatSupport = () => {
             });
           }
         } 
-        // For regular files (image, video, document) - use ref first, then state
+        
         else if (fileRef.current && fileRef.current instanceof File) {
-          // Use file from ref (most reliable)
+          
           fileToSend = fileRef.current;
           console.log('Using File from ref:', {
             name: fileToSend.name,
@@ -223,7 +223,7 @@ const ChatSupport = () => {
             isFile: fileToSend instanceof File
           });
         } else if (attachmentPreview.file && attachmentPreview.file instanceof File) {
-          // Fallback to state
+          
           fileToSend = attachmentPreview.file;
           console.log('Using File from state:', {
             name: fileToSend.name,
@@ -232,7 +232,7 @@ const ChatSupport = () => {
             isFile: fileToSend instanceof File
           });
         } 
-        // Fallback: try to create from blob
+        
         else if (attachmentPreview.blob && attachmentPreview.blob instanceof Blob) {
           blobToUse = attachmentPreview.blob;
           const fileExtension = attachmentPreview.mimeType?.includes('mp4') ? 'm4a' : 
@@ -246,7 +246,7 @@ const ChatSupport = () => {
           });
         }
         
-        // CRITICAL VALIDATION: Ensure file is valid before appending
+        
         if (!fileToSend) {
           console.error('No file to send. attachmentPreview:', attachmentPreview);
           toast.error('No file found. Please try recording/selecting again.');
@@ -268,13 +268,13 @@ const ChatSupport = () => {
           return;
         }
         
-        // Append file to FormData
+        
         formData.append('attachment', fileToSend, fileToSend.name);
         
         formData.append('message', inputMessage || attachmentPreview.name || '');
         formData.append('message_type', attachmentPreview.type);
         
-        // Debug: Log complete payload structure
+        
         console.log('=== PAYLOAD STRUCTURE ===');
         console.log('FormData has attachment:', formData.has('attachment'));
         const attachmentFile = formData.get('attachment');
@@ -288,7 +288,7 @@ const ChatSupport = () => {
         console.log('Message:', formData.get('message'));
         console.log('Message Type:', formData.get('message_type'));
         
-        // Log all FormData entries
+        
         console.log('=== ALL FORMDATA ENTRIES ===');
         for (const [key, value] of formData.entries()) {
           if (value instanceof File) {
@@ -306,7 +306,7 @@ const ChatSupport = () => {
         
         response = await supportService.sendMessage(ticketId, formData);
       } else {
-        // Send text message only
+        
         response = await supportService.sendMessage(ticketId, {
           message: inputMessage,
           message_type: 'text',
@@ -314,7 +314,7 @@ const ChatSupport = () => {
       }
 
       if (response.success) {
-        // Add message immediately for better UX (optimistic update)
+        
         const sentMessage = {
           id: response.data?.id || Date.now(),
           message: inputMessage || attachmentPreview?.name || '',
@@ -337,22 +337,22 @@ const ChatSupport = () => {
         setAttachmentPreview(null);
         setShowPreview(false);
         
-        // Clean up refs
+        
         fileRef.current = null;
         if (attachmentPreview?.type === 'audio') {
           audioBlobRef.current = null;
-          // Clean up audio URL if exists
+          
           if (attachmentPreview?.url) {
             URL.revokeObjectURL(attachmentPreview.url);
           }
         }
         
-        // Scroll to bottom
+        
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
         
-        // Real-time update will also come via Reverb, but we show it immediately
+        
       } else {
         toast.error('Failed to send message');
       }
@@ -372,10 +372,10 @@ const ChatSupport = () => {
     const file = e.target.files[0];
     if (!file || !ticketId) return;
 
-    // Store file in ref for reliable access
+    
     fileRef.current = file;
 
-    // Determine message type based on file type
+    
     let messageType = 'document';
     if (file.type.startsWith('image/')) {
       messageType = 'image';
@@ -385,11 +385,11 @@ const ChatSupport = () => {
       messageType = 'audio';
     }
 
-    // Create preview
+    
     const reader = new FileReader();
     reader.onloadend = () => {
       setAttachmentPreview({
-        file: file, // Store file object
+        file: file, 
         type: messageType,
         url: reader.result,
         name: file.name,
@@ -402,9 +402,9 @@ const ChatSupport = () => {
     if (file.type.startsWith('image/') || file.type.startsWith('video/') || file.type.startsWith('audio/')) {
       reader.readAsDataURL(file);
     } else {
-      // For documents, just show file name
+      
       setAttachmentPreview({
-        file: file, // Store file object
+        file: file, 
         type: messageType,
         url: null,
         name: file.name,
@@ -427,7 +427,7 @@ const ChatSupport = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Determine the best MIME type supported by the browser
+      
       let mimeType = 'audio/webm';
       if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
         mimeType = 'audio/webm;codecs=opus';
@@ -449,7 +449,7 @@ const ChatSupport = () => {
       };
       
       recorder.onstop = () => {
-        // Stop all tracks to release microphone
+        
         stream.getTracks().forEach(track => track.stop());
         
         if (chunks.length === 0) {
@@ -458,18 +458,18 @@ const ChatSupport = () => {
         }
         
         const blob = new Blob(chunks, { type: mimeType });
-        audioBlobRef.current = blob; // Store blob in ref for reliable access
+        audioBlobRef.current = blob; 
         
-        // Create preview URL for audio
+        
         const audioUrl = URL.createObjectURL(blob);
         const fileExtension = mimeType.includes('mp4') ? 'm4a' : 
                              mimeType.includes('ogg') ? 'ogg' : 'webm';
         const fileName = `audio_${Date.now()}.${fileExtension}`;
         
-        // Show preview instead of sending immediately
-        // Store blob reference and metadata, but create File object when sending
+        
+        
         setAttachmentPreview({
-          blob: blob, // Keep blob for preview URL and file creation
+          blob: blob, 
           type: 'audio',
           url: audioUrl,
           name: fileName,
@@ -517,7 +517,7 @@ const ChatSupport = () => {
       const response = await supportService.completeTicket(ticketId);
       if (response.success) {
         toast.success('Ticket marked as complete');
-        // Update ticket status
+        
         setTicket((prev) => prev ? { ...prev, status: 'closed' } : null);
       } else {
         toast.error('Failed to complete ticket');
@@ -528,7 +528,7 @@ const ChatSupport = () => {
     }
   };
 
-  // Format date and time
+  
   const formatDateTime = (dateString) => {
     if (!dateString) return { time: "", date: "" };
     try {
@@ -544,7 +544,7 @@ const ChatSupport = () => {
     }
   };
 
-  // Get priority color
+  
   const getPriorityColor = (priority) => {
     switch (priority?.toLowerCase()) {
       case 'urgent':
@@ -585,7 +585,7 @@ const ChatSupport = () => {
   }
 
   const isMyMessage = (senderId) => {
-    // Convert both to numbers for comparison to handle string/number mismatch
+    
     const currentUserId = user?.id ? Number(user.id) : null;
     const messageSenderId = senderId ? Number(senderId) : null;
     return currentUserId !== null && messageSenderId !== null && currentUserId === messageSenderId;
@@ -653,7 +653,7 @@ const ChatSupport = () => {
             </div>
           ) : (
             messages.map((msg) => {
-              // Use sender_id or fallback to sender.id for proper comparison
+              
               const senderId = msg.sender_id || msg.sender?.id;
               const isUser = isMyMessage(senderId);
               const { time, date } = formatDateTime(msg.created_at);
@@ -803,7 +803,7 @@ const ChatSupport = () => {
         </div>
 
         <div className="flex flex-col border-t border-[#F1F1F1] pt-4 gap-2 rounded-xl relative">
-          {/* Preview Section - shows above input when attachment is selected */}
+          {}
           {showPreview && attachmentPreview && (
             <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg">
               {attachmentPreview.type === 'image' && attachmentPreview.url && (

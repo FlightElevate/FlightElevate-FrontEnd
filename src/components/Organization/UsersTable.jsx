@@ -1,18 +1,7 @@
 import React, { memo } from 'react';
 import Pagination from '../Pagination';
 
-/**
- * Users Table Component
- * Reusable table component for displaying user lists
- * 
- * @param {Array} users - Array of user objects
- * @param {boolean} loading - Loading state
- * @param {number} currentPage - Current page number
- * @param {Function} setPage - Function to change page
- * @param {number} itemsPerPage - Items per page
- * @param {number} totalItems - Total number of items
- * @param {string} emptyMessage - Message to show when no usersimage.png
- */
+
 export const UsersTable = memo(({
   users = [],
   loading = false,

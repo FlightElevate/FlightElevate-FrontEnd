@@ -13,7 +13,7 @@ const Instructors = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
   const [sortBy, setSortBy] = useState("Newest");
-  const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
+  const [viewMode, setViewMode] = useState("grid"); 
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -36,7 +36,7 @@ const Instructors = () => {
   const { user } = useAuth();
   const { isStudent } = useRole();
 
-  // Calculate years of experience from created_at date
+  
   const getYearsOfExperience = (createdAt) => {
     if (!createdAt) return "N/A";
     const createdDate = new Date(createdAt);
@@ -49,7 +49,7 @@ const Instructors = () => {
     fetchInstructors();
   }, []);
 
-  // Close menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuOpenId !== null && menuRefs.current[menuOpenId] && !menuRefs.current[menuOpenId].contains(event.target)) {
@@ -63,15 +63,15 @@ const Instructors = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpenId, listMenuOpenId]);
 
-  // Generate dummy profile picture URL based on instructor ID
+  
   const getInstructorImage = (instructor) => {
     if (instructor.avatar || instructor.image || instructor.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
     }
-    // Generate consistent dummy image based on instructor ID
+    
     const imageIds = [1, 5, 8, 12, 15, 20, 25, 33, 47, 51, 68, 70];
     const imageId = imageIds[instructor.id % imageIds.length] || 1;
-    return `https://i.pravatar.cc/300?img=${imageId}`;
+    return `https://i.pravatar.cc/150?img=${imageId}`;
   };
 
   const fetchInstructors = async () => {
@@ -94,7 +94,7 @@ const Instructors = () => {
     }
   };
 
-  // Filter by search
+  
   const filteredInstructors = instructors.filter((instructor) =>
     instructor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     instructor.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -127,7 +127,7 @@ const Instructors = () => {
       email: instructor.email || '',
       username: instructor.username || '',
       phone: instructor.phone || '',
-      password: '', // Don't pre-fill password
+      password: '', 
       status: instructor.status || 'active',
     });
     setMenuOpenId(null);
@@ -164,7 +164,7 @@ const Instructors = () => {
         role: 'Instructor',
       };
       
-      // Remove password if editing and password is empty
+      
       if (editingInstructor && !data.password) {
         delete data.password;
       }
@@ -200,7 +200,7 @@ const Instructors = () => {
           <h2 className="text-xl font-semibold">Instructors</h2>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            {/* View Toggle Buttons */}
+            {}
             <div className="flex items-center border border-gray-200 bg-white rounded-lg shadow-sm overflow-hidden">
               <button
                 onClick={() => setViewMode("grid")}
@@ -226,7 +226,7 @@ const Instructors = () => {
               </button>
             </div>
             
-            {/* Search Input */}
+            {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 w-full">
               <FiSearch className="text-gray-400 mr-2" size={16} />
               <input
@@ -276,7 +276,7 @@ const Instructors = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       ) : viewMode === "grid" ? (
-        // Grid View (Current View)
+        
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-4 gap-6 bg-[#FFFFFF]">
           {filteredInstructors.length > 0 ? (
             filteredInstructors.map((instructor) => (
@@ -290,7 +290,7 @@ const Instructors = () => {
                     alt={instructor.name}
                     className="w-full h-[250px] object-cover"
                     onError={(e) => {
-                      // Fallback to initials if image fails to load
+                      
                       e.target.style.display = 'none';
                       const parent = e.target.parentElement;
                       const fallback = document.createElement('div');
@@ -304,7 +304,7 @@ const Instructors = () => {
                   </div>
                 </div>
                 
-                {/* Action Menu - Only show for non-students */}
+                {}
                 {!isStudent && (
                   <div 
                     className="action-menu-container absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -356,7 +356,7 @@ const Instructors = () => {
           )}
         </div>
       ) : (
-        // List View (Table View)
+        
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -389,7 +389,7 @@ const Instructors = () => {
                               alt={instructor.name}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                // Fallback to initials if image fails to load
+                                
                                 e.target.style.display = 'none';
                                 const parent = e.target.parentElement;
                                 const fallback = document.createElement('div');
@@ -483,7 +483,7 @@ const Instructors = () => {
         </div>
       )}
 
-      {/* Add Instructor Modal - Only for non-students */}
+      {}
       {showModal && !isStudent && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">

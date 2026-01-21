@@ -1,36 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiX, FiClock, FiCalendar, FiUser, FiPackage, FiCheck } from 'react-icons/fi';
+import { FiX, FiClock, FiCalendar, FiUser, FiPackage, FiUsers, FiCheck } from 'react-icons/fi';
 import { calendarService } from '../../api/services/calendarService';
 import { showErrorToast } from '../../utils/notifications';
 
-/**
- * Find Time Modal Component
- * Allows users to find available time slots for scheduling
- * 
- * Features:
- * - Date selection
- * - Instructor/Aircraft selection (optional filters)
- * - Duration selection
- * - Available time slots display
- * - Click to select time and create reservation
- */
+
 const FindTimeModal = ({
   isOpen,
   onClose,
   instructors = [],
+  students = [],
   aircraft = [],
   loadingFormData = false,
   onTimeSelect,
 }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedInstructor, setSelectedInstructor] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedAircraft, setSelectedAircraft] = useState('');
   const [duration, setDuration] = useState(60);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch available slots when filters change
+  
   const fetchAvailableSlots = useCallback(async () => {
     if (!selectedDate) return;
 
@@ -47,8 +39,20 @@ const FindTimeModal = ({
         params.instructor_id = selectedInstructor;
       }
 
+      if (selectedStudent) {
+        params.student_id = selectedStudent;
+      }
+
       if (selectedAircraft) {
         params.aircraft_id = selectedAircraft;
+      }
+
+      // Ensure all three resources are provided
+      if (!params.student_id || !params.instructor_id || !params.aircraft_id) {
+        setError('Please select Student, Instructor, and Aircraft to find available time slots.');
+        setAvailableSlots([]);
+        setLoading(false);
+        return;
       }
 
       const response = await calendarService.getAvailableTimeSlots(params);
@@ -66,20 +70,21 @@ const FindTimeModal = ({
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, selectedInstructor, selectedAircraft, duration]);
+  }, [selectedDate, selectedInstructor, selectedStudent, selectedAircraft, duration]);
 
-  // Fetch slots when modal opens or filters change
+  
   useEffect(() => {
     if (isOpen && selectedDate) {
       fetchAvailableSlots();
     }
-  }, [isOpen, selectedDate, selectedInstructor, selectedAircraft, duration, fetchAvailableSlots]);
+  }, [isOpen, selectedDate, selectedInstructor, selectedStudent, selectedAircraft, duration, fetchAvailableSlots]);
 
-  // Reset form when modal closes
+  
   useEffect(() => {
     if (!isOpen) {
       setSelectedDate(new Date().toISOString().split('T')[0]);
       setSelectedInstructor('');
+      setSelectedStudent('');
       setSelectedAircraft('');
       setDuration(60);
       setAvailableSlots([]);
@@ -92,6 +97,7 @@ const FindTimeModal = ({
       onTimeSelect(
         time,
         selectedDate,
+        selectedStudent || null,
         selectedInstructor || null,
         selectedAircraft || null,
         duration
@@ -116,7 +122,7 @@ const FindTimeModal = ({
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
           <div>
             <h3 className="text-2xl font-semibold text-gray-800">Find a Time</h3>
@@ -131,10 +137,10 @@ const FindTimeModal = ({
           </button>
         </div>
 
-        {/* Filters */}
+        {}
         <div className="p-6 border-b border-gray-200 bg-gray-50">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Date Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <FiCalendar className="inline mr-1" size={16} />
@@ -149,11 +155,38 @@ const FindTimeModal = ({
               />
             </div>
 
-            {/* Instructor Selection */}
+            {}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FiUsers className="inline mr-1" size={16} />
+                Student
+              </label>
+              {loadingFormData ? (
+                <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 text-sm">
+                  Loading...
+                </div>
+              ) : (
+                <select
+                  value={selectedStudent}
+                  onChange={(e) => setSelectedStudent(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                  required
+                >
+                  <option value="">Select Student</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.name || student.email}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <FiUser className="inline mr-1" size={16} />
-                Instructor (Optional)
+                Instructor
               </label>
               {loadingFormData ? (
                 <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 text-sm">
@@ -164,8 +197,9 @@ const FindTimeModal = ({
                   value={selectedInstructor}
                   onChange={(e) => setSelectedInstructor(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                  required
                 >
-                  <option value="">All Instructors</option>
+                  <option value="">Select Instructor</option>
                   {instructors.map((instructor) => (
                     <option key={instructor.id} value={instructor.id}>
                       {instructor.name || instructor.email}
@@ -175,11 +209,11 @@ const FindTimeModal = ({
               )}
             </div>
 
-            {/* Aircraft Selection */}
+            {}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <FiPackage className="inline mr-1" size={16} />
-                Aircraft (Optional)
+                Aircraft
               </label>
               {loadingFormData ? (
                 <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 text-sm">
@@ -190,8 +224,9 @@ const FindTimeModal = ({
                   value={selectedAircraft}
                   onChange={(e) => setSelectedAircraft(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                  required
                 >
-                  <option value="">All Aircraft</option>
+                  <option value="">Select Aircraft</option>
                   {aircraft.map((ac) => (
                     <option key={ac.id} value={ac.id}>
                       {ac.name} {ac.model ? `(${ac.model})` : ''}
@@ -201,11 +236,11 @@ const FindTimeModal = ({
               )}
             </div>
 
-            {/* Duration Selection */}
+            {}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <FiClock className="inline mr-1" size={16} />
-                Duration (minutes)
+                Duration
               </label>
               <select
                 value={duration}
@@ -223,7 +258,7 @@ const FindTimeModal = ({
           </div>
         </div>
 
-        {/* Available Slots */}
+        {}
         <div className="p-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -287,7 +322,7 @@ const FindTimeModal = ({
                       </span>
                     </div>
                     <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <FiCheck className="text-blue-600" size={16} />
+                      <FiCheck className="text-blue-600" size={12} />
                     </div>
                   </button>
                 ))}
@@ -296,7 +331,7 @@ const FindTimeModal = ({
           )}
         </div>
 
-        {/* Footer */}
+        {}
         <div className="flex justify-end gap-2 p-6 border-t border-gray-200 bg-gray-50">
           <button
             onClick={onClose}

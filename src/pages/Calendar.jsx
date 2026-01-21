@@ -4,6 +4,7 @@ import { FiChevronLeft, FiChevronRight, FiSettings, FiX, FiSearch } from 'react-
 import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
 import { userService } from '../api/services/userService';
+import { organizationService } from '../api/services/organizationService';
 import { showErrorToast, showSuccessToast } from '../utils/notifications';
 import { useAuth } from '../context/AuthContext';
 import { useRole } from '../hooks/useRole';
@@ -13,10 +14,11 @@ import FindTimeModal from '../components/Calendar/FindTimeModal';
 
 const Calendar = () => {
   const { user } = useAuth();
-  const { isStudent } = useRole();
+  const { isStudent, isSuperAdmin } = useRole();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const editLessonId = searchParams.get('edit');
+  const modalOnly = searchParams.get('modal') === 'true'; // If true, only show modal, hide calendar
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -25,8 +27,8 @@ const Calendar = () => {
   const [userSchedule, setUserSchedule] = useState([]);
   const [filteredAircraftSchedule, setFilteredAircraftSchedule] = useState([]);
   const [filteredUserSchedule, setFilteredUserSchedule] = useState([]);
-  const [locations, setLocations] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState('');
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hoveredEvent, setHoveredEvent] = useState(null);
@@ -61,12 +63,19 @@ const Calendar = () => {
     instructor_id: '',
     aircraft_id: '',
     flight_type: '',
+    lesson_id: '',
+    lesson_template_id: '',
     lesson_date: '',
     lesson_time: '',
     duration_minutes: 60,
     notes: '',
     reservation_number: '',
   });
+  
+  const [lessons, setLessons] = useState([]);
+  const [loadingLessons, setLoadingLessons] = useState(false);
+  const [lessonTemplates, setLessonTemplates] = useState([]);
+  const [loadingLessonTemplates, setLoadingLessonTemplates] = useState(false);
 
   // Generate random 10-character reservation number
   const generateReservationNumber = () => {
@@ -105,10 +114,17 @@ const Calendar = () => {
     };
   });
 
+  // Fetch organizations only once on mount
   useEffect(() => {
-    fetchLocations();
+    fetchOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch schedule when date or organization changes
+  useEffect(() => {
     fetchSchedule();
-  }, [currentDate, selectedLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate, selectedOrganizationId]);
 
   useEffect(() => {
     filterSchedules();
@@ -127,31 +143,109 @@ const Calendar = () => {
   // Check for edit mode and fetch lesson data
   useEffect(() => {
     if (editLessonId) {
+      // Prevent students from editing lessons
+      if (isStudent()) {
+        showErrorToast('Students cannot edit lessons');
+        searchParams.delete('edit');
+        setSearchParams(searchParams);
+        return;
+      }
+
       const fetchLessonForEdit = async () => {
         try {
           const lessonId = parseInt(editLessonId, 10);
           if (!isNaN(lessonId) && lessonId > 0) {
-            const response = await lessonService.getLesson(lessonId);
+            // First, ensure form data is loaded (students, instructors, aircraft)
+            // Wait for form data to be fully loaded
+            setLoadingFormData(true);
+            await fetchFormData();
+            // Wait a bit more to ensure state is updated
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Try reservation first (calendar events are reservations)
+            let response = await lessonService.getReservation(lessonId);
+            // If not found, try lesson (for lesson templates)
+            if (!response.success) {
+              response = await lessonService.getLesson(lessonId);
+            }
             if (response.success) {
               const lessonData = response.data;
               setIsEditMode(true);
               setEditingLesson(lessonData);
               
               // Pre-fill form with lesson data
+              // Handle arrays for students and instructors (many-to-many relationship)
+              // Check for students/instructors arrays first, then fallback to student_ids/instructor_ids, then single student/instructor
+              let firstStudent = null;
+              if (lessonData.students && lessonData.students.length > 0) {
+                firstStudent = lessonData.students[0];
+              } else if (lessonData.student_ids && lessonData.student_ids.length > 0) {
+                // If only IDs are provided, create object with id
+                firstStudent = { id: lessonData.student_ids[0] };
+              } else if (lessonData.student) {
+                firstStudent = typeof lessonData.student === 'object' ? lessonData.student : { id: lessonData.student };
+              }
+              
+              let firstInstructor = null;
+              if (lessonData.instructors && lessonData.instructors.length > 0) {
+                firstInstructor = lessonData.instructors[0];
+              } else if (lessonData.instructor_ids && lessonData.instructor_ids.length > 0) {
+                // If only IDs are provided, create object with id
+                firstInstructor = { id: lessonData.instructor_ids[0] };
+              } else if (lessonData.instructor) {
+                firstInstructor = typeof lessonData.instructor === 'object' ? lessonData.instructor : { id: lessonData.instructor };
+              }
+              
+              // Get aircraft ID - check both aircraft object and aircraft_id
+              const aircraftId = lessonData.aircraft?.id 
+                ? String(lessonData.aircraft.id) 
+                : (lessonData.aircraft_id ? String(lessonData.aircraft_id) : '');
+              
+              // Set form values after ensuring form data is loaded
+              // Ensure values are strings to match option values
+              const studentIdValue = firstStudent?.id ? String(firstStudent.id) : '';
+              const instructorIdValue = firstInstructor?.id ? String(firstInstructor.id) : '';
+              const aircraftIdValue = aircraftId ? String(aircraftId) : '';
+              
               setReservationForm({
-                student_id: lessonData.student?.id || lessonData.student_id || '',
-                instructor_id: lessonData.instructor?.id || lessonData.instructor_id || '',
-                aircraft_id: lessonData.aircraft?.id || lessonData.aircraft_id || '',
+                student_id: studentIdValue,
+                instructor_id: instructorIdValue,
+                aircraft_id: aircraftIdValue,
                 flight_type: lessonData.flight_type || '',
+                lesson_id: lessonData.id ? String(lessonData.id) : '',
+                lesson_template_id: lessonData.lesson_template_id ? String(lessonData.lesson_template_id) : '',
                 lesson_date: lessonData.lesson_date || '',
                 lesson_time: lessonData.lesson_time || '',
                 duration_minutes: lessonData.duration_minutes || 60,
-                notes: lessonData.notes || '',
-                reservation_number: lessonData.reservation_number || generateReservationNumber(),
+                notes: lessonData.notes || lessonData.description || '',
+                reservation_number: lessonData.reservation_number || lessonData.reservation_no || generateReservationNumber(),
               });
+              
+              // Debug: Log to verify values are set correctly
+              console.log('Edit mode - Form values set:', {
+                student_id: studentIdValue,
+                instructor_id: instructorIdValue,
+                aircraft_id: aircraftIdValue,
+                studentsLoaded: students.length,
+                instructorsLoaded: instructors.length,
+                aircraftLoaded: aircraft.length,
+                lessonData: lessonData
+              });
+              
+              // Note: The useEffect hook below will handle updating form values
+              // once students and instructors lists are loaded
               
               // Open the reservation modal
               setShowNewReservationModal(true);
+              
+              // If modalOnly is true, we're editing from reservation list - clean up URL after modal opens
+              if (modalOnly) {
+                // Remove edit param but keep modal param temporarily
+                setTimeout(() => {
+                  searchParams.delete('edit');
+                  setSearchParams(searchParams);
+                }, 100);
+              }
             }
           }
         } catch (err) {
@@ -159,7 +253,12 @@ const Calendar = () => {
           showErrorToast('Failed to load lesson for editing');
           // Remove invalid edit parameter
           searchParams.delete('edit');
+          if (modalOnly) {
+            searchParams.delete('modal');
+          }
           setSearchParams(searchParams);
+        } finally {
+          setLoadingFormData(false);
         }
       };
       
@@ -173,6 +272,131 @@ const Calendar = () => {
       fetchFormData();
     }
   }, [showNewReservationModal, showFindTimeModal]);
+
+  // Preserve form values when form data loads in edit mode
+  useEffect(() => {
+    if (isEditMode && editingLesson && !loadingFormData && students.length > 0 && instructors.length > 0) {
+      // Re-apply form values to ensure dropdowns are properly selected
+      // Check for students/instructors arrays first, then fallback to student_ids/instructor_ids, then single student/instructor
+      let firstStudent = null;
+      if (editingLesson.students && editingLesson.students.length > 0) {
+        firstStudent = editingLesson.students[0];
+      } else if (editingLesson.student_ids && editingLesson.student_ids.length > 0) {
+        // If only IDs are provided, create object with id
+        firstStudent = { id: editingLesson.student_ids[0] };
+      } else if (editingLesson.student) {
+        firstStudent = typeof editingLesson.student === 'object' ? editingLesson.student : { id: editingLesson.student };
+      }
+      
+      let firstInstructor = null;
+      if (editingLesson.instructors && editingLesson.instructors.length > 0) {
+        firstInstructor = editingLesson.instructors[0];
+      } else if (editingLesson.instructor_ids && editingLesson.instructor_ids.length > 0) {
+        // If only IDs are provided, create object with id
+        firstInstructor = { id: editingLesson.instructor_ids[0] };
+      } else if (editingLesson.instructor) {
+        firstInstructor = typeof editingLesson.instructor === 'object' ? editingLesson.instructor : { id: editingLesson.instructor };
+      }
+      
+      // Get aircraft ID - check both aircraft object and aircraft_id
+      const aircraftId = editingLesson.aircraft?.id 
+        ? String(editingLesson.aircraft.id) 
+        : (editingLesson.aircraft_id ? String(editingLesson.aircraft_id) : '');
+      
+      const studentIdStr = firstStudent?.id ? String(firstStudent.id) : '';
+      const instructorIdStr = firstInstructor?.id ? String(firstInstructor.id) : '';
+      
+      // Always update to ensure dropdowns are properly selected
+      setReservationForm(prev => ({
+        ...prev,
+        student_id: studentIdStr || prev.student_id,
+        instructor_id: instructorIdStr || prev.instructor_id,
+        aircraft_id: aircraftId || prev.aircraft_id,
+        flight_type: editingLesson.flight_type || prev.flight_type,
+        lesson_id: editingLesson.id ? String(editingLesson.id) : prev.lesson_id,
+        lesson_date: editingLesson.lesson_date || prev.lesson_date,
+        lesson_time: editingLesson.lesson_time || prev.lesson_time,
+        duration_minutes: editingLesson.duration_minutes || prev.duration_minutes,
+        notes: editingLesson.notes || editingLesson.description || prev.notes,
+        reservation_number: editingLesson.reservation_number || editingLesson.reservation_no || prev.reservation_number,
+      }));
+      
+      // Debug log
+      console.log('useEffect - Form values updated:', {
+        student_id: studentIdStr,
+        instructor_id: instructorIdStr,
+        aircraft_id: aircraftId,
+        studentsCount: students.length,
+        instructorsCount: instructors.length,
+        aircraftCount: aircraft.length,
+        studentInList: students.some(s => String(s.id) === studentIdStr),
+        instructorInList: instructors.some(i => String(i.id) === instructorIdStr),
+        allStudentIds: students.map(s => String(s.id)),
+        allInstructorIds: instructors.map(i => String(i.id))
+      });
+    }
+  }, [isEditMode, editingLesson, loadingFormData, students, instructors, aircraft]);
+
+  const fetchLessons = async () => {
+    setLoadingLessons(true);
+    try {
+      const params = {
+        per_page: 100,
+        status: 'pending,ongoing',
+      };
+      // For students, fetch their own lessons
+      // For admins/instructors, fetch organization lessons
+      if (!isStudent() && user?.organization_id) {
+        params.organization_id = user.organization_id;
+      }
+      const response = await lessonService.getLessons(params);
+      if (response.success) {
+        const lessonsList = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        // Filter out completed and cancelled lessons
+        const filteredLessons = lessonsList.filter(lesson => 
+          lesson.status !== 'completed' && lesson.status !== 'cancelled'
+        );
+        setLessons(filteredLessons);
+      }
+    } catch (err) {
+      console.error('Error fetching lessons:', err);
+      setLessons([]);
+    } finally {
+      setLoadingLessons(false);
+    }
+  };
+
+  const fetchLessonTemplates = async () => {
+    setLoadingLessonTemplates(true);
+    try {
+      const params = {
+        per_page: 100,
+      };
+      if (!isStudent() && user?.organization_id) {
+        params.organization_id = user.organization_id;
+      }
+      const response = await lessonService.getLessons(params);
+      if (response.success) {
+        const lessonsList = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        // Filter for lesson templates (have lesson_title but no lesson_date/lesson_time)
+        const templates = lessonsList.filter(lesson => 
+          (lesson.lesson_title || lesson.lesson_number) && !lesson.lesson_date && !lesson.lesson_time
+        );
+        setLessonTemplates(templates);
+      }
+    } catch (err) {
+      console.error('Error fetching lesson templates:', err);
+      setLessonTemplates([]);
+    } finally {
+      setLoadingLessonTemplates(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showNewReservationModal) {
+      fetchLessonTemplates();
+    }
+  }, [showNewReservationModal, user?.organization_id]);
 
   // Fetch student's existing bookings when modal opens and student/date is selected
   useEffect(() => {
@@ -244,14 +468,14 @@ const Calendar = () => {
   }, [location.state]);
 
   useEffect(() => {
-    if (showNewReservationModal) {
-      // Generate reservation number when modal opens
+    // Only generate reservation number for new reservations, not when editing
+    if (showNewReservationModal && !isEditMode) {
       setReservationForm(prev => ({
         ...prev,
-        reservation_number: generateReservationNumber(),
+        reservation_number: prev.reservation_number || generateReservationNumber(),
       }));
     }
-  }, [showNewReservationModal]);
+  }, [showNewReservationModal, isEditMode]);
 
   useEffect(() => {
     if (showSettingsModal) {
@@ -259,14 +483,24 @@ const Calendar = () => {
     }
   }, [showSettingsModal]);
 
-  const fetchLocations = async () => {
+  const fetchOrganizations = async () => {
     try {
-      const response = await calendarService.getLocations();
+      const response = await organizationService.getOrganizations({ per_page: 100 });
       if (response.success) {
-        setLocations(response.data || []);
+        // Filter out MasterControl organization (owner organization - ID: 5)
+        const MASTERCONTROL_ORG_ID = 5;
+        const filteredOrgs = Array.isArray(response.data) 
+          ? response.data.filter(org => org.id !== MASTERCONTROL_ORG_ID)
+          : [];
+        setOrganizations(filteredOrgs);
+        
+        // Auto-select first organization if none is selected and organizations exist
+        if (!selectedOrganizationId && filteredOrgs.length > 0 && !isStudent()) {
+          setSelectedOrganizationId(String(filteredOrgs[0].id));
+        }
       }
     } catch (err) {
-      console.error('Error fetching locations:', err);
+      console.error('Error fetching organizations:', err);
     }
   };
 
@@ -283,10 +517,27 @@ const Calendar = () => {
   const fetchSchedule = async () => {
     setLoading(true);
     try {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      // Calculate week start (Sunday) and end (Saturday) from currentDate
+      const start = new Date(currentDate);
+      start.setDate(start.getDate() - start.getDay()); // Start of week (Sunday)
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6); // End of week (Saturday)
+      
+      // Format dates as YYYY-MM-DD without timezone conversion
+      const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      const startDateStr = formatDate(start);
+      const endDateStr = formatDate(end);
+      
       const response = await calendarService.getSchedule({
-        date: dateStr,
-        location: selectedLocation || undefined,
+        start_date: startDateStr,
+        end_date: endDateStr,
+        organization_id: selectedOrganizationId || undefined,
       });
 
       if (response.success) {
@@ -375,7 +626,6 @@ const Calendar = () => {
     const filteredAircraft = aircraftSchedule.filter(item =>
       item.name.toLowerCase().includes(query) ||
       item.events?.some(event =>
-        event.student?.name?.toLowerCase().includes(query) ||
         event.instructor?.name?.toLowerCase().includes(query) ||
         event.title?.toLowerCase().includes(query)
       )
@@ -463,8 +713,8 @@ const Calendar = () => {
     setHoveredEvent(null);
   };
 
-  const handleLocationChange = (e) => {
-    setSelectedLocation(e.target.value);
+  const handleOrganizationChange = (e) => {
+    setSelectedOrganizationId(e.target.value);
   };
 
   const handleEventClick = async (event) => {
@@ -473,7 +723,8 @@ const Calendar = () => {
     setLoadingReservation(true);
     setShowReservationDetailModal(true);
     try {
-      const response = await lessonService.getLesson(event.id);
+      // Use getReservation for calendar events (they are reservations)
+      const response = await lessonService.getReservation(event.id);
       if (response.success) {
         setSelectedReservation(response.data);
       } else {
@@ -511,7 +762,7 @@ const Calendar = () => {
       if (response.success) {
         showSuccessToast('Calendar settings saved successfully');
         setShowSettingsModal(false);
-        await fetchLocations(); // Refresh locations
+        await fetchOrganizations(); // Refresh organizations
       }
     } catch (err) {
       showErrorToast('Failed to save calendar settings');
@@ -556,11 +807,21 @@ const Calendar = () => {
         duration: reservationForm.duration_minutes,
       };
 
+      if (reservationForm.student_id) {
+        params.student_id = reservationForm.student_id;
+      }
       if (reservationForm.instructor_id) {
         params.instructor_id = reservationForm.instructor_id;
       }
       if (reservationForm.aircraft_id) {
         params.aircraft_id = reservationForm.aircraft_id;
+      }
+
+      // Ensure at least one resource is provided
+      if (!params.student_id && !params.instructor_id && !params.aircraft_id) {
+        setAvailabilityStatus(prev => ({ ...prev, checking: false }));
+        setAvailabilityMessage('⚠️ Please select at least one resource (Student, Instructor, or Aircraft) to check availability.');
+        return;
       }
 
       const response = await calendarService.getAvailableTimeSlots(params);
@@ -640,7 +901,12 @@ const Calendar = () => {
             : '⚠️ You are already booked at this time. Please select a different time.';
           setAvailabilityMessage(conflictMsg);
         } else {
+          // Don't show success message in edit mode
+          if (!isEditMode) {
           setAvailabilityMessage('✅ All selected resources are available at this time.');
+          } else {
+            setAvailabilityMessage('');
+          }
         }
       }
     } catch (err) {
@@ -649,8 +915,20 @@ const Calendar = () => {
     }
   };
 
-  // Check availability when form fields change
+  // Check availability when form fields change (skip in edit mode)
   useEffect(() => {
+    // Don't check availability in edit mode
+    if (isEditMode) {
+      setAvailabilityStatus({
+        student: null,
+        instructor: null,
+        aircraft: null,
+        checking: false,
+      });
+      setAvailabilityMessage('');
+      return;
+    }
+    
     if (reservationForm.lesson_date && reservationForm.lesson_time && 
         reservationForm.duration_minutes && 
         (reservationForm.student_id || reservationForm.instructor_id)) {
@@ -671,11 +949,13 @@ const Calendar = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reservationForm.lesson_date, reservationForm.lesson_time, 
       reservationForm.duration_minutes, reservationForm.student_id, 
-      reservationForm.instructor_id, reservationForm.aircraft_id]);
+      reservationForm.instructor_id, reservationForm.aircraft_id, isEditMode]);
 
   const handleReservationSubmit = async (e) => {
     e.preventDefault();
     
+    // Skip availability check in edit mode
+    if (!isEditMode) {
     // Final availability check before submitting
     if (availabilityStatus.checking) {
       showErrorToast('Please wait while we check availability...');
@@ -685,28 +965,79 @@ const Calendar = () => {
     if (availabilityStatus.instructor === false || availabilityStatus.student === false) {
       showErrorToast('Cannot create reservation: Selected time slot is not available. Please choose a different time.');
       return;
+      }
     }
 
+    // Only Admin and Super Admin can create lessons directly
+    if (isStudent()) {
+      showErrorToast('Only Admin can create lessons. Students can request sessions.');
+      setSubmitting(false);
+      return;
+    }
+    
     setSubmitting(true);
     try {
-      // If student is creating, mark as request
       const lessonData = {
         ...reservationForm,
-        is_request: isStudent() ? true : false,
+        is_request: false,
+        // Convert single IDs to arrays for many-to-many relationship
+        student_ids: reservationForm.student_id ? [parseInt(reservationForm.student_id)] : [],
+        instructor_ids: reservationForm.instructor_id ? [parseInt(reservationForm.instructor_id)] : [],
+        // Convert lesson_template_id to integer if present
+        lesson_template_id: reservationForm.lesson_template_id ? parseInt(reservationForm.lesson_template_id) : null,
       };
       
-      const response = await lessonService.createLesson(lessonData);
+      // Remove old single ID fields
+      delete lessonData.student_id;
+      delete lessonData.instructor_id;
+      
+      let response;
+      if (isEditMode && reservationForm.lesson_id) {
+        // Prevent students from editing reservations
+        if (isStudent()) {
+          showErrorToast('Students cannot edit reservations');
+          setSubmitting(false);
+          return;
+        }
+        
+        // Edit mode - update existing reservation using reservation endpoint
+        const reservationId = parseInt(reservationForm.lesson_id);
+        // Remove lesson_id from data before sending (it's in the URL)
+        delete lessonData.lesson_id;
+        response = await lessonService.updateReservation(reservationId, lessonData);
+      } else {
+        // Create mode - use createReservation endpoint for reservations
+        // Remove lesson_id from data if creating new reservation (not linking to existing)
+      if (!lessonData.lesson_id) {
+        delete lessonData.lesson_id;
+        }
+        // Use createReservation for new reservations
+        response = await lessonService.createReservation(lessonData);
+      }
+      
       if (response.success) {
-        const successMessage = isStudent() 
+        const successMessage = isEditMode
+          ? 'Reservation updated successfully'
+          : (isStudent() 
           ? 'Session request submitted successfully' 
-          : 'Reservation created successfully';
-        showSuccessToast(successMessage);
+            : 'Reservation created successfully');
+        
+        // Close modal immediately before any other operations
         setShowNewReservationModal(false);
+        setIsEditMode(false);
+        setEditingLesson(null);
+        
+        // Show success message
+        showSuccessToast(successMessage);
+        
+        // Reset form state
         setReservationForm({
           student_id: '',
           instructor_id: '',
           aircraft_id: '',
           flight_type: '',
+          lesson_id: '',
+          lesson_template_id: '',
           lesson_date: '',
           lesson_time: '',
           duration_minutes: 60,
@@ -721,8 +1052,28 @@ const Calendar = () => {
           checking: false,
         });
         setAvailabilityMessage('');
-        // Refresh schedule to show new reservation
+        
+        // Clean up URL params
+        if (editLessonId) {
+          searchParams.delete('edit');
+        }
+        if (modalOnly) {
+          searchParams.delete('modal');
+          // Navigate back to previous page if we came from reservation list
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+          setSearchParams(searchParams);
+        }
+        } else {
+          setSearchParams(searchParams);
+        }
+        
+        // Refresh schedule to show updated/new reservation (after modal is closed)
+        // Use setTimeout to ensure modal closes first, then refresh
+        setTimeout(async () => {
         await fetchSchedule();
+        }, 100);
       }
     } catch (err) {
       const errorMessage = err.response?.data?.errors?.message || 
@@ -736,6 +1087,14 @@ const Calendar = () => {
   };
 
   if (loading) {
+    // If modalOnly, show minimal loading (modal will handle its own loading)
+    if (modalOnly) {
+      return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+      );
+    }
     return (
       <div className="w-full max-w-full px-2 sm:px-4 md:px-6 md:mt-5 mx-auto">
         <div className="bg-white shadow-sm rounded-lg p-8 sm:p-12">
@@ -760,6 +1119,7 @@ const Calendar = () => {
 
   return (
     <div className="w-full px-0 sm:px-2 md:px-4 lg:px-6 md:mt-5 mx-auto" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      {!modalOnly && (
       <div className="bg-white shadow-sm rounded-lg w-full" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
         {/* Header */}
         <div className="flex flex-col gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 border-b border-gray-200">
@@ -767,7 +1127,9 @@ const Calendar = () => {
             <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 whitespace-nowrap">Schedule</h2>
           
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
-            {/* Action Buttons */}
+            {/* Action Buttons - Hidden for students */}
+            {!isStudent() && (
+              <>
             <button
               onClick={() => setShowFindTimeModal(true)}
               className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-xs sm:text-sm font-medium whitespace-nowrap"
@@ -789,21 +1151,23 @@ const Calendar = () => {
             >
               <FiSettings size={18} className="sm:w-5 sm:h-5 text-gray-600" />
             </button>
+              </>
+            )}
           </div>
           </div>
           
           {/* Second Row: Location and Date Navigation */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-            {/* Location Select - Hidden for Students */}
-            {!isStudent() && (
+            {/* Organization Select - Only visible for Super Admin */}
+            {isSuperAdmin() && (
               <select
-                value={selectedLocation}
-                onChange={handleLocationChange}
+                value={selectedOrganizationId}
+                onChange={handleOrganizationChange}
                 className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:flex-shrink-0 sm:min-w-[140px]"
               >
-                <option value="">Select Location</option>
-                {locations.map((location, idx) => (
-                  <option key={idx} value={location}>{location}</option>
+                <option value="">Select Organization</option>
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id}>{org.name}</option>
                 ))}
               </select>
             )}
@@ -890,7 +1254,7 @@ const Calendar = () => {
             <tbody>
               {/* Search Row */}
               <tr className="border-b border-gray-200">
-                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-10"                 style={{ 
+                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-30"                 style={{ 
                   minWidth: isMobile ? '60px' : '80px', 
                   width: isMobile ? '60px' : '80px' 
                 }}>
@@ -920,7 +1284,7 @@ const Calendar = () => {
 
               {/* Aircraft Transfer Schedule Section Header */}
               <tr className="border-b border-gray-200 bg-purple-50">
-                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-10"                 style={{ 
+                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30"                 style={{ 
                   minWidth: isMobile ? '60px' : '80px', 
                   width: isMobile ? '60px' : '80px' 
                 }}>
@@ -944,7 +1308,7 @@ const Calendar = () => {
               {/* Aircraft Rows */}
               {filteredAircraftSchedule.map((aircraft) => (
                 <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium"                 style={{ 
+                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium"                 style={{ 
                   minWidth: isMobile ? '60px' : '80px', 
                   width: isMobile ? '60px' : '80px' 
                 }}>
@@ -968,7 +1332,7 @@ const Calendar = () => {
                       >
                         {isFirstCell && (
                           <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
+                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`}
                             style={{ width: '95%' }}
                           >
                             <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
@@ -980,10 +1344,35 @@ const Calendar = () => {
                 </tr>
               ))}
 
+              {/* Divider line between Aircraft and Instructor sections */}
+              {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
+                <tr className="border-b border-dashed border-gray-300 bg-purple-50">
+                  <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ 
+                    minWidth: isMobile ? '60px' : '80px', 
+                    width: isMobile ? '60px' : '80px' 
+                  }}>
+                  </td>
+                  {timeSlots.map((_, idx) => (
+                    <td
+                      key={idx}
+                      className="border-r border-gray-200 bg-purple-50"
+                      style={{ 
+                        minWidth: isMobile ? '30px' : '40px', 
+                        width: isMobile ? '30px' : '40px', 
+                        height: isMobile ? '4px' : '5px',
+                        borderTop: '1px dashed #d1d5db',
+                        borderBottom: '1px dashed #d1d5db'
+                      }}
+                    >
+                    </td>
+                  ))}
+                </tr>
+              )}
+
               {/* User Schedule Rows */}
               {filteredUserSchedule.map((user) => (
                 <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-10 font-medium"                 style={{ 
+                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium"                 style={{ 
                   minWidth: isMobile ? '60px' : '80px', 
                   width: isMobile ? '60px' : '80px' 
                 }}>
@@ -1007,7 +1396,7 @@ const Calendar = () => {
                       >
                         {isFirstCell && (
                           <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-10 flex items-center ${getEventColor(event.color)}`}
+                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`}
                             style={{ width: '95%' }}
                             onMouseEnter={(e) => handleEventHover(event, e)}
                             onMouseLeave={handleEventLeave}
@@ -1025,6 +1414,7 @@ const Calendar = () => {
           </table>
         </div>
       </div>
+      )}
 
       {/* Tooltip */}
       {hoveredEvent && (
@@ -1039,17 +1429,29 @@ const Calendar = () => {
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
-              {hoveredEvent.student?.name?.charAt(0) || hoveredEvent.instructor?.name?.charAt(0) || 'U'}
+              {hoveredEvent.instructor?.name?.charAt(0) || 'U'}
             </div>
             <div>
               <div className="font-medium text-sm text-gray-800">
-                {hoveredEvent.student?.name || hoveredEvent.instructor?.name || 'Unknown'}
+                {hoveredEvent.instructor?.name || 'Unknown'}
               </div>
             </div>
           </div>
           <p className="text-xs text-gray-600">{hoveredEvent.description || 'No description'}</p>
           <div className="mt-2 text-xs text-gray-500">
-            {hoveredEvent.start_time} - {hoveredEvent.end_time}
+            {hoveredEvent.date && (
+              <div className="mb-1 font-medium text-gray-700">
+                {new Date(hoveredEvent.date).toLocaleDateString('en-US', { 
+                  weekday: 'short', 
+                  year: 'numeric', 
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </div>
+            )}
+            <div>
+              {hoveredEvent.start_time} - {hoveredEvent.end_time}
+            </div>
           </div>
         </div>
       )}
@@ -1243,10 +1645,10 @@ const Calendar = () => {
                     />
                   </div>
 
-                  {/* Customer and Instructor */}
+                  {/* Student and Instructor */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 border-b border-dashed border-gray-300 pb-4">
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Customer:</h4>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Student:</h4>
                       <div className="space-y-2 text-sm">
                         <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.customer?.name}</span></p>
                         <p><span className="text-gray-500">Flight:</span> <span className="font-medium text-gray-800">{selectedReservation.customer?.flight}</span></p>
@@ -1273,7 +1675,7 @@ const Calendar = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end p-6 border-t border-gray-200">
+                <div className="flex justify-end gap-2 p-6 border-t border-gray-200">
                   <button
                     onClick={() => {
                       setShowReservationDetailModal(false);
@@ -1283,6 +1685,23 @@ const Calendar = () => {
                   >
                     Close
                   </button>
+                  {/* Hide Edit button for students */}
+                  {!isStudent() && (
+                    <button
+                      onClick={() => {
+                        // Close detail modal
+                        setShowReservationDetailModal(false);
+                        // Set edit mode and open edit form
+                        if (selectedReservation?.id) {
+                          setSearchParams({ edit: selectedReservation.id });
+                        }
+                        setSelectedReservation(null);
+                      }}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
               </>
             ) : null}
@@ -1305,6 +1724,16 @@ const Calendar = () => {
                   setEditingLesson(null);
                   if (editLessonId) {
                     searchParams.delete('edit');
+                  }
+                  if (modalOnly) {
+                    searchParams.delete('modal');
+                    // Navigate back to previous page if we came from reservation list
+                    if (window.history.length > 1) {
+                      window.history.back();
+                    } else {
+                      setSearchParams(searchParams);
+                    }
+                  } else {
                     setSearchParams(searchParams);
                   }
                 }}
@@ -1334,7 +1763,7 @@ const Calendar = () => {
                       <option value="">Select Student</option>
                       {students.length > 0 ? (
                         students.map((student) => (
-                          <option key={student.id} value={student.id}>{student.name || student.email}</option>
+                          <option key={student.id} value={String(student.id)}>{student.name || student.email}</option>
                         ))
                       ) : (
                         <option value="" disabled>No students available</option>
@@ -1362,7 +1791,7 @@ const Calendar = () => {
                       <option value="">Select Instructor</option>
                       {instructors.length > 0 ? (
                         instructors.map((instructor) => (
-                          <option key={instructor.id} value={instructor.id}>{instructor.name || instructor.email}</option>
+                          <option key={instructor.id} value={String(instructor.id)}>{instructor.name || instructor.email}</option>
                         ))
                       ) : (
                         <option value="" disabled>No instructors available</option>
@@ -1395,7 +1824,7 @@ const Calendar = () => {
                       <option value="">Select Aircraft (Optional)</option>
                       {aircraft.length > 0 ? (
                         aircraft.map((ac) => (
-                          <option key={ac.id} value={ac.id}>{ac.name} {ac.model ? `(${ac.model})` : ''}</option>
+                          <option key={ac.id} value={String(ac.id)}>{ac.name} {ac.model ? `(${ac.model})` : ''}</option>
                         ))
                       ) : (
                         <option value="" disabled>No aircraft available</option>
@@ -1431,6 +1860,47 @@ const Calendar = () => {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">10 characters (auto-generated, can be changed)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Lesson (Optional)</label>
+                  {loadingLessonTemplates ? (
+                    <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500">
+                      Loading lesson templates...
+                    </div>
+                  ) : (
+                    <select
+                      value={reservationForm.lesson_template_id}
+                      onChange={(e) => {
+                        const selectedTemplateId = e.target.value;
+                        if (selectedTemplateId) {
+                          const selectedTemplate = lessonTemplates.find(t => t.id === parseInt(selectedTemplateId));
+                          if (selectedTemplate) {
+                            setReservationForm({
+                              ...reservationForm,
+                              lesson_template_id: selectedTemplateId,
+                            });
+                          }
+                        } else {
+                          setReservationForm({ ...reservationForm, lesson_template_id: '' });
+                        }
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="">None - No Lesson Template</option>
+                      {lessonTemplates.map((template) => {
+                        const templateDisplay = template.lesson_title 
+                          ? (template.lesson_number ? `Lesson ${template.lesson_number}: ${template.lesson_title}` : template.lesson_title)
+                          : (template.lesson_number ? `Lesson ${template.lesson_number}` : 'Untitled Lesson');
+                        return (
+                          <option key={template.id} value={template.id}>
+                            {templateDisplay}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Select a lesson template to attach to this reservation</p>
                 </div>
 
                 <div>
@@ -1521,7 +1991,9 @@ const Calendar = () => {
                   />
                 </div>
 
-                {/* Availability Status */}
+                {/* Availability Status - Hidden in edit mode */}
+                {!isEditMode && (
+                  <>
                 {availabilityStatus.checking && (
                   <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -1537,6 +2009,8 @@ const Calendar = () => {
                   }`}>
                     <p className="text-sm font-medium">{availabilityMessage}</p>
                   </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -1549,6 +2023,16 @@ const Calendar = () => {
                     setEditingLesson(null);
                     if (editLessonId) {
                       searchParams.delete('edit');
+                    }
+                    if (modalOnly) {
+                      searchParams.delete('modal');
+                      // Navigate back to previous page if we came from reservation list
+                      if (window.history.length > 1) {
+                        window.history.back();
+                      } else {
+                        setSearchParams(searchParams);
+                      }
+                    } else {
                       setSearchParams(searchParams);
                     }
                   }}
@@ -1558,14 +2042,14 @@ const Calendar = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || availabilityStatus.checking || 
+                  disabled={submitting || (!isEditMode && (availabilityStatus.checking || 
                            availabilityStatus.instructor === false || 
-                           availabilityStatus.student === false}
+                           availabilityStatus.student === false))}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (isEditMode ? 'Updating...' : 'Creating...') : 
-                   availabilityStatus.checking ? 'Checking...' :
-                   (availabilityStatus.instructor === false || availabilityStatus.student === false) 
+                   (!isEditMode && availabilityStatus.checking) ? 'Checking...' :
+                   (!isEditMode && (availabilityStatus.instructor === false || availabilityStatus.student === false)) 
                      ? 'Time Not Available' : 
                    (isEditMode ? 'Update Reservation' : 'Create Reservation')}
                 </button>
@@ -1580,10 +2064,11 @@ const Calendar = () => {
         <FindTimeModal
           isOpen={showFindTimeModal}
           onClose={() => setShowFindTimeModal(false)}
+          students={students}
           instructors={instructors}
           aircraft={aircraft}
           loadingFormData={loadingFormData}
-          onTimeSelect={(selectedTime, date, instructorId, aircraftId, duration) => {
+          onTimeSelect={(selectedTime, date, studentId, instructorId, aircraftId, duration) => {
             setShowFindTimeModal(false);
             setIsAircraftPreSelected(!!aircraftId);
             setShowNewReservationModal(true);
@@ -1593,6 +2078,7 @@ const Calendar = () => {
                 lesson_date: date,
                 lesson_time: selectedTime,
                 duration_minutes: duration,
+                ...(studentId && { student_id: String(studentId) }),
                 ...(instructorId && { instructor_id: String(instructorId) }),
                 ...(aircraftId && { aircraft_id: String(aircraftId) }),
               }));

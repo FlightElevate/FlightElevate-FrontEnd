@@ -1,13 +1,13 @@
-// API Configuration for FlightElevate Backend
+
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 const API_VERSION = 'v1';
 
 export const API_URL = `${API_BASE_URL}/api/${API_VERSION}`;
 
-// API Endpoints
+
 export const ENDPOINTS = {
-  // Authentication
+  
   AUTH: {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
@@ -18,13 +18,13 @@ export const ENDPOINTS = {
     RESET_PASSWORD: '/auth/reset-password',
   },
 
-  // Settings
+  
   SETTINGS: {
     GET: '/settings',
     UPDATE: '/settings',
   },
 
-  // Users
+  
   USERS: {
     LIST: '/users',
     SHOW: (id) => `/users/${id}`,
@@ -38,14 +38,14 @@ export const ENDPOINTS = {
     DOCUMENT_DELETE: (userId, docId) => `/users/${userId}/documents/${docId}`,
   },
 
-  // Organizations
+  
   ORGANIZATIONS: {
     LIST: '/organizations',
     SHOW: (id) => `/organizations/${id}`,
     UPDATE: (id) => `/organizations/${id}`,
   },
 
-  // Aircraft
+  
   AIRCRAFT: {
     LIST: '/aircraft',
     SHOW: (id) => `/aircraft/${id}`,
@@ -56,7 +56,7 @@ export const ENDPOINTS = {
     SQUAWKS: (id) => `/aircraft/${id}/squawks`,
   },
 
-  // Maintenance
+  
   MAINTENANCE: {
     LIST: '/maintenance',
     SHOW: (id) => `/maintenance/${id}`,
@@ -65,7 +65,7 @@ export const ENDPOINTS = {
     DELETE: (id) => `/maintenance/${id}`,
   },
 
-  // Squawks
+  
   SQUAWKS: {
     LIST: '/squawks',
     SHOW: (id) => `/squawks/${id}`,
@@ -75,7 +75,7 @@ export const ENDPOINTS = {
     DELETE: (id) => `/squawks/${id}`,
   },
 
-  // Lessons
+  
   LESSONS: {
     LIST: '/lessons',
     SHOW: (id) => `/lessons/${id}`,
@@ -84,8 +84,16 @@ export const ENDPOINTS = {
     DELETE: (id) => `/lessons/${id}`,
     READY: (id) => `/lessons/${id}/ready`,
   },
+  
+  RESERVATIONS: {
+    LIST: '/reservations',
+    SHOW: (id) => `/reservations/${id}`,
+    CREATE: '/reservations',
+    UPDATE: (id) => `/reservations/${id}`,
+    DELETE: (id) => `/reservations/${id}`,
+  },
 
-  // Logbooks
+  
   LOGBOOKS: {
     BASE: '/logbooks',
     LIST: '/logbooks',
@@ -95,7 +103,7 @@ export const ENDPOINTS = {
     DELETE: (id) => `/logbooks/${id}`,
   },
 
-  // Support
+  
   SUPPORT: {
     LIST: '/support-tickets',
     SHOW: (id) => `/support-tickets/${id}`,
@@ -106,7 +114,7 @@ export const ENDPOINTS = {
     SEND_MESSAGE: (id) => `/support-tickets/${id}/messages`,
   },
 
-  // Announcements
+  
   ANNOUNCEMENTS: {
     LIST: '/announcements',
     SHOW: (id) => `/announcements/${id}`,
@@ -115,7 +123,7 @@ export const ENDPOINTS = {
     DELETE: (id) => `/announcements/${id}`,
   },
 
-  // Roles & Permissions
+  
   ROLES: {
     LIST: '/roles',
     SHOW: (id) => `/roles/${id}`,
@@ -126,7 +134,7 @@ export const ENDPOINTS = {
     UPDATE_PERMISSIONS: (id) => `/roles/${id}/permissions`,
   },
 
-  // Subscriptions
+  
   SUBSCRIPTIONS: {
     SUBSCRIBERS: '/subscriptions/subscribers',
     PLANS: '/subscriptions/plans',
@@ -136,7 +144,7 @@ export const ENDPOINTS = {
     DELETE_PLAN: (id) => `/subscriptions/plans/${id}`,
   },
 
-  // Subscription Plans
+  
   SUBSCRIPTION_PLANS: {
     LIST: '/subscription-plans',
     SHOW: (id) => `/subscription-plans/${id}`,
@@ -145,19 +153,19 @@ export const ENDPOINTS = {
     DELETE: (id) => `/subscription-plans/${id}`,
   },
 
-  // Activity Logs
+  
   ACTIVITY_LOGS: {
     LIST: '/activity-logs',
     SHOW: (id) => `/activity-logs/${id}`,
   },
 
-  // Dashboard
+  
   DASHBOARD: {
     STATS: '/dashboard/stats',
     WIDGETS: '/dashboard/widgets',
   },
 
-  // Calendar
+  
   CALENDAR: {
     SCHEDULE: '/calendar/schedule',
     LOCATIONS: '/calendar/locations',
@@ -167,7 +175,7 @@ export const ENDPOINTS = {
     CREATE: '/calendar/events',
   },
 
-  // Inbox
+  
   INBOX: {
     USER: '/chat/all',
     GETCONVERSATIONS: '/chat/conversations',
@@ -178,7 +186,7 @@ export const ENDPOINTS = {
     MARK_READ: (id) => `/inbox/messages/${id}/read`,
   },
 
-  // Organizations
+  
   ORGANIZATIONS: {
     LIST: '/organizations',
     SHOW: (id) => `/organizations/${id}`,
@@ -190,7 +198,7 @@ export const ENDPOINTS = {
 
 };
 
-// Request configuration
+
 export const DEFAULT_CONFIG = {
   headers: {
     'Content-Type': 'application/json',

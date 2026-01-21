@@ -19,7 +19,7 @@ const InstructorUpcomingSessions = () => {
       }
 
       try {
-        // Fetch upcoming lessons (status: pending or ongoing, future dates)
+        
         const response = await lessonService.getUserLessons(user.id, {
           type: 'instructor',
           per_page: 50,
@@ -31,7 +31,7 @@ const InstructorUpcomingSessions = () => {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
 
-          // Filter upcoming sessions (future dates or today)
+          
           const upcoming = allLessons
             .filter((lesson) => {
               const lessonDate = new Date(lesson.full_date || lesson.lesson_date);
@@ -43,7 +43,7 @@ const InstructorUpcomingSessions = () => {
               const dateB = new Date(b.full_date || b.lesson_date);
               return dateA - dateB;
             })
-            .slice(0, 10) // Get top 10 upcoming
+            .slice(0, 10) 
             .map((lesson) => ({
               id: lesson.id,
               date: lesson.date || new Date(lesson.full_date || lesson.lesson_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -57,7 +57,7 @@ const InstructorUpcomingSessions = () => {
         }
       } catch (error) {
         console.error('Error fetching upcoming sessions:', error);
-        // Use sample data if API fails
+        
         setSessions([
           {
             id: 1,
@@ -76,7 +76,7 @@ const InstructorUpcomingSessions = () => {
     fetchUpcomingSessions();
   }, [user?.id]);
 
-  // Close menu when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (openMenu !== null && menuRefs.current[openMenu] && !menuRefs.current[openMenu].contains(event.target)) {

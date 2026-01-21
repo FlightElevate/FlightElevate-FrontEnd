@@ -12,7 +12,7 @@ const AirCraftTimes = ({ aircraftId }) => {
 
   const sortRef = useRef(null);
 
-  // ✅ Close dropdown when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (sortRef.current && !sortRef.current.contains(e.target)) {
@@ -25,7 +25,7 @@ const AirCraftTimes = ({ aircraftId }) => {
 
   return (
     <div className="bg-white p-3 rounded-lg shadow-sm relative">
-      {/* Tabs */}
+      {}
       <div className="flex items-center justify-start gap-2 border-b border-[#F3F4F6]">
         {["maintenance", "squawks"].map((tab) => (
           <button
@@ -42,14 +42,14 @@ const AirCraftTimes = ({ aircraftId }) => {
         ))}
       </div>
 
-      {/* Header row */}
+      {}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-2 relative">
         <h2 className="text-lg font-semibold text-gray-800">
           {activeTab === "maintenance" ? "Maintenance Schedule" : "Squawks"}
         </h2>
 
         <div className="flex items-center gap-3 w-full sm:w-auto relative">
-          {/* Search bar */}
+          {}
           <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px]">
             <FiSearch className="text-gray-400 mr-2" size={16} />
             <input
@@ -64,7 +64,7 @@ const AirCraftTimes = ({ aircraftId }) => {
             </span>
           </div>
 
-          {/* Sort dropdown */}
+          {}
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setSortOpen(!sortOpen)}
@@ -98,7 +98,7 @@ const AirCraftTimes = ({ aircraftId }) => {
         </div>
       </div>
 
-      {/* Content */}
+      {}
       <div className="mt-4">
         {activeTab === "maintenance" ? (
           <Maintenance aircraftId={aircraftId} searchTerm={searchTerm} sortBy={sortBy} />

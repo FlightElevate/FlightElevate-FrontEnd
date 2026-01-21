@@ -2,13 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { userService } from '../api/services/userService';
 import { showErrorToast } from '../utils/notifications';
 
-/**
- * Custom hook for fetching user details
- * Provides loading state, error handling, and user data
- * 
- * @param {number|string} userId - User ID to fetch
- * @returns {Object} - { user, loading, error, refetch }
- */
+
 export const useUserDetails = (userId) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -29,7 +29,7 @@ const Support = () => {
   const navigate = useNavigate();
   const buttons = ["All", "Open", "Resolved"];
 
-  // Fetch tickets from API
+  
   useEffect(() => {
     const fetchTickets = async () => {
       setLoading(true);
@@ -41,14 +41,14 @@ const Support = () => {
           order: sortOption === "Newest" ? "desc" : "asc",
         };
 
-        // Add status filter
+        
         if (selected === "Open") {
           params.status = "open";
         } else if (selected === "Resolved") {
           params.status = "closed";
         }
 
-        // Add search
+        
         if (searchTerm.trim()) {
           params.search = searchTerm.trim();
         }
@@ -74,11 +74,11 @@ const Support = () => {
     fetchTickets();
   }, [currentPage, itemsPerPage, selected, sortOption, searchTerm]);
 
-  // Debounce search
+  
   useEffect(() => {
     const timer = setTimeout(() => {
       if (currentPage !== 1) {
-        setCurrentPage(1); // Reset to first page on search
+        setCurrentPage(1); 
       }
     }, 500);
 
@@ -129,13 +129,13 @@ const Support = () => {
 
   const handleStatusChange = (status) => {
     setSelected(status);
-    setCurrentPage(1); // Reset to first page when changing status
+    setCurrentPage(1); 
   };
 
   const handleSortChange = (sort) => {
     setSortOption(sort);
     setMenuOpen(null);
-    setCurrentPage(1); // Reset to first page when changing sort
+    setCurrentPage(1); 
   };
 
   const handleInputChange = (e) => {
@@ -144,7 +144,7 @@ const Support = () => {
       ...prev,
       [name]: value,
     }));
-    // Clear error for this field
+    
     if (formErrors[name]) {
       setFormErrors((prev) => ({
         ...prev,
@@ -189,7 +189,7 @@ const Support = () => {
           priority: "normal",
         });
         setFormErrors({});
-        // Refresh tickets list
+        
         const params = {
           per_page: itemsPerPage,
           page: currentPage,
@@ -220,7 +220,7 @@ const Support = () => {
       const errorMessage = error.response?.data?.message || "Failed to create ticket";
       toast.error(errorMessage);
       
-      // Set field-specific errors if available
+      
       if (error.response?.data?.errors) {
         setFormErrors(error.response.data.errors);
       }
@@ -246,7 +246,7 @@ const Support = () => {
           <h2 className="text-xl font-semibold text-gray-800">Support</h2>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            {/* Create Ticket Button */}
+            {}
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium hover:bg-blue-700 transition-colors min-h-[44px] whitespace-nowrap"
@@ -255,7 +255,7 @@ const Support = () => {
               <span>Create Ticket</span>
             </button>
             
-            {/* Search */}
+            {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px] min-h-[44px]">
               <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
@@ -270,7 +270,7 @@ const Support = () => {
               </span>
             </div>
 
-            {/* Sort Dropdown */}
+            {}
             <div className="relative w-full sm:w-auto" ref={sortMenuRef}>
               <button
                 className="w-full sm:w-auto flex items-center justify-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700 min-h-[44px] whitespace-nowrap hover:bg-gray-50 transition-colors"
@@ -310,7 +310,7 @@ const Support = () => {
           </div>
         </div>
 
-        {/* Status Filters */}
+        {}
         <div className="border-b border-[#F3F4F6] text-sm">
           <div className="overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="flex gap-0.5 sm:gap-4 px-1 sm:px-4 py-1 sm:py-3 min-w-max sm:min-w-0">
@@ -434,11 +434,11 @@ const Support = () => {
         </div>
       </div>
 
-      {/* Create Ticket Modal */}
+      {}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            {/* Header */}
+            {}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
               <h2 className="text-xl font-semibold text-gray-800">Create Support Ticket</h2>
               <button
@@ -450,10 +450,10 @@ const Support = () => {
               </button>
             </div>
 
-            {/* Form */}
+            {}
             <form onSubmit={handleCreateTicket} className="p-6">
               <div className="space-y-4">
-                {/* Title */}
+                {}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Title <span className="text-red-500">*</span>
@@ -473,7 +473,7 @@ const Support = () => {
                   )}
                 </div>
 
-                {/* Description */}
+                {}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description <span className="text-red-500">*</span>
@@ -493,7 +493,7 @@ const Support = () => {
                   )}
                 </div>
 
-                {/* Priority */}
+                {}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Priority
@@ -512,7 +512,7 @@ const Support = () => {
                 </div>
               </div>
 
-              {/* Footer */}
+              {}
               <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
                 <button
                   type="button"

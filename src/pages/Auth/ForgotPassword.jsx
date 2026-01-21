@@ -4,10 +4,7 @@ import { FiMail, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
 import { authService } from '../../api/services/authService';
 import { showSuccessToast, showErrorToast } from '../../utils/notifications';
 
-/**
- * Forgot Password Page
- * Professional styling matching project design
- */
+
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -109,7 +106,7 @@ const ForgotPassword = () => {
             </p>
           </div>
 
-          {/* Form */}
+          {}
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 p-4">

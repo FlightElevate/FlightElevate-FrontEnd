@@ -8,7 +8,7 @@ import InstructorDashboard from '../../pages/InstructorFE/Dashboard';
 const DashboardRouter = () => {
   const { user } = useAuth();
   
-  // Check if user is Super Admin
+  
   const isSuperAdmin = user?.roles?.some(role => {
     const roleName = typeof role === 'string' ? role : role?.name || '';
     const lowerRole = roleName.toLowerCase();
@@ -16,28 +16,28 @@ const DashboardRouter = () => {
            lowerRole === 'super-admin';
   }) || false;
 
-  // Check if user is Admin
+  
   const isAdmin = user?.roles?.some(role => {
     const roleName = typeof role === 'string' ? role : role?.name || '';
     const lowerRole = roleName.toLowerCase();
     return lowerRole === 'admin' && !isSuperAdmin;
   }) || false;
 
-  // Check if user is Student
+  
   const isStudent = user?.roles?.some(role => {
     const roleName = typeof role === 'string' ? role : role?.name || '';
     const lowerRole = roleName.toLowerCase();
     return lowerRole === 'student';
   }) || false;
 
-  // Check if user is Instructor
+  
   const isInstructor = user?.roles?.some(role => {
     const roleName = typeof role === 'string' ? role : role?.name || '';
     const lowerRole = roleName.toLowerCase();
     return lowerRole === 'instructor';
   }) || false;
 
-  // Show appropriate dashboard based on role
+  
   if (isSuperAdmin) {
     return <SuperAdminDashboard />;
   }
@@ -54,7 +54,7 @@ const DashboardRouter = () => {
     return <StudentDashboard />;
   }
   
-  // Default to Admin dashboard
+  
   return <AdminDashboard />;
 };
 

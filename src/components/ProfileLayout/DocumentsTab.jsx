@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiMoreVertical } from 'react-icons/fi';
 
-/**
- * Reusable Documents Tab Component
- * @param {array} documents - Array of document objects
- * @param {boolean} loading - Loading state
- * @param {function} onDelete - Delete handler
- * @param {function} onEdit - Edit handler
- */
+
 const DocumentsTab = ({ documents = [], loading = false, onDelete, onEdit }) => {
   const [openMenu, setOpenMenu] = useState(null);
 
@@ -48,12 +42,12 @@ const DocumentsTab = ({ documents = [], loading = false, onDelete, onEdit }) => 
           key={doc.id || index}
           className="flex items-start justify-between p-4 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition"
         >
-          {/* Left Side - Label */}
+          {}
           <div className="w-1/3">
             <h4 className="text-sm font-medium text-gray-900">{doc.title}</h4>
           </div>
 
-          {/* Right Side - Content */}
+          {}
           <div className="flex-1 flex flex-col items-end pr-4">
             {doc.details && doc.details.length > 0 ? (
               doc.details.map((detail, idx) => (
@@ -81,7 +75,7 @@ const DocumentsTab = ({ documents = [], loading = false, onDelete, onEdit }) => 
             ) : null}
           </div>
 
-          {/* Far Right - Menu */}
+          {}
           <button
             className="p-2 hover:bg-gray-100 rounded menu-container relative"
             onClick={() => toggleMenu(index)}

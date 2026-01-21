@@ -8,24 +8,21 @@ import Pagination from "../../../components/Pagination";
 import AddUserModal from "../../../components/User/AddUserModal";
 import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../../utils/notifications";
 
-/**
- * Users Management Page - Admin View
- * Displays and manages users with filtering, search, and CRUD operations
- */
+
 const Users = () => {
   const navigate = useNavigate();
   
-  // Filter and selection state
+  
   const [selected, setSelected] = useState("Instructor");
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Data state
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // UI state
+  
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -33,20 +30,18 @@ const Users = () => {
   const dropdownRefs = useRef({});
   const sortDropdownRef = useRef(null);
   
-  // Sort state
+  
   const [sortField, setSortField] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   
-  // Pagination state
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
-  const roleFilters = ["Instructor", "Student", "Admin"];
+  const roleFilters = ["Instructor", "Student", "Custom Roles"];
 
-  /**
-   * Fetches users from API with current filters
-   */
+  
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -72,15 +67,15 @@ const Users = () => {
     }
   }, [currentPage, itemsPerPage, selected, searchTerm, sortField, sortOrder]);
 
-  // Fetch users when dependencies change
+  
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Handle click outside dropdown
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Check all dropdown refs (including mobile ones)
+      
       const clickedOutsideAllMenus = Object.values(dropdownRefs.current).every(
         (ref) => !ref?.contains(event.target)
       );
@@ -88,7 +83,7 @@ const Users = () => {
         setOpenDropdownId(null);
       }
       
-      // Close sort dropdown
+      
       if (
         sortDropdownOpen &&
         sortDropdownRef.current &&
@@ -102,24 +97,20 @@ const Users = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openDropdownId, sortDropdownOpen]);
 
-  /**
-   * Handles role filter change
-   */
+  
   const handleRoleFilterChange = useCallback((role) => {
     setSelected(role);
     setSelectedIds([]);
     setCurrentPage(1);
   }, []);
 
-  /**
-   * Handles sort field change
-   */
+  
   const handleSortChange = useCallback((field) => {
     if (sortField === field) {
-      // Toggle order if same field
+      
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
-      // Set new field with default desc order
+      
       setSortField(field);
       setSortOrder('desc');
     }
@@ -127,17 +118,13 @@ const Users = () => {
     setCurrentPage(1);
   }, [sortField]);
 
-  /**
-   * Handles select all checkbox
-   */
+  
   const isAllSelected = selectedIds.length === users.length && users.length > 0;
   const handleSelectAll = useCallback(() => {
     setSelectedIds(isAllSelected ? [] : users.map((user) => user.id));
   }, [isAllSelected, users]);
 
-  /**
-   * Handles individual checkbox selection
-   */
+  
   const handleSelectOne = useCallback((id) => {
     setSelectedIds(prev => 
       prev.includes(id) 
@@ -146,9 +133,7 @@ const Users = () => {
     );
   }, []);
 
-  /**
-   * Handles blocking/unblocking a user
-   */
+  
   const handleBlockUser = useCallback(async (userId, userName, currentStatus) => {
     const action = currentStatus === 'blocked' ? 'unblock' : 'block';
     const confirmed = await showDeleteConfirm(
@@ -173,16 +158,12 @@ const Users = () => {
     }
   }, [fetchUsers]);
 
-  /**
-   * Handles user creation success
-   */
+  
   const handleUserCreated = useCallback(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  /**
-   * Handles row click navigation
-   */
+  
   const handleRowClick = useCallback((userId) => {
     navigate(`/users/profile/${userId}`);
   }, [navigate]);
@@ -190,11 +171,11 @@ const Users = () => {
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white inset-shadow-sm shadow-xl rounded-lg px-4 py-5">
-        {/* Header */}
+        {}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
           <h2 className="text-xl font-inter font-semibold text-gray-800">Users</h2>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            {/* Search */}
+            {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[250px] min-h-[44px]">
               <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
@@ -207,7 +188,7 @@ const Users = () => {
               <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline">⌘</span>
             </div>
             
-            {/* Sort Button */}
+            {}
             <div className="relative w-full sm:w-auto" ref={sortDropdownRef}>
               <button 
                 onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
@@ -221,7 +202,7 @@ const Users = () => {
                 />
               </button>
 
-              {/* Sort Dropdown */}
+              {}
               {sortDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-full sm:w-48 md:w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
                   <div className="py-1">
@@ -277,9 +258,9 @@ const Users = () => {
           </div>
         </div>
 
-        {/* Role Filters - Vertical on Mobile, Horizontal on Desktop */}
+        {}
         <div className="bg-white border-b border-[#F3F4F6]">
-          {/* Mobile: Vertical Filters */}
+          {}
           <div className="md:hidden">
             <div className="flex flex-col px-4 py-2">
               {roleFilters.map((label) => (
@@ -295,7 +276,7 @@ const Users = () => {
                   {label}
                 </button>
               ))}
-              {/* Add User Button - Mobile */}
+              {}
               <button
                 onClick={() => setShowAddUserModal(true)}
                 className="w-full text-left py-3 px-4 rounded-md text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] flex items-center justify-center gap-2 mt-2"
@@ -306,7 +287,7 @@ const Users = () => {
             </div>
           </div>
 
-          {/* Desktop: Horizontal Filters */}
+          {}
           <div className="hidden md:block">
             <div className="flex items-center justify-between gap-2 px-6 py-4">
               <div className="flex gap-2">
@@ -324,7 +305,7 @@ const Users = () => {
                   </button>
                 ))}
               </div>
-              {/* Add User Button - Desktop */}
+              {}
               <button
                 onClick={() => setShowAddUserModal(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 min-h-[44px] whitespace-nowrap"
@@ -336,14 +317,14 @@ const Users = () => {
           </div>
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
         )}
 
-        {/* Error State */}
+        {}
         {error && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative m-4">
             {error}
@@ -353,7 +334,7 @@ const Users = () => {
           </div>
         )}
 
-        {/* Desktop Table View */}
+        {}
         {!loading && !error && (
           <>
             <div className="hidden md:block overflow-x-auto insect-shadow-sm shadow-lg rounded-xl mt-4 -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -367,7 +348,7 @@ const Users = () => {
                           checked={isAllSelected}
                           onChange={handleSelectAll}
                           aria-label="Select all users"
-                          className="min-w-[44px] min-h-[44px]"
+                          className="w-4 h-4"
                         />
                       </th>
                       <th className="pl-5 whitespace-nowrap">Name</th>
@@ -405,7 +386,7 @@ const Users = () => {
               </div>
             </div>
 
-            {/* Mobile Card View */}
+            {}
             <div className="md:hidden space-y-3 mt-4">
               {users.length > 0 ? (
                 users.map((user) => {
@@ -449,7 +430,7 @@ const Users = () => {
                               handleSelectOne(user.id);
                             }}
                             onClick={(e) => e.stopPropagation()}
-                            className="min-w-[44px] min-h-[44px] flex-shrink-0"
+                            className="w-4 h-4 flex-shrink-0"
                             aria-label={`Select ${user.name}`}
                           />
                           <div className="flex-1 min-w-0">
@@ -519,7 +500,7 @@ const Users = () => {
               )}
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="py-2.5 gap-3 flex justify-center">
               <Pagination
                 page={currentPage}
@@ -533,7 +514,7 @@ const Users = () => {
         )}
       </div>
 
-      {/* Add User Modal */}
+      {}
       <AddUserModal
         isOpen={showAddUserModal}
         onClose={() => setShowAddUserModal(false)}
@@ -543,9 +524,7 @@ const Users = () => {
   );
 };
 
-/**
- * User Row Component - Extracted for reusability and performance
- */
+
 const UserRow = React.memo(({
   user,
   isSelected,
@@ -592,6 +571,7 @@ const UserRow = React.memo(({
           checked={isSelected}
           onChange={onSelect}
           aria-label={`Select ${user.name}`}
+          className="w-4 h-4"
         />
       </td>
       <td className="p-6 whitespace-nowrap">
@@ -638,9 +618,7 @@ const UserRow = React.memo(({
 
 UserRow.displayName = 'UserRow';
 
-/**
- * User Actions Dropdown Component
- */
+
 const UserActionsDropdown = React.forwardRef(({
   userId,
   userName,

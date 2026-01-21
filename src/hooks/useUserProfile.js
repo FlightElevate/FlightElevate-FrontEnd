@@ -2,18 +2,14 @@ import { useState, useEffect } from 'react';
 import { documentService } from '../api/services/documentService';
 import { lessonService } from '../api/services/lessonService';
 
-/**
- * Reusable hook for fetching user profile data (documents & lessons)
- * @param {number} userId - User ID to fetch data for
- * @returns {object} - Documents, lessons, loading states, and handlers
- */
+
 export const useUserProfile = (userId) => {
   const [documents, setDocuments] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [lessons, setLessons] = useState([]);
   const [loadingLessons, setLoadingLessons] = useState(true);
 
-  // Fetch documents
+  
   const fetchDocuments = async () => {
     if (!userId) return;
     
@@ -31,7 +27,7 @@ export const useUserProfile = (userId) => {
     }
   };
 
-  // Fetch lessons (flight logs)
+  
   const fetchLessons = async () => {
     if (!userId) return;
     
@@ -49,13 +45,13 @@ export const useUserProfile = (userId) => {
     }
   };
 
-  // Delete document
+  
   const deleteDocument = async (documentId) => {
     if (!window.confirm('Are you sure you want to delete this document?')) return false;
     
     try {
       await documentService.deleteDocument(userId, documentId);
-      fetchDocuments(); // Refresh list
+      fetchDocuments(); 
       return true;
     } catch (error) {
       console.error('Error deleting document:', error);
@@ -63,7 +59,7 @@ export const useUserProfile = (userId) => {
     }
   };
 
-  // Auto-fetch on userId change
+  
   useEffect(() => {
     if (userId) {
       fetchDocuments();

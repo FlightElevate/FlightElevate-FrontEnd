@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, requiredPermission = null }) => {
   const { isAuthenticated, user, hasRole, hasPermission, loading } = useAuth();
 
-  // Show loading state while checking authentication
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -14,12 +14,12 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, r
     );
   }
 
-  // Not authenticated - redirect to landing page
+  
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  // Check for required roles (array) - takes precedence over single requiredRole
+  
   if (requiredRoles && Array.isArray(requiredRoles)) {
     const hasAnyRole = requiredRoles.some(role => hasRole(role));
     if (!hasAnyRole) {
@@ -61,7 +61,7 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, r
     );
   }
 
-  // Check for required permission
+  
   if (requiredPermission && !hasPermission(requiredPermission)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

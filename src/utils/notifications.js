@@ -1,11 +1,9 @@
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 
-/**
- * Reusable notification utilities for consistent UX
- */
 
-// SweetAlert Confirmations
+
+
 export const showConfirmDialog = async (
   title = 'Are you sure?',
   text = 'This action cannot be undone',
@@ -41,7 +39,7 @@ export const showBlockUserConfirm = async (userName) => {
   );
 };
 
-// Success Alerts
+
 export const showSuccessAlert = (title = 'Success!', text = 'Operation completed successfully') => {
   return Swal.fire({
     title,
@@ -51,7 +49,7 @@ export const showSuccessAlert = (title = 'Success!', text = 'Operation completed
   });
 };
 
-// Error Alerts
+
 export const showErrorAlert = (title = 'Error!', text = 'Something went wrong') => {
   return Swal.fire({
     title,
@@ -61,7 +59,7 @@ export const showErrorAlert = (title = 'Error!', text = 'Something went wrong') 
   });
 };
 
-// Toast Notifications (less intrusive)
+
 export const showSuccessToast = (message = 'Success!') => {
   toast.success(message, {
     position: 'top-right',
@@ -106,7 +104,7 @@ export const showWarningToast = (message) => {
   });
 };
 
-// Loading Toast
+
 export const showLoadingToast = (message = 'Loading...') => {
   return toast.loading(message);
 };
