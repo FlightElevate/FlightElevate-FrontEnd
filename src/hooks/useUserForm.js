@@ -15,18 +15,28 @@ export const useUserForm = (initialData = {}, options = {}) => {
     organization_name: '',
   }), []);
 
+  // Normalize initialData to ensure role is always a string
+  const normalizeInitialData = useCallback((data) => {
+    const normalized = { ...data };
+    // If role is an object with id and name, extract the name
+    if (normalized.role && typeof normalized.role === 'object' && normalized.role.name) {
+      normalized.role = normalized.role.name;
+    }
+    return normalized;
+  }, []);
+
   
-  const initialDataRef = useRef(initialData);
+  const initialDataRef = useRef(normalizeInitialData(initialData));
   
   
   useEffect(() => {
-    initialDataRef.current = initialData;
-  }, [initialData]);
+    initialDataRef.current = normalizeInitialData(initialData);
+  }, [initialData, normalizeInitialData]);
 
   
   const [formData, setFormData] = useState(() => ({
     ...baseDefaultData,
-    ...initialData,
+    ...normalizeInitialData(initialData),
   }));
 
   const [formErrors, setFormErrors] = useState({});
@@ -69,11 +79,11 @@ export const useUserForm = (initialData = {}, options = {}) => {
   const reset = useCallback(() => {
     setFormData({
       ...baseDefaultData,
-      ...initialDataRef.current,
+      ...normalizeInitialData(initialDataRef.current),
     });
     setFormErrors({});
     setIsDirty(false);
-  }, [baseDefaultData]); 
+  }, [baseDefaultData, normalizeInitialData]); 
 
   
   const setErrors = useCallback((errors) => {
