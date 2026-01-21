@@ -165,7 +165,8 @@ const InstructorFlightSession = () => {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <div className="w-full" style={{ height: '300px', minWidth: '300px' }}>
+        <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
           <XAxis
@@ -204,7 +205,8 @@ const InstructorFlightSession = () => {
             radius={[6, 6, 0, 0]}
           />
         </BarChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

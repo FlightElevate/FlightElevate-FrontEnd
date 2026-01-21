@@ -195,7 +195,7 @@ const TotalRevenue = () => {
       </div>
 
       {}
-      <div className="w-full h-80 relative" style={{ minWidth: 0 }}>
+      <div className="w-full relative" style={{ height: '320px', minWidth: '300px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>

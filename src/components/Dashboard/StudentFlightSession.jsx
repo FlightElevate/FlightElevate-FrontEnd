@@ -133,7 +133,7 @@ const StudentFlightSession = () => {
       </div>
 
       {}
-      <div className="w-full h-80">
+      <div className="w-full" style={{ height: '320px', minWidth: '300px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
