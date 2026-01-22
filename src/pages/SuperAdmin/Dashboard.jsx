@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Widgets from '../../components/ui/Widgets';
 import FSession from '../../components/Dashboard/FSession';
 import TotalRevenue from '../../components/Dashboard/TotalRevenue';
 
-const Dashboard = () => {
+const Dashboard = React.memo(() => {
   const { user } = useAuth();
   
-  
-  const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
+  const userName = useMemo(() => {
+    return user?.name?.split(' ')[0] || user?.first_name || 'John';
+  }, [user?.name, user?.first_name]);
 
   return (
     <div className="p-2 gap-6">
@@ -41,6 +42,8 @@ const Dashboard = () => {
 
     </div>
   );
-};
+});
+
+Dashboard.displayName = 'SuperAdminDashboard';
 
 export default Dashboard;

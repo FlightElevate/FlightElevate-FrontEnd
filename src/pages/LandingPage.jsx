@@ -23,12 +23,18 @@ const LandingPage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to dashboard immediately
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (isAuthenticated && !authLoading) {
+      // Use replace: true to avoid adding to history and prevent flash
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
+
+  // Show nothing while checking authentication to prevent flash
+  if (authLoading || isAuthenticated) {
+    return null;
+  }
   const [openFaq, setOpenFaq] = useState(0);
 
   // Close mobile menu when clicking outside

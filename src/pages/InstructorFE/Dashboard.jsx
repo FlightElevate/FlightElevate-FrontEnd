@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import InstructorSummaryCards from '../../components/Dashboard/InstructorSummaryCards';
 import InstructorFlightSession from '../../components/Dashboard/InstructorFlightSession';
 import InstructorUpcomingSessions from '../../components/Dashboard/InstructorUpcomingSessions';
 
-const InstructorDashboard = () => {
+const InstructorDashboard = React.memo(() => {
   const { user } = useAuth();
   
-  
-  const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
+  const userName = useMemo(() => {
+    return user?.name?.split(' ')[0] || user?.first_name || 'John';
+  }, [user?.name, user?.first_name]);
 
   return (
     <div className="p-2 gap-6">
@@ -18,18 +19,15 @@ const InstructorDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-6">
-        {}
         <InstructorSummaryCards />
-        
-        {}
         <InstructorFlightSession/>
-        
-        {}
         <InstructorUpcomingSessions/>
       </div>
     </div>
   );
-};
+});
+
+InstructorDashboard.displayName = 'InstructorDashboard';
 
 export default InstructorDashboard;
 

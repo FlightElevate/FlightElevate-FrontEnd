@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import StudentSummaryCards from '../../components/Dashboard/StudentSummaryCards';
 import StudentFlightSession from '../../components/Dashboard/StudentFlightSession';
 import StudentFlightLogs from '../../components/Dashboard/StudentFlightLogs';
 
-const StudentDashboard = () => {
+const StudentDashboard = React.memo(() => {
   const { user } = useAuth();
   
-  
-  const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
+  const userName = useMemo(() => {
+    return user?.name?.split(' ')[0] || user?.first_name || 'John';
+  }, [user?.name, user?.first_name]);
 
   return (
     <div className="p-2 gap-6">
@@ -18,18 +19,15 @@ const StudentDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-6">
-        {}
         <StudentSummaryCards />
-        
-        {}
         <StudentFlightSession/>
-        
-        {}
         <StudentFlightLogs/>
       </div>
     </div>
   );
-};
+});
+
+StudentDashboard.displayName = 'StudentDashboard';
 
 export default StudentDashboard;
 

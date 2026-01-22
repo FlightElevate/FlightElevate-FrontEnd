@@ -723,17 +723,27 @@ const Calendar = () => {
     setLoadingReservation(true);
     setShowReservationDetailModal(true);
     try {
-      // Use getReservation for calendar events (they are reservations)
-      const response = await lessonService.getReservation(event.id);
+      // Check if event is a reservation or a lesson
+      const isReservation = event.is_reservation === true;
+      
+      let response;
+      if (isReservation) {
+        // Fetch reservation details
+        response = await lessonService.getReservation(event.id);
+      } else {
+        // Fetch lesson details
+        response = await lessonService.getLesson(event.id);
+      }
+      
       if (response.success) {
         setSelectedReservation(response.data);
       } else {
-        showErrorToast('Failed to load reservation details');
+        showErrorToast(`Failed to load ${isReservation ? 'reservation' : 'lesson'} details`);
         setShowReservationDetailModal(false);
       }
     } catch (err) {
-      console.error('Error fetching reservation:', err);
-      showErrorToast('Failed to load reservation details');
+      console.error('Error fetching event:', err);
+      showErrorToast('Failed to load event details');
       setShowReservationDetailModal(false);
     } finally {
       setLoadingReservation(false);
