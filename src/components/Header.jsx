@@ -6,6 +6,8 @@ import { HiBell } from 'react-icons/hi';
 import { HiChevronDown } from 'react-icons/hi';
 import { showConfirmDialog } from '../utils/notifications';
 import { userService } from '../api/services/userService';
+import { settingsService } from '../api/services/settingsService';
+import { getImageUrl } from '../utils/imageUtils';
 
 const Header = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
@@ -17,10 +19,34 @@ const Header = ({ toggleSidebar }) => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchUsers, setSearchUsers] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
   const searchResultsRef = useRef(null);
+
+  // Fetch profile image from settings API (same as settings page)
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      if (user) {
+        try {
+          const response = await settingsService.getSettings();
+          if (response.success && response.data?.avatar) {
+            setProfileImage(response.data.avatar);
+          } else {
+            // Fallback to user.avatar or user.profile_image
+            setProfileImage(user.avatar || user.profile_image || null);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch profile image from settings:', err);
+          // Fallback to user.avatar or user.profile_image
+          setProfileImage(user.avatar || user.profile_image || null);
+        }
+      }
+    };
+
+    fetchProfileImage();
+  }, [user]);
 
   
   useEffect(() => {
@@ -265,9 +291,9 @@ const Header = ({ toggleSidebar }) => {
                           className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors flex items-center gap-3 min-h-[44px]"
                         >
                           <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xs relative" style={{ minWidth: '32px', minHeight: '32px', width: '32px', height: '32px' }}>
-                            {userItem.avatar || userItem.profile_image ? (
+                            {getImageUrl(userItem.avatar || userItem.profile_image || userItem.avatar_url) ? (
                               <img
-                                src={userItem.avatar || userItem.profile_image}
+                                src={getImageUrl(userItem.avatar || userItem.profile_image || userItem.avatar_url)}
                                 alt={userItem.name || 'User'}
                                 className="w-full h-full object-cover rounded-full flex-shrink-0"
                                 style={{ 
@@ -426,9 +452,9 @@ const Header = ({ toggleSidebar }) => {
               >
                 {}
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xs sm:text-sm relative" style={{ minWidth: '32px', minHeight: '32px', width: '32px', height: '32px' }}>
-                  {user?.avatar || user?.profile_image ? (
+                  {getImageUrl(user?.avatar || user?.profile_image) ? (
                     <img
-                      src={user.avatar || user.profile_image}
+                      src={getImageUrl(user?.avatar || user?.profile_image)}
                       alt={user?.name || 'User'}
                       className="w-full h-full object-cover flex-shrink-0 rounded-full absolute inset-0"
                       style={{ 
@@ -477,7 +503,7 @@ const Header = ({ toggleSidebar }) => {
                     />
                   ) : null}
                   <span 
-                    className={`avatar-initial ${user?.avatar || user?.profile_image ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
+                    className={`avatar-initial ${getImageUrl(profileImage || user?.avatar || user?.profile_image) ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
                     style={{ 
                       width: '100%', 
                       height: '100%', 
@@ -490,7 +516,7 @@ const Header = ({ toggleSidebar }) => {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      zIndex: (user?.avatar || user?.profile_image) ? 0 : 1
+                      zIndex: getImageUrl(user?.avatar || user?.profile_image) ? 0 : 1
                     }}
                   >
                     {user?.name?.charAt(0).toUpperCase() || 'U'}

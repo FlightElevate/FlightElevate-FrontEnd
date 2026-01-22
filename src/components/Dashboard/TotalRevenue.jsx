@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -10,6 +10,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { logbookService } from "../../api/services/logbookService";
+import { showSuccessToast, showErrorToast } from "../../utils/notifications";
+import { API_BASE_URL } from "../../api/config";
 
 
 const allRevenueData = [
@@ -42,46 +45,83 @@ const getCurrentFullDate = () => {
 
 const TotalRevenue = () => {
   const [startDate, setStartDate] = useState(() => {
-    
     const date = new Date();
-    date.setDate(date.getDate() - 5);
+    date.setDate(date.getDate() - 30); // Default to last 30 days
     return date.toISOString().split('T')[0];
   });
   
   const [endDate, setEndDate] = useState(() => {
-    
     return new Date().toISOString().split('T')[0];
   });
 
-  const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [timePeriod, setTimePeriod] = useState("Weekly");
+  const [revenueData, setRevenueData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const currentDate = getCurrentDate();
   const currentFullDate = getCurrentFullDate();
 
-  
-  const allRevenueDataWithLocation = allRevenueData.map(item => ({
-    ...item,
-    location: "All Locations" 
-  }));
+  // Fetch revenue data from logbooks
+  useEffect(() => {
+    const fetchRevenueData = async () => {
+      setLoading(true);
+      try {
+        const response = await logbookService.getEntries({
+          start_date: startDate,
+          end_date: endDate,
+          per_page: 1000
+        });
+
+        if (response.success) {
+          const logbooks = Array.isArray(response.data) ? response.data : [];
+          
+          // Group by date and calculate revenue (assuming revenue = total_hours * hourly_rate)
+          // For now, we'll use a simple calculation: revenue = total_hours * 100
+          const revenueByDate = {};
+          
+          logbooks.forEach(logbook => {
+            const date = logbook.flight_date || logbook.created_at?.split('T')[0];
+            if (date) {
+              const revenue = (logbook.total_hours || 0) * 100; // $100 per hour
+              
+              if (!revenueByDate[date]) {
+                revenueByDate[date] = {
+                  date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                  fullDate: date,
+                  revenue: 0
+                };
+              }
+              revenueByDate[date].revenue += revenue;
+            }
+          });
+
+          // Convert to array and sort by date
+          const data = Object.values(revenueByDate).sort((a, b) => 
+            new Date(a.fullDate) - new Date(b.fullDate)
+          );
+          
+          setRevenueData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching revenue data:', error);
+        showErrorToast('Failed to fetch revenue data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRevenueData();
+  }, [startDate, endDate]);
 
   
   const filteredData = useMemo(() => {
-    let filtered = allRevenueDataWithLocation.filter(item => {
+    let filtered = revenueData.filter(item => {
       return item.fullDate >= startDate && item.fullDate <= endDate;
     });
 
-    
-    if (selectedLocation !== "All Locations") {
-      filtered = filtered.filter(item => item.location === selectedLocation);
-    }
-
-    
     if (timePeriod === "Daily") {
-      
       return filtered;
     } else if (timePeriod === "Weekly") {
-      
       const weeklyData = {};
       filtered.forEach(item => {
         const date = new Date(item.fullDate);
@@ -93,15 +133,13 @@ const TotalRevenue = () => {
           weeklyData[weekKey] = {
             date: `Week of ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
             fullDate: weekKey,
-            revenue: 0,
-            location: item.location
+            revenue: 0
           };
         }
         weeklyData[weekKey].revenue += item.revenue;
       });
       return Object.values(weeklyData).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
     } else if (timePeriod === "Monthly") {
-      
       const monthlyData = {};
       filtered.forEach(item => {
         const date = new Date(item.fullDate);
@@ -111,8 +149,7 @@ const TotalRevenue = () => {
           monthlyData[monthKey] = {
             date: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
             fullDate: `${monthKey}-01`,
-            revenue: 0,
-            location: item.location
+            revenue: 0
           };
         }
         monthlyData[monthKey].revenue += item.revenue;
@@ -121,7 +158,7 @@ const TotalRevenue = () => {
     }
 
     return filtered;
-  }, [startDate, endDate, selectedLocation, timePeriod]);
+  }, [revenueData, startDate, endDate, timePeriod]);
 
   
   const avgRevenue = useMemo(() => {
@@ -129,6 +166,33 @@ const TotalRevenue = () => {
     const sum = filteredData.reduce((acc, item) => acc + item.revenue, 0);
     return Math.round(sum / filteredData.length);
   }, [filteredData]);
+
+  // Export function
+  const handleExport = async () => {
+    try {
+      const response = await logbookService.exportEntries({
+        start_date: startDate,
+        end_date: endDate
+      });
+
+      if (response && response.data) {
+        // Create blob and download
+        const blob = new Blob([response.data], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `revenue-report-${startDate}-to-${endDate}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        showSuccessToast('Report exported successfully');
+      }
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      showErrorToast('Failed to export report');
+    }
+  };
   return (
     <div className="bg-white shadow-sm rounded-xl p-4 sm:p-6 border border-gray-100">
       <div className="flex flex-col gap-4 mb-6">
@@ -139,22 +203,13 @@ const TotalRevenue = () => {
           {}
           <div className="flex flex-col sm:flex-row gap-3 flex-1 sm:flex-initial">
             <select 
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-            >
-              <option value="All Locations">All Locations</option>
-              <option value="Location 1">Location 1</option>
-              <option value="Location 2">Location 2</option>
-            </select>
-            <select 
               value={timePeriod}
               onChange={(e) => setTimePeriod(e.target.value)}
               className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
             >
+              <option value="Daily">Daily</option>
               <option value="Weekly">Weekly</option>
               <option value="Monthly">Monthly</option>
-              <option value="Daily">Daily</option>
             </select>
           </div>
           
@@ -177,8 +232,12 @@ const TotalRevenue = () => {
           </div>
           
           {}
-          <button className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[44px] whitespace-nowrap">
-            Export Report
+          <button 
+            onClick={handleExport}
+            disabled={loading}
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[44px] whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Loading...' : 'Export Report'}
           </button>
         </div>
       </div>
@@ -195,8 +254,8 @@ const TotalRevenue = () => {
       </div>
 
       {}
-      <div className="w-full relative" style={{ height: '320px', minWidth: '300px' }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full relative" style={{ height: '320px', minWidth: '300px', minHeight: '320px' }}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={320}>
           <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">

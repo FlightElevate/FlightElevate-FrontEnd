@@ -14,7 +14,7 @@ export const navigationItems = [
   {
     icon: FiGrid,
     label: "Dashboard",
-    link: "/",
+    link: "/dashboard",
     roles: ["super admin", "admin", "instructor", "student"], 
   },
   {

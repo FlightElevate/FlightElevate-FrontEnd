@@ -2,7 +2,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getNavigationItemsByRole } from "../config/navigation";
-import { organizationService } from "../api/services/organizationService";
+import { settingsService } from "../api/services/settingsService";
+import { getImageUrl } from "../utils/imageUtils";
 import logo from "../assets/SVG/logo.svg";
 
 
@@ -11,6 +12,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
   const [organizationName, setOrganizationName] = useState(null);
   const [organizationLogo, setOrganizationLogo] = useState(null);
+  const [logoError, setLogoError] = useState(false);
 
   
   const navLinks = useMemo(() => {
@@ -30,35 +32,36 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   
   useEffect(() => {
     const fetchOrganizationData = async () => {
-      
-      if (user?.organization?.name) {
-        setOrganizationName(user.organization.name);
-        setOrganizationLogo(user.organization.logo);
-        return;
-      }
-
-      
-      if (user?.organization_id) {
-        try {
-          const response = await organizationService.getOrganization(user.organization_id);
-          if (response.success && response.data) {
-            if (response.data.name) {
-              setOrganizationName(response.data.name);
-            }
-            if (response.data.logo) {
-              setOrganizationLogo(response.data.logo);
-            }
+      // Use settings API to get organization data (same as settings page)
+      try {
+        const response = await settingsService.getSettings();
+        if (response.success && response.data) {
+          // Get organization from settings (same source as settings page)
+          if (response.data.organization) {
+            setOrganizationName(response.data.organization.name || '');
+            setOrganizationLogo(response.data.organization.logo || null);
+            setLogoError(false); // Reset error when new logo is set
+          } else if (user?.organization) {
+            // Fallback to user.organization if settings doesn't have it
+            setOrganizationName(user.organization.name || '');
+            setOrganizationLogo(user.organization.logo || null);
+            setLogoError(false); // Reset error when new logo is set
+          } else {
+            setOrganizationName(null);
+            setOrganizationLogo(null);
+            setLogoError(false);
           }
-        } catch (err) {
-          console.warn('Failed to fetch organization:', err);
-          
+        }
+      } catch (err) {
+        console.warn('Failed to fetch organization from settings:', err);
+        // Fallback to user.organization
+        if (user?.organization) {
+          setOrganizationName(user.organization.name || '');
+          setOrganizationLogo(user.organization.logo || null);
+        } else {
           setOrganizationName(null);
           setOrganizationLogo(null);
         }
-      } else {
-        
-        setOrganizationName(null);
-        setOrganizationLogo(null);
       }
     };
 
@@ -90,18 +93,42 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {}
         <div className="ps-5 p-4 border-b border-blue-600">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-              {organizationLogo ? (
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+              {/* Default logo - always present, shown when no org logo */}
+              <img 
+                src={logo} 
+                alt="Logo" 
+                className={`w-full h-full object-cover p-1.5 sm:p-2 default-logo absolute inset-0 ${getImageUrl(organizationLogo) ? 'hidden' : 'block'}`}
+              />
+              {/* Organization logo - shown if available */}
+              {getImageUrl(organizationLogo) && (
                 <img 
-                  src={organizationLogo} 
+                  src={getImageUrl(organizationLogo)} 
                   alt={displayName} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <img 
-                  src={logo} 
-                  alt="Logo" 
-                  className="w-full h-full object-cover p-1.5 sm:p-2"
+                  className="w-full h-full object-cover absolute inset-0"
+                  onError={(e) => {
+                    // Hide organization image on error and show default logo
+                    e.target.style.display = 'none';
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      const defaultLogo = parent.querySelector('.default-logo');
+                      if (defaultLogo) {
+                        defaultLogo.classList.remove('hidden');
+                        defaultLogo.classList.add('block');
+                      }
+                    }
+                  }}
+                  onLoad={(e) => {
+                    // Hide default logo when organization logo loads successfully
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      const defaultLogo = parent.querySelector('.default-logo');
+                      if (defaultLogo) {
+                        defaultLogo.classList.add('hidden');
+                        defaultLogo.classList.remove('block');
+                      }
+                    }
+                  }}
                 />
               )}
             </div>

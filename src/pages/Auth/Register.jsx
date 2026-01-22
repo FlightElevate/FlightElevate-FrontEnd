@@ -19,6 +19,7 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [passwordStrength, setPasswordStrength] = useState({ level: '', text: '', color: '' });
   
   const navigate = useNavigate();
   const { register, isAuthenticated, loading: authLoading } = useAuth();
@@ -29,8 +30,46 @@ const Register = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
+  const checkPasswordStrength = (password) => {
+    if (!password) {
+      return { level: '', text: '', color: '' };
+    }
+
+    let strength = 0;
+    
+    // Length check
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    
+    // Contains lowercase
+    if (/[a-z]/.test(password)) strength++;
+    
+    // Contains uppercase
+    if (/[A-Z]/.test(password)) strength++;
+    
+    // Contains number
+    if (/[0-9]/.test(password)) strength++;
+    
+    // Contains special character
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    if (strength <= 2) {
+      return { level: 'weak', text: 'Weak', color: 'text-red-600' };
+    } else if (strength <= 4) {
+      return { level: 'medium', text: 'Medium', color: 'text-yellow-600' };
+    } else {
+      return { level: 'strong', text: 'Strong', color: 'text-green-600' };
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Check password strength when password field changes
+    if (name === 'password') {
+      setPasswordStrength(checkPasswordStrength(value));
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -90,10 +129,10 @@ const Register = () => {
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Left side - Info */}
-      <div className="hidden lg:flex lg:w-1/2 bg-indigo-700 items-center justify-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-blue-700 items-center justify-center p-12">
         <div className="max-w-md text-white">
           <h1 className="text-4xl font-bold mb-4">Join FlightElevate</h1>
-          <p className="text-indigo-100 text-lg mb-8">
+          <p className="text-blue-100 text-lg mb-8">
             Create your account and start managing your flight school operations with ease.
           </p>
           <div className="space-y-4">
@@ -138,7 +177,7 @@ const Register = () => {
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-indigo-700 hover:text-indigo-600">
+              <Link to="/login" className="font-medium text-blue-700 hover:text-blue-600">
                 Sign in
               </Link>
             </p>
@@ -257,7 +296,7 @@ const Register = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="appearance-none relative block w-full px-4 py-3 pr-10 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-700 focus:border-indigo-700 sm:text-sm transition-colors"
+                    className="appearance-none relative block w-full px-4 py-3 pr-10 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 sm:text-sm transition-colors"
                     placeholder="Min. 8 characters"
                   />
                   <button
@@ -268,6 +307,29 @@ const Register = () => {
                     {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                   </button>
                 </div>
+                {/* Password Strength Indicator */}
+                {formData.password && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-600">Password Strength:</span>
+                      <span className={`text-xs font-semibold ${passwordStrength.color}`}>
+                        {passwordStrength.text}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          passwordStrength.level === 'weak' ? 'bg-red-500 w-1/3' :
+                          passwordStrength.level === 'medium' ? 'bg-yellow-500 w-2/3' :
+                          passwordStrength.level === 'strong' ? 'bg-green-500 w-full' : 'w-0'
+                        }`}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Use 8+ characters with a mix of letters, numbers & symbols
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -307,17 +369,17 @@ const Register = () => {
                   type="checkbox"
                   checked={formData.agreeToTerms}
                   onChange={handleChange}
-                  className="h-4 w-4 text-indigo-700 focus:ring-indigo-700 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-700 focus:ring-blue-700 border-gray-300 rounded"
                 />
               </div>
               <div className="ml-2 text-sm">
                 <label htmlFor="agreeToTerms" className="text-gray-700">
                   I agree to the{' '}
-                  <Link to="/user-policy" className="font-medium text-indigo-700 hover:text-indigo-600">
+                  <Link to="/user-policy" className="font-medium text-blue-700 hover:text-blue-600">
                     Terms and Conditions
                   </Link>
                   {' '}and{' '}
-                  <Link to="/user-policy" className="font-medium text-indigo-700 hover:text-indigo-600">
+                  <Link to="/user-policy" className="font-medium text-blue-700 hover:text-blue-600">
                     Privacy Policy
                   </Link>
                 </label>
@@ -330,7 +392,7 @@ const Register = () => {
                 type="submit"
                 disabled={loading}
                 className={`group relative w-full flex justify-center items-center py-3 px-4 border border-transparent text-base font-medium rounded-lg text-white ${
-                  loading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-700 hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-700'
+                  loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700'
                 } transition-colors shadow-sm`}
               >
                 {loading ? (
@@ -348,7 +410,7 @@ const Register = () => {
             </div>
 
             <div className="text-center">
-              <Link to="/" className="text-sm text-indigo-700 hover:text-indigo-600">
+              <Link to="/" className="text-sm text-blue-700 hover:text-blue-600">
                 ← Back to home
               </Link>
             </div>

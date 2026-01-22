@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import SummaryCards from '../../components/Dashboard/SummaryCards';
 import FSession from '../../components/Dashboard/FSession';
 import TotalRevenue from '../../components/Dashboard/TotalRevenue';
 import UpcomingBookings from '../../components/Dashboard/UpcomingBookings';
 
-const AdminDashboard = () => {
+const AdminDashboard = React.memo(() => {
   const { user } = useAuth();
   
-  
-  const userName = user?.name?.split(' ')[0] || user?.first_name || 'John';
+  const userName = useMemo(() => {
+    return user?.name?.split(' ')[0] || user?.first_name || 'John';
+  }, [user?.name, user?.first_name]);
 
   return (
     <div className="p-2 gap-6">
@@ -19,18 +20,15 @@ const AdminDashboard = () => {
       </div>
 
       <div className="flex flex-col gap-6">
-        {}
         <SummaryCards />
-        
-        {}
         <FSession/>
         <TotalRevenue/>
-        
-        {}
         <UpcomingBookings/>
       </div>
     </div>
   );
-};
+});
+
+AdminDashboard.displayName = 'AdminDashboard';
 
 export default AdminDashboard;
