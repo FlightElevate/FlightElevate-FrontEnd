@@ -8,14 +8,17 @@ import profile_chat from "../../assets/img/profile_chat.jpg";
 import sender from "../../assets/SVG/sender.svg";
 import echo from "../../echo";
 import { supportService } from "../../api/services/supportService";
+import { userService } from "../../api/services/userService";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
+import { getImageUrl } from "../../utils/imageUtils";
 
 const ChatSupport = () => {
   const { id: ticketId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [ticket, setTicket] = useState(null);
+  const [ticketUser, setTicketUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -48,6 +51,19 @@ const ChatSupport = () => {
         const ticketResponse = await supportService.getTicket(ticketId);
         if (ticketResponse.success) {
           setTicket(ticketResponse.data);
+          
+          // Fetch full user details if user ID is available
+          if (ticketResponse.data?.user?.id) {
+            try {
+              const userResponse = await userService.getUser(ticketResponse.data.user.id);
+              if (userResponse.success) {
+                setTicketUser(userResponse.data);
+              }
+            } catch (userError) {
+              console.warn('Failed to fetch user details:', userError);
+              // Continue without user details
+            }
+          }
         }
 
         
@@ -625,15 +641,79 @@ const ChatSupport = () => {
 
       <div className="bg-white p-6 rounded shadow mt-6 flex flex-col justify-between">
         <div className="border-b border-[#EAECF0] pb-4 mb-4">
-          <h3 className="text-md font-semibold text-gray-800 mb-1">
+          {/* <h3 className="text-md font-semibold text-gray-800 mb-1">
             {ticket.title || 'Support Ticket'}
-          </h3>
+          </h3> */}
           <div className="text-sm text-gray-500 flex items-center space-x-4">
-            <img
-              src={ticket.user?.avatar || profile_chat}
-              alt="profile"
-              className="w-8 h-8 rounded-full"
-            />
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xs relative" style={{ minWidth: '32px', minHeight: '32px', width: '32px', height: '32px' }}>
+              {getImageUrl(ticketUser?.avatar || ticketUser?.profile_image || ticketUser?.avatar_url || ticketUser?.organization?.logo || ticket.user?.avatar || ticket.user?.profile_image || ticket.user?.avatar_url || ticket.user?.organization?.logo) ? (
+                <img
+                  src={getImageUrl(ticketUser?.avatar || ticketUser?.profile_image || ticketUser?.avatar_url || ticketUser?.organization?.logo || ticket.user?.avatar || ticket.user?.profile_image || ticket.user?.avatar_url || ticket.user?.organization?.logo)}
+                  alt={ticketUser?.name || ticket.user?.name || 'User'}
+                  className="w-full h-full object-cover rounded-full flex-shrink-0 absolute inset-0"
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover', 
+                    minWidth: '100%', 
+                    minHeight: '100%',
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    display: 'block',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 2
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      const initial = parent.querySelector('.ticket-user-initial');
+                      if (initial) {
+                        initial.style.display = 'flex';
+                        initial.classList.remove('hidden');
+                        initial.style.zIndex = '1';
+                      }
+                    }
+                  }}
+                  onLoad={(e) => {
+                    e.target.style.display = 'block';
+                    e.target.style.zIndex = '2';
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      const initial = parent.querySelector('.ticket-user-initial');
+                      if (initial) {
+                        initial.style.display = 'none';
+                        initial.classList.add('hidden');
+                        initial.style.zIndex = '0';
+                      }
+                    }
+                  }}
+                />
+              ) : null}
+              <span 
+                className={`ticket-user-initial ${getImageUrl(ticketUser?.avatar || ticketUser?.profile_image || ticketUser?.avatar_url || ticketUser?.organization?.logo || ticket.user?.avatar || ticket.user?.profile_image || ticket.user?.avatar_url || ticket.user?.organization?.logo) ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  minWidth: '100%', 
+                  minHeight: '100%',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: getImageUrl(ticketUser?.avatar || ticketUser?.profile_image || ticketUser?.avatar_url || ticketUser?.organization?.logo || ticket.user?.avatar || ticket.user?.profile_image || ticket.user?.avatar_url || ticket.user?.organization?.logo) ? 0 : 1
+                }}
+              >
+                {(ticketUser?.name || ticket.user?.name)?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
             <span>{ticket.user?.name || 'Unknown'}</span>
             <span>|</span>
             <span>{ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : 'N/A'}</span>
@@ -671,11 +751,75 @@ const ChatSupport = () => {
                 >
                   {!isUser && (
                     <div className="flex flex-col items-center space-y-1">
-                      <img
-                        src={msg.sender?.avatar || profile_chat}
-                        alt="avatar"
-                        className="w-8 h-8 rounded-full"
-                      />
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xs relative" style={{ minWidth: '32px', minHeight: '32px', width: '32px', height: '32px' }}>
+                        {getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || msg.sender?.organization?.logo) ? (
+                          <img
+                            src={getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || msg.sender?.organization?.logo)}
+                            alt={msg.sender?.name || 'User'}
+                            className="w-full h-full object-cover rounded-full flex-shrink-0 absolute inset-0"
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'cover', 
+                              minWidth: '100%', 
+                              minHeight: '100%',
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              display: 'block',
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              zIndex: 2
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              const parent = e.target.parentElement;
+                              if (parent) {
+                                const initial = parent.querySelector('.message-sender-initial');
+                                if (initial) {
+                                  initial.style.display = 'flex';
+                                  initial.classList.remove('hidden');
+                                  initial.style.zIndex = '1';
+                                }
+                              }
+                            }}
+                            onLoad={(e) => {
+                              e.target.style.display = 'block';
+                              e.target.style.zIndex = '2';
+                              const parent = e.target.parentElement;
+                              if (parent) {
+                                const initial = parent.querySelector('.message-sender-initial');
+                                if (initial) {
+                                  initial.style.display = 'none';
+                                  initial.classList.add('hidden');
+                                  initial.style.zIndex = '0';
+                                }
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <span 
+                          className={`message-sender-initial ${getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || msg.sender?.organization?.logo) ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            minWidth: '100%', 
+                            minHeight: '100%',
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || msg.sender?.organization?.logo) ? 0 : 1
+                          }}
+                        >
+                          {msg.sender?.name?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
                       <div className="text-[10px] text-gray-500 text-center leading-tight">
                         <p>{time}</p>
                         <p>{date}</p>
@@ -784,11 +928,75 @@ const ChatSupport = () => {
 
                   {isUser && (
                     <div className="flex flex-col items-center space-y-1">
-                      <img
-                        src={msg.sender?.avatar || user?.avatar || profile_chat}
-                        alt="avatar"
-                        className="w-8 h-8 rounded-full"
-                      />
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xs relative" style={{ minWidth: '32px', minHeight: '32px', width: '32px', height: '32px' }}>
+                        {getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? (
+                          <img
+                            src={getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo)}
+                            alt={msg.sender?.name || user?.name || 'User'}
+                            className="w-full h-full object-cover rounded-full flex-shrink-0 absolute inset-0"
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'cover', 
+                              minWidth: '100%', 
+                              minHeight: '100%',
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              display: 'block',
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              zIndex: 2
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              const parent = e.target.parentElement;
+                              if (parent) {
+                                const initial = parent.querySelector('.user-message-initial');
+                                if (initial) {
+                                  initial.style.display = 'flex';
+                                  initial.classList.remove('hidden');
+                                  initial.style.zIndex = '1';
+                                }
+                              }
+                            }}
+                            onLoad={(e) => {
+                              e.target.style.display = 'block';
+                              e.target.style.zIndex = '2';
+                              const parent = e.target.parentElement;
+                              if (parent) {
+                                const initial = parent.querySelector('.user-message-initial');
+                                if (initial) {
+                                  initial.style.display = 'none';
+                                  initial.classList.add('hidden');
+                                  initial.style.zIndex = '0';
+                                }
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <span 
+                          className={`user-message-initial ${getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            minWidth: '100%', 
+                            minHeight: '100%',
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: getImageUrl(msg.sender?.avatar || msg.sender?.profile_image || msg.sender?.avatar_url || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? 0 : 1
+                          }}
+                        >
+                          {(msg.sender?.name || user?.name)?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
                       <div className="text-[10px] text-gray-500 text-center leading-tight">
                         <p>{time}</p>
                         <p>{date}</p>
