@@ -18,7 +18,8 @@ node_modules/
 dist
 dist-ssr
 *.local
-
+dist/
+/dist/
 # Environment variables
 .env
 .env.local

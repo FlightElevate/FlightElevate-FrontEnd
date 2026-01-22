@@ -452,9 +452,9 @@ const Header = ({ toggleSidebar }) => {
               >
                 {}
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xs sm:text-sm relative" style={{ minWidth: '32px', minHeight: '32px', width: '32px', height: '32px' }}>
-                  {getImageUrl(user?.avatar || user?.profile_image) ? (
+                  {getImageUrl(profileImage || user?.avatar || user?.profile_image) ? (
                     <img
-                      src={getImageUrl(user?.avatar || user?.profile_image)}
+                      src={getImageUrl(profileImage || user?.avatar || user?.profile_image)}
                       alt={user?.name || 'User'}
                       className="w-full h-full object-cover flex-shrink-0 rounded-full absolute inset-0"
                       style={{ 
@@ -516,7 +516,7 @@ const Header = ({ toggleSidebar }) => {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      zIndex: getImageUrl(user?.avatar || user?.profile_image) ? 0 : 1
+                      zIndex: getImageUrl(profileImage || user?.avatar || user?.profile_image) ? 0 : 1
                     }}
                   >
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
