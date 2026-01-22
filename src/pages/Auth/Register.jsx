@@ -80,16 +80,22 @@ const Register = () => {
     e.preventDefault();
     setError('');
 
-    // Validation
+    // Frontend validation
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setError('First name and last name are required');
+      showErrorToast('First name and last name are required');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       showErrorToast('Passwords do not match');
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      showErrorToast('Password must be at least 8 characters long');
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      showErrorToast('Password must be at least 6 characters long');
       return;
     }
 
@@ -102,13 +108,16 @@ const Register = () => {
     setLoading(true);
 
     try {
+      // Combine first and last name into name field (backend expects 'name')
+      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+      
       const result = await register({
-        first_name: formData.firstName,
-        last_name: formData.lastName,
+        name: fullName,
         email: formData.email,
         password: formData.password,
-        organization_name: formData.organizationName,
-        role: formData.role,
+        password_confirmation: formData.confirmPassword, // Required for Laravel password.confirmed validation
+        organization_name: formData.organizationName || null,
+        role: formData.role || 'Student',
       });
       
       if (result.success) {

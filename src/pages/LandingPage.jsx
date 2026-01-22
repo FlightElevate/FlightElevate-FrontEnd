@@ -21,6 +21,7 @@ const LandingPage = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(0);
   const menuRef = useRef(null);
 
   // Redirect authenticated users to dashboard immediately
@@ -30,12 +31,6 @@ const LandingPage = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
-
-  // Show nothing while checking authentication to prevent flash
-  if (authLoading || isAuthenticated) {
-    return null;
-  }
-  const [openFaq, setOpenFaq] = useState(0);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -58,6 +53,12 @@ const LandingPage = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [mobileMenuOpen]);
+
+  // Show nothing while checking authentication to prevent flash
+  // IMPORTANT: All hooks must be called before any conditional returns
+  if (authLoading || isAuthenticated) {
+    return null;
+  }
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);

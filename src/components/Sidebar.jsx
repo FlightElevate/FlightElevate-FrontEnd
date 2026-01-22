@@ -65,10 +65,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       }
     };
 
-    if (user) {
+    if (user?.id) {
       fetchOrganizationData();
     }
-  }, [user]);
+  }, [user?.id]); // Use user?.id instead of user object to prevent infinite loops
 
   
   const displayName = organizationName || "FlightElevate";

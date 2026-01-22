@@ -58,8 +58,9 @@ const TotalRevenue = () => {
   const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const currentDate = getCurrentDate();
-  const currentFullDate = getCurrentFullDate();
+  // Memoize current date to prevent re-renders (fixes React error #310)
+  const currentDate = useMemo(() => getCurrentDate(), []);
+  const currentFullDate = useMemo(() => getCurrentFullDate(), []);
 
   // Fetch revenue data from logbooks
   useEffect(() => {

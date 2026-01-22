@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { authService } from '../api/services/authService';
 import { hasRole as checkRole, isSuperAdmin, isAdmin } from '../utils/roleUtils';
 
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     try {
       const response = await authService.login(email, password);
       
@@ -41,10 +41,10 @@ export const AuthProvider = ({ children }) => {
         message: error.message || 'Invalid credentials' 
       };
     }
-  };
+  }, []);
 
   
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     try {
       const response = await authService.register(userData);
       
@@ -62,10 +62,10 @@ export const AuthProvider = ({ children }) => {
         message: error.message || 'Registration failed' 
       };
     }
-  };
+  }, []);
 
   
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authService.logout();
     } catch (error) {
@@ -74,10 +74,10 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
     }
-  };
+  }, []);
 
   
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const response = await authService.me();
       if (response.success && response.data) {
@@ -89,33 +89,35 @@ export const AuthProvider = ({ children }) => {
       console.error('Refresh user error:', error);
       return { success: false, error };
     }
-  };
+  }, []);
 
   
-  const hasRole = (role) => {
+  const hasRole = useCallback((role) => {
     if (!user?.roles) return false;
     return checkRole(user.roles, role);
-  };
+  }, [user?.roles]);
 
   
-  const hasPermission = (permission) => {
+  const hasPermission = useCallback((permission) => {
     if (!user?.permissions) return false;
     const userPermissions = Array.isArray(user.permissions) 
       ? user.permissions 
       : [];
     return userPermissions.includes(permission);
-  };
+  }, [user?.permissions]);
 
   
-  const userIsSuperAdmin = () => {
+  const userIsSuperAdmin = useCallback(() => {
     return user?.roles ? isSuperAdmin(user.roles) : false;
-  };
+  }, [user?.roles]);
 
-  const userIsAdmin = () => {
+  const userIsAdmin = useCallback(() => {
     return user?.roles ? isAdmin(user.roles) : false;
-  };
+  }, [user?.roles]);
 
-  const value = {
+  // Memoize the context value to prevent infinite re-renders
+  // Use user?.id as a stable reference instead of the entire user object
+  const value = useMemo(() => ({
     user,
     loading,
     isAuthenticated,
@@ -127,7 +129,7 @@ export const AuthProvider = ({ children }) => {
     hasPermission,
     isSuperAdmin: userIsSuperAdmin,
     isAdmin: userIsAdmin,
-  };
+  }), [user, loading, isAuthenticated, login, register, logout, refreshUser, hasRole, hasPermission, userIsSuperAdmin, userIsAdmin]);
 
   return (
     <AuthContext.Provider value={value}>

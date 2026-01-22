@@ -28,7 +28,7 @@ const Header = ({ toggleSidebar }) => {
   // Fetch profile image from settings API (same as settings page)
   useEffect(() => {
     const fetchProfileImage = async () => {
-      if (user) {
+      if (user?.id) {
         try {
           const response = await settingsService.getSettings();
           if (response.success && response.data?.avatar) {
@@ -46,7 +46,7 @@ const Header = ({ toggleSidebar }) => {
     };
 
     fetchProfileImage();
-  }, [user]);
+  }, [user?.id]); // Use user?.id instead of user object to prevent infinite loops
 
   
   useEffect(() => {
