@@ -6,8 +6,10 @@ import profileImg from "../../../assets/img/profile.jpg";
 import { userService } from "../../../api/services/userService";
 import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
+import { settingsService } from "../../../api/services/settingsService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast, showBlockUserConfirm } from "../../../utils/notifications";
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
+import { getImageUrl } from "../../../utils/imageUtils";
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -21,6 +23,17 @@ const UserProfile = () => {
   const [searchLogs, setSearchLogs] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
   const [openMenu, setOpenMenu] = useState(null);
+  const [showEditDocument, setShowEditDocument] = useState(false);
+  const [editingDocument, setEditingDocument] = useState(null);
+  const [editDocumentData, setEditDocumentData] = useState({
+    title: '',
+    expiry_date: '',
+    details: '',
+    file: null,
+  });
+  const [selectedEditFile, setSelectedEditFile] = useState(null);
+  const [updatingDoc, setUpdatingDoc] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -35,7 +48,27 @@ const UserProfile = () => {
     try {
       const response = await userService.getUser(id);
       if (response.success) {
-        setUser(response.data);
+        const userData = response.data;
+        setUser(userData);
+        
+        // Debug: Log user data to see what fields are available
+        console.log('User data:', userData);
+        console.log('Avatar fields:', {
+          avatar: userData?.avatar,
+          profile_image: userData?.profile_image,
+          avatar_url: userData?.avatar_url,
+        });
+        
+        // Try to get profile image from user object, fallback to organization logo
+        const avatarUrl = userData?.avatar || userData?.profile_image || userData?.avatar_url || userData?.organization?.logo;
+        if (avatarUrl) {
+          const fullImageUrl = getImageUrl(avatarUrl);
+          console.log('Profile image URL:', fullImageUrl);
+          setProfileImage(avatarUrl);
+        } else {
+          console.log('No profile image found in user object');
+          setProfileImage(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -73,6 +106,67 @@ const UserProfile = () => {
       setFlightLogs([]);
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const handleEditDocument = (doc) => {
+    setEditingDocument(doc);
+    setEditDocumentData({
+      title: doc.title || '',
+      expiry_date: doc.expiry_date || '',
+      details: doc.details || '',
+      file: null,
+    });
+    setSelectedEditFile(null);
+    setShowEditDocument(true);
+    setOpenMenu(null);
+  };
+
+  const handleEditDocumentChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'file' && files && files[0]) {
+      setSelectedEditFile(files[0]);
+      setEditDocumentData(prev => ({ ...prev, file: files[0] }));
+    } else {
+      setEditDocumentData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleUpdateDocument = async () => {
+    if (!id || !editingDocument?.id) return;
+    if (!editDocumentData.title.trim()) {
+      showErrorToast('Please enter document title');
+      return;
+    }
+
+    setUpdatingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', editDocumentData.title);
+      if (editDocumentData.expiry_date) {
+        formData.append('expiry_date', editDocumentData.expiry_date);
+      }
+      if (editDocumentData.details) {
+        formData.append('details', editDocumentData.details);
+      }
+      if (editDocumentData.file) {
+        formData.append('file', editDocumentData.file);
+      }
+
+      const response = await documentService.updateDocument(id, editingDocument.id, formData);
+
+      if (response.success) {
+        showSuccessToast('Document updated successfully');
+        setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
+        setSelectedEditFile(null);
+        setEditingDocument(null);
+        setShowEditDocument(false);
+        await fetchDocuments();
+      }
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Failed to update document');
+    } finally {
+      setUpdatingDoc(false);
     }
   };
 
@@ -163,7 +257,75 @@ const UserProfile = () => {
         {}
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
-            <img src={profileImg} alt="User Avatar" className="w-16 h-16 rounded-full object-cover" />
+            <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xl relative" style={{ minWidth: '64px', minHeight: '64px', width: '64px', height: '64px' }}>
+              {getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? (
+                <img
+                  src={getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo)}
+                  alt={user?.name || 'User'}
+                  className="w-full h-full object-cover rounded-full flex-shrink-0 absolute inset-0"
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover', 
+                    minWidth: '100%', 
+                    minHeight: '100%',
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    display: 'block',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 2
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      const initial = parent.querySelector('.user-initial');
+                      if (initial) {
+                        initial.style.display = 'flex';
+                        initial.classList.remove('hidden');
+                        initial.style.zIndex = '1';
+                      }
+                    }
+                  }}
+                  onLoad={(e) => {
+                    e.target.style.display = 'block';
+                    e.target.style.zIndex = '2';
+                    const parent = e.target.parentElement;
+                    if (parent) {
+                      const initial = parent.querySelector('.user-initial');
+                      if (initial) {
+                        initial.style.display = 'none';
+                        initial.classList.add('hidden');
+                        initial.style.zIndex = '0';
+                      }
+                    }
+                  }}
+                />
+              ) : null}
+              <span 
+                className={`user-initial ${getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  minWidth: '100%', 
+                  minHeight: '100%',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? 0 : 1
+                }}
+              >
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
             <div className="flex flex-col">
               <h1 className="text-2xl font-bold text-gray-900">{user?.name}</h1>
               <p className="text-gray-600 text-sm">{user?.email}</p>
@@ -308,7 +470,7 @@ const UserProfile = () => {
                         <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                           <button 
                             className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px]" 
-                            onClick={() => alert(`Edit: ${doc.title}`)}
+                            onClick={() => handleEditDocument(doc)}
                           >
                             Edit
                           </button>
@@ -328,6 +490,118 @@ const UserProfile = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Document Modal */}
+      {showEditDocument && editingDocument && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Edit Document</h3>
+                <button
+                  onClick={() => {
+                    setShowEditDocument(false);
+                    setEditingDocument(null);
+                    setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
+                    setSelectedEditFile(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Document Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={editDocumentData.title}
+                    onChange={handleEditDocumentChange}
+                    placeholder="Enter document title..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Expiry Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    name="expiry_date"
+                    value={editDocumentData.expiry_date}
+                    onChange={handleEditDocumentChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Details (Optional)
+                  </label>
+                  <textarea
+                    name="details"
+                    value={editDocumentData.details}
+                    onChange={handleEditDocumentChange}
+                    placeholder="Enter document details..."
+                    rows="3"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    File (Optional - Leave empty to keep current file)
+                  </label>
+                  <input
+                    type="file"
+                    name="file"
+                    onChange={handleEditDocumentChange}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                  />
+                  {selectedEditFile && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Selected: {selectedEditFile.name}
+                    </p>
+                  )}
+                  {!selectedEditFile && editingDocument.file_path && (
+                    <p className="mt-2 text-sm text-gray-500 italic">
+                      Current file will be kept
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowEditDocument(false);
+                    setEditingDocument(null);
+                    setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
+                    setSelectedEditFile(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition min-h-[44px]"
+                  disabled={updatingDoc}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateDocument}
+                  disabled={updatingDoc}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {updatingDoc ? 'Updating...' : 'Update Document'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
