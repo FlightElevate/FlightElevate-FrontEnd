@@ -13,6 +13,7 @@ export const useUserForm = (initialData = {}, options = {}) => {
     role: '',
     status: 'active',
     organization_name: '',
+    certificate_level: '',
   }), []);
 
   // Normalize initialData to ensure role is always a string

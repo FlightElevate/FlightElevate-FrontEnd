@@ -69,7 +69,7 @@ export const navigationItems = [
   },
   {
     icon: FiBook,
-    label: "Lessons",
+    label: "Lessons & Reservations",
     link: "/lessons",
     roles: ["instructor", "admin"], 
   },
@@ -77,7 +77,7 @@ export const navigationItems = [
     icon: MdBook,
     label: "Logbook",
     link: "/logbook",
-    roles: ["admin"], 
+    roles: ["admin", "instructor", "student"],
   },
   {
     icon: FiDollarSign,

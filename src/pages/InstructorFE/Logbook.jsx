@@ -21,14 +21,16 @@ const Logbook = () => {
   const [logbooks, setLogbooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
-  
+  const [stats, setStats] = useState({ total_hours: 0, this_month_count: 0 });
+
   // Filter states
   const [filterStudentId, setFilterStudentId] = useState("");
+  const [filterMonth, setFilterMonth] = useState(""); // YYYY-MM for monthly filter
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [students, setStudents] = useState([]);
   const [aircraft, setAircraft] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   
   // Edit modal states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -56,6 +58,11 @@ const Logbook = () => {
     // FAA Time Breakdown
     cross_country_hours: 0,
     instrument_hours: 0,
+    actual_instrument_hours: 0,
+    simulated_instrument_hours: 0,
+    flight_simulator_hours: 0,
+    approach_type: [],
+    approach_count: 0,
     night_hours: 0,
     turbine_hours: 0,
     // Additional Details
@@ -85,7 +92,7 @@ const Logbook = () => {
     fetchLogbooks();
     fetchStudents();
     fetchAircraft();
-  }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterStartDate, filterEndDate, searchTerm]);
+  }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterMonth, filterStartDate, filterEndDate, searchTerm]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -103,21 +110,32 @@ const Logbook = () => {
   const fetchLogbooks = async () => {
     setLoading(true);
     try {
+      let start_date = filterStartDate;
+      let end_date = filterEndDate;
+      if (filterMonth) {
+        const [y, m] = filterMonth.split("-").map(Number);
+        start_date = `${y}-${String(m).padStart(2, "0")}-01`;
+        const lastDay = new Date(y, m, 0);
+        end_date = `${y}-${String(m).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
+      }
       const params = {
         page: currentPage,
         per_page: itemsPerPage,
-        search: searchTerm,
-        student_id: filterStudentId,
-        start_date: filterStartDate,
-        end_date: filterEndDate,
+        ...(searchTerm ? { search: searchTerm } : {}),
+        ...(filterStudentId ? { student_id: filterStudentId } : {}),
+        ...(start_date ? { start_date } : {}),
+        ...(end_date ? { end_date } : {}),
       };
 
       const response = await logbookService.getEntries(params);
       
       if (response.success) {
-        // Response structure: { success: true, data: [...], meta: {...} }
         setLogbooks(Array.isArray(response.data) ? response.data : []);
         setTotalItems(response.meta?.total || 0);
+        setStats({
+          total_hours: response.meta?.total_hours ?? 0,
+          this_month_count: response.meta?.this_month_count ?? 0,
+        });
       }
     } catch (error) {
       console.error('Error fetching logbooks:', error);
@@ -207,6 +225,11 @@ const Logbook = () => {
       total_hours: logbook.total_hours || 0,
       cross_country_hours: logbook.cross_country_hours || 0,
       instrument_hours: logbook.instrument_hours || 0,
+      actual_instrument_hours: logbook.actual_instrument_hours || 0,
+      simulated_instrument_hours: logbook.simulated_instrument_hours || 0,
+      flight_simulator_hours: logbook.flight_simulator_hours || 0,
+      approach_type: Array.isArray(logbook.approach_type) ? logbook.approach_type : (logbook.approach_type ? [logbook.approach_type] : []),
+      approach_count: logbook.approach_count || 0,
       night_hours: logbook.night_hours || 0,
       turbine_hours: logbook.turbine_hours || 0,
       aircraft_registration: logbook.aircraft_registration || '',
@@ -275,15 +298,7 @@ const Logbook = () => {
       setEditForm(prev => ({ ...prev, aircraft_class: '' }));
     }
 
-    // Auto-calculate total hours
-    if (['dual_hours', 'solo_hours', 'pic_hours', 'sic_hours'].includes(field)) {
-      const newForm = { ...editForm, [field]: parseFloat(value) || 0 };
-      const total = (parseFloat(newForm.dual_hours) || 0) + 
-                    (parseFloat(newForm.solo_hours) || 0) + 
-                    (parseFloat(newForm.pic_hours) || 0) + 
-                    (parseFloat(newForm.sic_hours) || 0);
-      setEditForm(prev => ({ ...prev, total_hours: total }));
-    }
+    // Total = Block Time only. Do NOT auto-sum PIC + Dual + SIC; those are subsets of total.
   };
 
   const handleSubmit = async (e) => {
@@ -348,30 +363,121 @@ const Logbook = () => {
     setShowEditModal(true);
   };
 
-  const handleExport = async () => {
-    try {
-      const response = await logbookService.exportEntries({
-        student_id: filterStudentId,
-        start_date: filterStartDate,
-        end_date: filterEndDate,
-      });
-      
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `logbook_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      
-      showSuccessToast('Logbook exported successfully');
-    } catch (error) {
-      showErrorToast('Failed to export logbook');
-    }
+  // Build CSV from list data – same API as table (getEntries), so export matches list exactly
+  const buildCsvFromListData = (rows) => {
+    const headers = [
+      'Date', 'Aircraft Make', 'Aircraft Model', 'Category', 'Class', 'Registration',
+      'Student', 'Instructor', 'Route From', 'Route To',
+      'Total (Block)', 'PIC', 'SIC', 'Dual Received', 'Solo', 'Dual Given',
+      'Cross-Country', 'Instrument', 'Actual Instrument', 'Simulated Instrument (Hood)', 'Flight Simulator',
+      'Approach Type', 'Approach Count', 'Night', 'Turbine',
+      'Day Takeoffs', 'Night Takeoffs', 'Day Landings', 'Night Landings',
+      'Notes', 'Summary'
+    ];
+    const escapeCsv = (v) => {
+      if (v == null || v === '') return '';
+      const s = String(v);
+      if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const toDateStr = (row) => {
+      const d = row.flight_date ?? row.flight_date_formatted ?? '';
+      if (!d) return '';
+      if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const date = new Date(d);
+        if (!Number.isNaN(date.getTime())) {
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        }
+      } catch (_) {}
+      return String(d);
+    };
+    const lines = [headers.map(escapeCsv).join(',')];
+    rows.forEach((row) => {
+      const approachTypeStr = Array.isArray(row.approach_type) && row.approach_type.length
+        ? row.approach_type.join(',')
+        : (row.approach_type ?? '');
+      lines.push([
+        toDateStr(row),
+        row.aircraft_make ?? '',
+        row.aircraft_model ?? '',
+        row.aircraft_category ?? '',
+        row.aircraft_class ?? '',
+        row.aircraft_registration ?? '',
+        row.student ?? 'N/A',
+        row.instructor ?? 'N/A',
+        row.route_from ?? '',
+        row.route_to ?? '',
+        parseFloat(row.total_hours ?? 0),
+        parseFloat(row.pic_hours ?? 0),
+        parseFloat(row.sic_hours ?? 0),
+        parseFloat(row.dual_hours ?? 0),
+        parseFloat(row.solo_hours ?? 0),
+        parseFloat(row.dual_given_hours ?? 0),
+        parseFloat(row.cross_country_hours ?? 0),
+        parseFloat(row.instrument_hours ?? 0),
+        parseFloat(row.actual_instrument_hours ?? 0),
+        parseFloat(row.simulated_instrument_hours ?? 0),
+        parseFloat(row.flight_simulator_hours ?? 0),
+        approachTypeStr,
+        row.approach_count ?? 0,
+        parseFloat(row.night_hours ?? 0),
+        parseFloat(row.turbine_hours ?? 0),
+        row.takeoffs_day ?? 0,
+        row.takeoffs_night ?? 0,
+        row.landings_day ?? 0,
+        row.landings_night ?? 0,
+        (row.notes ?? '').replace(/\n/g, ' '),
+        (row.summary ?? '').replace(/\n/g, ' '),
+      ].map(escapeCsv).join(','));
+    });
+    return '\uFEFF' + lines.join('\r\n'); // UTF-8 BOM for Excel
   };
 
-  const totalHours = logbooks.reduce((sum, entry) => sum + (parseFloat(entry.total_hours) || 0), 0);
+  const handleExport = async () => {
+    try {
+      let start_date = filterStartDate;
+      let end_date = filterEndDate;
+      if (filterMonth) {
+        const [y, m] = filterMonth.split("-").map(Number);
+        start_date = `${y}-${String(m).padStart(2, "0")}-01`;
+        const lastDay = new Date(y, m, 0);
+        end_date = `${y}-${String(m).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
+      }
+      const params = {
+        per_page: 99999,
+        page: 1,
+        ...(searchTerm ? { search: searchTerm } : {}),
+        ...(filterStudentId ? { student_id: filterStudentId } : {}),
+        ...(start_date ? { start_date } : {}),
+        ...(end_date ? { end_date } : {}),
+      };
+      const response = await logbookService.getEntries(params);
+
+      if (!response.success || !Array.isArray(response.data)) {
+        showErrorToast(response?.message || 'No data to export');
+        return;
+      }
+      const rows = response.data;
+      const csv = buildCsvFromListData(rows);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `logbook_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showSuccessToast(rows.length ? `Logbook exported (${rows.length} entries)` : 'Logbook exported (no entries)');
+    } catch (error) {
+      showErrorToast(error?.message || 'Failed to export logbook');
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -389,41 +495,28 @@ const Logbook = () => {
             <FiDownload className="mr-2" />
             Export
           </button>
-          <button 
-            onClick={handleAddNew}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-          >
-            <FiPlus className="mr-2" />
-            Add Entry
-          </button>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats - filter ke mutabiq backend se aate hain */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">Total Flight Hours</div>
-          <div className="text-3xl font-bold text-blue-600">{totalHours.toFixed(1)}</div>
+          <div className="text-3xl font-bold text-blue-600">{Number(stats.total_hours).toFixed(1)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">Total Flights</div>
-          <div className="text-3xl font-bold text-gray-900">{logbooks.length}</div>
+          <div className="text-3xl font-bold text-gray-900">{totalItems}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">This Month</div>
-          <div className="text-3xl font-bold text-gray-900">
-            {logbooks.filter(e => {
-              const entryDate = new Date(e.flight_date);
-              const now = new Date();
-              return entryDate.getMonth() === now.getMonth() && entryDate.getFullYear() === now.getFullYear();
-            }).length}
-          </div>
+          <div className="text-3xl font-bold text-gray-900">{stats.this_month_count}</div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters - list ke upar */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="inline-flex items-center text-sm font-medium text-gray-700"
@@ -431,10 +524,43 @@ const Logbook = () => {
             <FiFilter className="mr-2" />
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterMonth("");
+              setFilterStudentId("");
+              setFilterStartDate("");
+              setFilterEndDate("");
+              setSearchTerm("");
+              setCurrentPage(1);
+            }}
+            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+          >
+            Clear Filters
+          </button>
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
+              <input
+                type="month"
+                value={filterMonth}
+                onChange={(e) => { setFilterMonth(e.target.value); setCurrentPage(1); }}
+                max={new Date().toISOString().slice(0, 7)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {filterMonth && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterMonth(""); setCurrentPage(1); }}
+                  className="mt-1 text-xs text-blue-600 hover:underline"
+                >
+                  Clear month
+                </button>
+              )}
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
               <select
@@ -453,7 +579,7 @@ const Logbook = () => {
               <input
                 type="date"
                 value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
+                onChange={(e) => { setFilterStartDate(e.target.value); setFilterMonth(""); setCurrentPage(1); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -462,7 +588,7 @@ const Logbook = () => {
               <input
                 type="date"
                 value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
+                onChange={(e) => { setFilterEndDate(e.target.value); setFilterMonth(""); setCurrentPage(1); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -504,11 +630,15 @@ const Logbook = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category/Class</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total (Block)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PIC</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dual</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dual Rec</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dual Given</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">X-C</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Night</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Act. Inst</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sim Inst</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Approach</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
@@ -519,11 +649,13 @@ const Logbook = () => {
                       {new Date(logbook.flight_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="font-medium text-gray-900">{logbook.aircraft_make} {logbook.aircraft_model}</div>
-                      <div className="text-xs text-gray-500">{logbook.aircraft_registration}</div>
+                      <div className="font-medium text-gray-900">
+                        {[logbook.aircraft_make, logbook.aircraft_model].filter(Boolean).join(' ') || logbook.aircraft || '—'}
+                      </div>
+                      <div className="text-xs text-gray-500">{logbook.aircraft_registration || '—'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {logbook.aircraft_category} / {logbook.aircraft_class}
+                      {[logbook.aircraft_category, logbook.aircraft_class].filter(Boolean).join(' / ') || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {logbook.student}
@@ -541,10 +673,25 @@ const Logbook = () => {
                       {parseFloat(logbook.dual_hours || 0).toFixed(1)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {parseFloat(logbook.dual_given_hours || 0).toFixed(1)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {parseFloat(logbook.cross_country_hours || 0).toFixed(1)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {parseFloat(logbook.night_hours || 0).toFixed(1)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {parseFloat(logbook.actual_instrument_hours || 0).toFixed(1)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {parseFloat(logbook.simulated_instrument_hours || 0).toFixed(1)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {logbook.approach_count ?? 0}
+                      {Array.isArray(logbook.approach_type) && logbook.approach_type.length
+                        ? ` (${logbook.approach_type.join(',')})`
+                        : ''}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm relative">
                       <button
@@ -772,19 +919,20 @@ const Logbook = () => {
                 </div>
               </div>
 
-              {/* Flight Hours (FAA Time Fields) */}
+              {/* Flight Hours: Total = Block Time only. PIC/Dual/SIC are subsets. */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Flight Hours (Pilot Experience)</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Flight Hours (Total = Block Time)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total (Block)</label>
                     <input
                       type="number"
                       step="0.1"
+                      min="0"
                       value={editForm.total_hours}
                       onChange={(e) => handleFormChange('total_hours', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      readOnly
+                      placeholder="Block time"
                     />
                   </div>
 
@@ -863,6 +1011,60 @@ const Logbook = () => {
                       onChange={(e) => handleFormChange('instrument_hours', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Actual Instrument</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editForm.actual_instrument_hours}
+                      onChange={(e) => handleFormChange('actual_instrument_hours', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Simulated Instrument (Hood)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editForm.simulated_instrument_hours}
+                      onChange={(e) => handleFormChange('simulated_instrument_hours', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Flight Simulator</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editForm.flight_simulator_hours}
+                      onChange={(e) => handleFormChange('flight_simulator_hours', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Approach Count</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.approach_count}
+                      onChange={(e) => handleFormChange('approach_count', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Approach Type (optional, multi)</label>
+                    <select
+                      multiple
+                      value={editForm.approach_type}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, approach_type: [...e.target.selectedOptions].map(o => o.value) }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {['ILS', 'LPV', 'LNAV', 'RNAV', 'VOR', 'LOC', 'NDB', 'Visual'].map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
                   </div>
 
                   <div>

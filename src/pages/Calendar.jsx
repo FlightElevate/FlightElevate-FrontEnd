@@ -70,6 +70,7 @@ const Calendar = () => {
     duration_minutes: 60,
     notes: '',
     reservation_number: '',
+    acting_pic_user_id: '', // Acting PIC: Student or Instructor (certificate-based default)
   });
   
   const [lessons, setLessons] = useState([]);
@@ -207,6 +208,12 @@ const Calendar = () => {
               const instructorIdValue = firstInstructor?.id ? String(firstInstructor.id) : '';
               const aircraftIdValue = aircraftId ? String(aircraftId) : '';
               
+              const firstStudentFromData = lessonData.students?.[0];
+              const suggestedPIC = lessonData.acting_pic_user_id
+                ? String(lessonData.acting_pic_user_id)
+                : (firstStudentFromData?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(firstStudentFromData.certificate_level)
+                  ? studentIdValue
+                  : instructorIdValue) || '';
               setReservationForm({
                 student_id: studentIdValue,
                 instructor_id: instructorIdValue,
@@ -219,6 +226,7 @@ const Calendar = () => {
                 duration_minutes: lessonData.duration_minutes || 60,
                 notes: lessonData.notes || lessonData.description || '',
                 reservation_number: lessonData.reservation_number || lessonData.reservation_no || generateReservationNumber(),
+                acting_pic_user_id: suggestedPIC,
               });
               
               // Debug: Log to verify values are set correctly
@@ -305,7 +313,11 @@ const Calendar = () => {
       
       const studentIdStr = firstStudent?.id ? String(firstStudent.id) : '';
       const instructorIdStr = firstInstructor?.id ? String(firstInstructor.id) : '';
-      
+      const suggestedPIC = editingLesson.acting_pic_user_id
+        ? String(editingLesson.acting_pic_user_id)
+        : (firstStudent?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(firstStudent.certificate_level))
+          ? studentIdStr
+          : instructorIdStr;
       // Always update to ensure dropdowns are properly selected
       setReservationForm(prev => ({
         ...prev,
@@ -319,6 +331,7 @@ const Calendar = () => {
         duration_minutes: editingLesson.duration_minutes || prev.duration_minutes,
         notes: editingLesson.notes || editingLesson.description || prev.notes,
         reservation_number: editingLesson.reservation_number || editingLesson.reservation_no || prev.reservation_number,
+        acting_pic_user_id: suggestedPIC || prev.acting_pic_user_id,
       }));
       
       // Debug log
@@ -995,6 +1008,8 @@ const Calendar = () => {
         instructor_ids: reservationForm.instructor_id ? [parseInt(reservationForm.instructor_id)] : [],
         // Convert lesson_template_id to integer if present
         lesson_template_id: reservationForm.lesson_template_id ? parseInt(reservationForm.lesson_template_id) : null,
+        // Acting PIC: Student or Instructor (certificate-based default; editable)
+        acting_pic_user_id: reservationForm.acting_pic_user_id ? parseInt(reservationForm.acting_pic_user_id, 10) : null,
       };
       
       // Remove old single ID fields
@@ -1053,6 +1068,7 @@ const Calendar = () => {
           duration_minutes: 60,
           notes: '',
           reservation_number: generateReservationNumber(),
+          acting_pic_user_id: '',
         });
         setIsAircraftPreSelected(false);
         setAvailabilityStatus({
@@ -1763,7 +1779,18 @@ const Calendar = () => {
                   ) : (
                     <select
                       value={reservationForm.student_id}
-                      onChange={(e) => setReservationForm({ ...reservationForm, student_id: e.target.value })}
+                      onChange={(e) => {
+                        const sid = e.target.value;
+                        const student = students.find((s) => String(s.id) === sid);
+                        const suggestedPIC = student?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(student.certificate_level)
+                          ? sid
+                          : reservationForm.instructor_id;
+                        setReservationForm({
+                          ...reservationForm,
+                          student_id: sid,
+                          acting_pic_user_id: suggestedPIC || reservationForm.acting_pic_user_id,
+                        });
+                      }}
                       className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         isStudent() ? 'bg-gray-50 cursor-not-allowed' : ''
                       }`}
@@ -1794,7 +1821,18 @@ const Calendar = () => {
                   ) : (
                     <select
                       value={reservationForm.instructor_id}
-                      onChange={(e) => setReservationForm({ ...reservationForm, instructor_id: e.target.value })}
+                      onChange={(e) => {
+                        const iid = e.target.value;
+                        const student = students.find((s) => String(s.id) === reservationForm.student_id);
+                        const suggestedPIC = student?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(student.certificate_level)
+                          ? reservationForm.student_id
+                          : iid;
+                        setReservationForm({
+                          ...reservationForm,
+                          instructor_id: iid,
+                          acting_pic_user_id: suggestedPIC || reservationForm.acting_pic_user_id,
+                        });
+                      }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     >
@@ -1809,6 +1847,25 @@ const Calendar = () => {
                     </select>
                   )}
                 </div>
+
+                {reservationForm.student_id && reservationForm.instructor_id && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Acting PIC (Pilot in Command)</label>
+                    <select
+                      value={reservationForm.acting_pic_user_id || reservationForm.instructor_id}
+                      onChange={(e) => setReservationForm({ ...reservationForm, acting_pic_user_id: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={reservationForm.student_id}>
+                        Student ({students.find((s) => String(s.id) === reservationForm.student_id)?.name || 'Selected'})
+                      </option>
+                      <option value={reservationForm.instructor_id}>
+                        Instructor ({instructors.find((i) => String(i.id) === reservationForm.instructor_id)?.name || 'Selected'})
+                      </option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Default: Student PIC if certificate is Private/Commercial/ATP; otherwise Instructor PIC. Editable.</p>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -39,7 +39,7 @@ const Users = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
-  const roleFilters = ["Instructor", "Student", "Custom Roles"];
+  const roleFilters = ["Instructor", "Student", "Custom Roles Users"];
 
   
   const fetchUsers = useCallback(async () => {

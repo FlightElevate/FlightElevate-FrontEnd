@@ -111,8 +111,12 @@ apiClient.interceptors.response.use(
 
 export const api = {
   
-  get: (url, params = {}) => {
-    return apiClient.get(url, { params });
+  get: (url, config = {}) => {
+    // If second arg is { params: {...} } (query params), pass as-is. Else treat as query params object.
+    const axiosConfig = config && typeof config === 'object' && !Array.isArray(config) && 'params' in config
+      ? config
+      : { params: config };
+    return apiClient.get(url, axiosConfig);
   },
 
   

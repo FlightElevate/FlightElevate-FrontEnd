@@ -88,7 +88,7 @@ const App = () => {
           <Route path="/lessons" element={<InstructorLessons />} />
           <Route path="/lessons/:id" element={<LessonDetails />} />
           <Route path="/logbook" element={
-            <ProtectedRoute requiredRoles={["Admin"]}>
+            <ProtectedRoute requiredRoles={["Admin", "Instructor", "Student"]}>
               <Logbook />
             </ProtectedRoute>
           } />
