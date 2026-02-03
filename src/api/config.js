@@ -85,6 +85,13 @@ export const ENDPOINTS = {
     READY: (id) => `/lessons/${id}/ready`,
   },
   
+  LOCATIONS: {
+    LIST: '/locations',
+    CREATE: '/locations',
+    UPDATE: (id) => `/locations/${id}`,
+    DELETE: (id) => `/locations/${id}`,
+  },
+
   RESERVATIONS: {
     LIST: '/reservations',
     SHOW: (id) => `/reservations/${id}`,

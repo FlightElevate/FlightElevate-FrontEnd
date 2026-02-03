@@ -34,7 +34,11 @@ const AddUserModal = ({
 
     setSubmitting(true);
     try {
-      const response = await userService.createUser(formData);
+      const payload = { ...formData };
+      if (payload.certificate_level === '' || payload.certificate_level == null) {
+        delete payload.certificate_level;
+      }
+      const response = await userService.createUser(payload);
       if (response.success) {
         showSuccessToast('User created successfully');
         reset();

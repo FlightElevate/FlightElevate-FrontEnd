@@ -5,6 +5,7 @@ import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
 import { userService } from '../api/services/userService';
 import { organizationService } from '../api/services/organizationService';
+import { locationService } from '../api/services/locationService';
 import { showErrorToast, showSuccessToast } from '../utils/notifications';
 import { useAuth } from '../context/AuthContext';
 import { useRole } from '../hooks/useRole';
@@ -62,6 +63,7 @@ const Calendar = () => {
     student_id: '',
     instructor_id: '',
     aircraft_id: '',
+    location_id: '',
     flight_type: '',
     lesson_id: '',
     lesson_template_id: '',
@@ -91,6 +93,7 @@ const Calendar = () => {
   const [students, setStudents] = useState([]);
   const [instructors, setInstructors] = useState([]);
   const [aircraft, setAircraft] = useState([]);
+  const [locationsList, setLocationsList] = useState([]);
   const [loadingFormData, setLoadingFormData] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
@@ -214,10 +217,12 @@ const Calendar = () => {
                 : (firstStudentFromData?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(firstStudentFromData.certificate_level)
                   ? studentIdValue
                   : instructorIdValue) || '';
+              const locationIdValue = lessonData.location?.id != null ? String(lessonData.location.id) : (lessonData.location_id ? String(lessonData.location_id) : '');
               setReservationForm({
                 student_id: studentIdValue,
                 instructor_id: instructorIdValue,
                 aircraft_id: aircraftIdValue,
+                location_id: locationIdValue,
                 flight_type: lessonData.flight_type || '',
                 lesson_id: lessonData.id ? String(lessonData.id) : '',
                 lesson_template_id: lessonData.lesson_template_id ? String(lessonData.lesson_template_id) : '',
@@ -318,12 +323,14 @@ const Calendar = () => {
         : (firstStudent?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(firstStudent.certificate_level))
           ? studentIdStr
           : instructorIdStr;
+      const locationIdStr = editingLesson.location?.id != null ? String(editingLesson.location.id) : (editingLesson.location_id ? String(editingLesson.location_id) : '');
       // Always update to ensure dropdowns are properly selected
       setReservationForm(prev => ({
         ...prev,
         student_id: studentIdStr || prev.student_id,
         instructor_id: instructorIdStr || prev.instructor_id,
         aircraft_id: aircraftId || prev.aircraft_id,
+        location_id: locationIdStr || prev.location_id,
         flight_type: editingLesson.flight_type || prev.flight_type,
         lesson_id: editingLesson.id ? String(editingLesson.id) : prev.lesson_id,
         lesson_date: editingLesson.lesson_date || prev.lesson_date,
@@ -568,11 +575,15 @@ const Calendar = () => {
   const fetchFormData = async () => {
     setLoadingFormData(true);
     try {
-      const [studentsRes, instructorsRes, aircraftRes] = await Promise.all([
+      const [studentsRes, instructorsRes, aircraftRes, locationsRes] = await Promise.all([
         userService.getUsers({ role: 'Student', per_page: 100 }),
         userService.getUsers({ role: 'Instructor', per_page: 100 }),
         api.get(ENDPOINTS.AIRCRAFT.LIST, { params: { per_page: 100 } }).catch(err => {
           console.error('Error fetching aircraft:', err);
+          return { success: false, data: [] };
+        }),
+        locationService.getLocations().catch(err => {
+          console.error('Error fetching locations:', err);
           return { success: false, data: [] };
         }),
       ]);
@@ -617,12 +628,19 @@ const Calendar = () => {
       } else {
         setAircraft([]);
       }
+
+      if (locationsRes.success && Array.isArray(locationsRes.data)) {
+        setLocationsList(locationsRes.data);
+      } else {
+        setLocationsList([]);
+      }
     } catch (err) {
       console.error('Error fetching form data:', err);
       showErrorToast('Failed to load form data');
       setStudents([]);
       setInstructors([]);
       setAircraft([]);
+      setLocationsList([]);
     } finally {
       setLoadingFormData(false);
     }
@@ -997,6 +1015,12 @@ const Calendar = () => {
       setSubmitting(false);
       return;
     }
+
+    // Location is required for reservations
+    if (!reservationForm.location_id || String(reservationForm.location_id).trim() === '') {
+      showErrorToast('Please select a location.');
+      return;
+    }
     
     setSubmitting(true);
     try {
@@ -1006,10 +1030,9 @@ const Calendar = () => {
         // Convert single IDs to arrays for many-to-many relationship
         student_ids: reservationForm.student_id ? [parseInt(reservationForm.student_id)] : [],
         instructor_ids: reservationForm.instructor_id ? [parseInt(reservationForm.instructor_id)] : [],
-        // Convert lesson_template_id to integer if present
         lesson_template_id: reservationForm.lesson_template_id ? parseInt(reservationForm.lesson_template_id) : null,
-        // Acting PIC: Student or Instructor (certificate-based default; editable)
         acting_pic_user_id: reservationForm.acting_pic_user_id ? parseInt(reservationForm.acting_pic_user_id, 10) : null,
+        location_id: reservationForm.location_id ? parseInt(reservationForm.location_id, 10) : null,
       };
       
       // Remove old single ID fields
@@ -1060,6 +1083,7 @@ const Calendar = () => {
           student_id: '',
           instructor_id: '',
           aircraft_id: '',
+          location_id: '',
           flight_type: '',
           lesson_id: '',
           lesson_template_id: '',
@@ -1464,6 +1488,11 @@ const Calendar = () => {
             </div>
           </div>
           <p className="text-xs text-gray-600">{hoveredEvent.description || 'No description'}</p>
+          {(hoveredEvent.location?.name || hoveredEvent.location_name) && (
+            <p className="text-xs text-gray-600 mt-1">
+              📍 {hoveredEvent.location?.name || hoveredEvent.location_name}
+            </p>
+          )}
           <div className="mt-2 text-xs text-gray-500">
             {hoveredEvent.date && (
               <div className="mb-1 font-medium text-gray-700">
@@ -1843,6 +1872,29 @@ const Calendar = () => {
                         ))
                       ) : (
                         <option value="" disabled>No instructors available</option>
+                      )}
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location <span className="text-red-500">*</span></label>
+                  {loadingFormData ? (
+                    <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500">Loading locations...</div>
+                  ) : (
+                    <select
+                      value={reservationForm.location_id || ''}
+                      onChange={(e) => setReservationForm({ ...reservationForm, location_id: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Location</option>
+                      {locationsList.length > 0 ? (
+                        locationsList.map((loc) => (
+                          <option key={loc.id} value={String(loc.id)}>{loc.name}{loc.address ? ` – ${loc.address}` : ''}</option>
+                        ))
+                      ) : (
+                        <option value="" disabled>No locations. Admin can add locations for this organization.</option>
                       )}
                     </select>
                   )}
