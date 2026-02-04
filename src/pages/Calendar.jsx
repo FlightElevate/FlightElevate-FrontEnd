@@ -32,6 +32,15 @@ const Calendar = () => {
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [calendarViewMode, setCalendarViewMode] = useState('week'); // 'week' | 'day' | 'custom', default week
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const tooltipRef = useRef(null);
@@ -124,11 +133,11 @@ const Calendar = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch schedule when date or organization changes
+  // Fetch schedule when date, organization, view mode, or custom range changes
   useEffect(() => {
     fetchSchedule();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate, selectedOrganizationId]);
+  }, [currentDate, selectedOrganizationId, calendarViewMode, customStartDate, customEndDate]);
 
   useEffect(() => {
     filterSchedules();
@@ -534,25 +543,37 @@ const Calendar = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const formatDateStr = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const fetchSchedule = async () => {
     setLoading(true);
     try {
-      // Calculate week start (Sunday) and end (Saturday) from currentDate
-      const start = new Date(currentDate);
-      start.setDate(start.getDate() - start.getDay()); // Start of week (Sunday)
-      const end = new Date(start);
-      end.setDate(end.getDate() + 6); // End of week (Saturday)
-      
-      // Format dates as YYYY-MM-DD without timezone conversion
-      const formatDate = (date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-      
-      const startDateStr = formatDate(start);
-      const endDateStr = formatDate(end);
+      let startDateStr, endDateStr;
+      if (calendarViewMode === 'day') {
+        startDateStr = formatDateStr(currentDate);
+        endDateStr = startDateStr;
+      } else if (calendarViewMode === 'custom') {
+        startDateStr = customStartDate;
+        endDateStr = customEndDate;
+        if (startDateStr > endDateStr) {
+          const swap = startDateStr;
+          startDateStr = endDateStr;
+          endDateStr = swap;
+        }
+      } else {
+        const start = new Date(currentDate);
+        start.setDate(start.getDate() - start.getDay());
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        startDateStr = formatDateStr(start);
+        endDateStr = formatDateStr(end);
+      }
       
       const response = await calendarService.getSchedule({
         start_date: startDateStr,
@@ -575,7 +596,7 @@ const Calendar = () => {
   const fetchFormData = async () => {
     setLoadingFormData(true);
     try {
-      const [studentsRes, instructorsRes, aircraftRes, locationsRes] = await Promise.all([
+      const [studentsRes, instructorsRes, aircraftRes, locationsRes, settingsRes] = await Promise.all([
         userService.getUsers({ role: 'Student', per_page: 100 }),
         userService.getUsers({ role: 'Instructor', per_page: 100 }),
         api.get(ENDPOINTS.AIRCRAFT.LIST, { params: { per_page: 100 } }).catch(err => {
@@ -586,6 +607,7 @@ const Calendar = () => {
           console.error('Error fetching locations:', err);
           return { success: false, data: [] };
         }),
+        calendarService.getSettings().catch(() => ({ success: false, data: {} })),
       ]);
 
       if (studentsRes.success) {
@@ -629,11 +651,14 @@ const Calendar = () => {
         setAircraft([]);
       }
 
-      if (locationsRes.success && Array.isArray(locationsRes.data)) {
-        setLocationsList(locationsRes.data);
-      } else {
-        setLocationsList([]);
-      }
+      // Merge API locations with calendar settings custom_locations (so both show in reservation dropdown)
+      const apiLocations = (locationsRes.success && Array.isArray(locationsRes.data)) ? locationsRes.data : [];
+      const customLocationNames = (settingsRes?.success && Array.isArray(settingsRes?.data?.custom_locations)) ? settingsRes.data.custom_locations : [];
+      const apiNamesSet = new Set(apiLocations.map(l => (l.name || '').trim().toLowerCase()));
+      const customOnly = customLocationNames
+        .filter(name => name && typeof name === 'string' && !apiNamesSet.has(name.trim().toLowerCase()))
+        .map(name => ({ id: `new:${name.trim()}`, name: name.trim(), address: '', isCustom: true }));
+      setLocationsList([...apiLocations, ...customOnly]);
     } catch (err) {
       console.error('Error fetching form data:', err);
       showErrorToast('Failed to load form data');
@@ -675,18 +700,55 @@ const Calendar = () => {
     setFilteredUserSchedule(filteredUsers);
   };
 
-  const getWeekRange = () => {
+  const getDisplayDates = () => {
+    if (calendarViewMode === 'day') {
+      return [new Date(currentDate)];
+    }
+    if (calendarViewMode === 'custom') {
+      let start = new Date(customStartDate);
+      let end = new Date(customEndDate);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      if (start > end) {
+        const swap = start;
+        start = end;
+        end = swap;
+      }
+      const days = [];
+      const maxDays = 31;
+      const d = new Date(start);
+      while (d <= end && days.length < maxDays) {
+        days.push(new Date(d));
+        d.setDate(d.getDate() + 1);
+      }
+      return days;
+    }
     const start = new Date(currentDate);
-    start.setDate(start.getDate() - start.getDay()); // Start of week (Sunday)
+    start.setDate(start.getDate() - start.getDay());
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  };
+
+  const getDateRangeLabel = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fmt = (date) => `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+    if (calendarViewMode === 'day') {
+      return fmt(new Date(currentDate));
+    }
+    if (calendarViewMode === 'custom') {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      if (start > end) return `${fmt(end)} - ${fmt(start)}`;
+      return start.getTime() === end.getTime() ? fmt(start) : `${fmt(start)} - ${fmt(end)}`;
+    }
+    const start = new Date(currentDate);
+    start.setDate(start.getDate() - start.getDay());
     const end = new Date(start);
-    end.setDate(end.getDate() + 6); // End of week (Saturday)
-
-    const formatDate = (date) => {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-    };
-
-    return `${formatDate(start)} - ${formatDate(end)}`;
+    end.setDate(end.getDate() + 6);
+    return `${fmt(start)} - ${fmt(end)}`;
   };
 
   const navigateWeek = (direction) => {
@@ -695,14 +757,25 @@ const Calendar = () => {
     setCurrentDate(newDate);
   };
 
-  const getEventForCell = (item, hour) => {
+  const navigateDay = (direction) => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + direction);
+    setCurrentDate(newDate);
+  };
+
+  const getEventForCell = (item, hour, dateStr = null) => {
     if (!item.events || item.events.length === 0) return null;
-    
-    // Find event that starts at this exact hour
-    return item.events.find(event => {
-      const eventHour = parseInt(event.start_time.split(':')[0]);
+    const targetDate = dateStr || formatDateStr(currentDate);
+    const dayEvents = item.events.filter(e => (e.date || '').toString().slice(0, 10) === targetDate);
+    return dayEvents.find(event => {
+      const eventHour = parseInt(String(event.start_time).split(':')[0]);
       return eventHour === hour;
     });
+  };
+
+  const getEventsForDay = (item, dateStr) => {
+    if (!item.events || item.events.length === 0) return [];
+    return item.events.filter(e => (e.date || '').toString().slice(0, 10) === dateStr);
   };
 
   const getEventSpan = (event) => {
@@ -1024,6 +1097,20 @@ const Calendar = () => {
     
     setSubmitting(true);
     try {
+      // If user selected a custom location (from calendar settings), create it in locations table first
+      let locationId = reservationForm.location_id ? parseInt(reservationForm.location_id, 10) : null;
+      const locIdStr = String(reservationForm.location_id || '');
+      if (locIdStr.startsWith('new:')) {
+        const customName = locIdStr.replace(/^new:/, '').trim();
+        const createLocRes = await locationService.createLocation({ name: customName, address: '' });
+        if (!createLocRes.success || !createLocRes.data?.id) {
+          showErrorToast(createLocRes?.errors?.message || 'Failed to create location.');
+          setSubmitting(false);
+          return;
+        }
+        locationId = createLocRes.data.id;
+      }
+
       const lessonData = {
         ...reservationForm,
         is_request: false,
@@ -1032,7 +1119,7 @@ const Calendar = () => {
         instructor_ids: reservationForm.instructor_id ? [parseInt(reservationForm.instructor_id)] : [],
         lesson_template_id: reservationForm.lesson_template_id ? parseInt(reservationForm.lesson_template_id) : null,
         acting_pic_user_id: reservationForm.acting_pic_user_id ? parseInt(reservationForm.acting_pic_user_id, 10) : null,
-        location_id: reservationForm.location_id ? parseInt(reservationForm.location_id, 10) : null,
+        location_id: locationId,
       };
       
       // Remove old single ID fields
@@ -1222,25 +1309,79 @@ const Calendar = () => {
               </select>
             )}
 
-            {/* Date Navigation */}
+            {/* Week / Day / Custom view toggle */}
+            <div className="flex items-center gap-0.5 rounded-lg border border-gray-300 p-0.5 bg-gray-50 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('week')}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'week' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Week
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('day')}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'day' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Day
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('custom')}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'custom' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Custom
+              </button>
+            </div>
+
+            {/* Custom date range inputs (visible when Custom view) */}
+            {calendarViewMode === 'custom' && (
+              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">From</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+                />
+                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">To</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+                />
+              </div>
+            )}
+
+            {/* Date Navigation (hidden for Custom view) */}
             <div className="flex items-center gap-1 sm:gap-2 justify-between sm:justify-start flex-1 min-w-0">
-              <button
-                onClick={() => navigateWeek(-1)}
-                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                aria-label="Previous week"
-              >
-                <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
-              </button>
-              <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
-                {getWeekRange()}
-              </span>
-              <button
-                onClick={() => navigateWeek(1)}
-                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                aria-label="Next week"
-              >
-                <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
-              </button>
+              {calendarViewMode !== 'custom' && (
+                <>
+                  <button
+                    onClick={() => calendarViewMode === 'day' ? navigateDay(-1) : navigateWeek(-1)}
+                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                    aria-label={calendarViewMode === 'day' ? 'Previous day' : 'Previous week'}
+                  >
+                    <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                  </button>
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
+                    {getDateRangeLabel()}
+                  </span>
+                  <button
+                    onClick={() => calendarViewMode === 'day' ? navigateDay(1) : navigateWeek(1)}
+                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                    aria-label={calendarViewMode === 'day' ? 'Next day' : 'Next week'}
+                  >
+                    <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
+                  </button>
+                </>
+              )}
+              {calendarViewMode === 'custom' && (
+                <span className="text-xs sm:text-sm font-medium text-gray-700 px-1 sm:px-2 truncate">
+                  {getDateRangeLabel()}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1269,198 +1410,164 @@ const Calendar = () => {
           }}
         >
           <table className="border-collapse" style={{ 
-            minWidth: isMobile ? '600px' : '800px',
-            width: isMobile ? '600px' : '800px',
+            minWidth: calendarViewMode === 'day'
+              ? (isMobile ? '600px' : '800px')
+              : (calendarViewMode === 'custom' ? Math.min(getDisplayDates().length * (isMobile ? 70 : 90), 2000) : (isMobile ? '400px' : '600px')),
+            width: calendarViewMode === 'day' ? (isMobile ? '600px' : '800px') : 'auto',
             display: 'table',
             margin: 0,
             tableLayout: 'auto',
-            /* Force table to be wider than container to enable scroll */
             boxSizing: 'border-box'
           }}>
-              {/* Time Header */}
-              <thead className="sticky top-0 z-20 bg-gray-50">
-                <tr className="border-b border-gray-200">
-                  <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ 
-                    minWidth: isMobile ? '60px' : '80px', 
-                    width: isMobile ? '60px' : '80px' 
-                  }}>
-                    {/* Empty for row labels */}
-                  </th>
-                  {timeSlots.map((slot, idx) => (
-                    <th
-                      key={idx}
-                      className="text-center px-0.5 sm:px-1 md:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap"
-                      style={{ 
-                        minWidth: isMobile ? '30px' : '40px', 
-                        width: isMobile ? '30px' : '40px' 
-                      }}
-                    >
-                      {slot.hour === 0 ? '12a' : slot.hour < 12 ? `${slot.hour}a` : slot.hour === 12 ? '12p' : `${slot.hour - 12}p`}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-            <tbody>
-              {/* Search Row */}
-              <tr className="border-b border-gray-200">
-                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-30"                 style={{ 
-                  minWidth: isMobile ? '60px' : '80px', 
-                  width: isMobile ? '60px' : '80px' 
-                }}>
-                  <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
-                    <FiSearch className="text-gray-400 flex-shrink-0" size={isMobile ? 12 : 14} />
-                    <input
-                      type="text"
-                      placeholder="Search"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="border-none outline-none text-[10px] sm:text-xs md:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400"
-                    />
-                  </div>
-                </td>
-                {timeSlots.map((_, idx) => (
-                  <td
-                    key={idx}
-                    className="border-r border-gray-200"
-                    style={{ 
-                      minWidth: isMobile ? '30px' : '40px', 
-                      width: isMobile ? '30px' : '40px', 
-                      height: isMobile ? '32px' : '40px' 
-                    }}
-                  ></td>
-                ))}
-              </tr>
-
-              {/* Aircraft Transfer Schedule Section Header */}
-              <tr className="border-b border-gray-200 bg-purple-50">
-                <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30"                 style={{ 
-                  minWidth: isMobile ? '60px' : '80px', 
-                  width: isMobile ? '60px' : '80px' 
-                }}>
-                  <h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3>
-                </td>
-                {timeSlots.map((_, idx) => (
-                  <td
-                    key={idx}
-                    className="text-center border-r border-gray-200 text-gray-400"
-                    style={{ 
-                      minWidth: isMobile ? '30px' : '40px', 
-                      width: isMobile ? '30px' : '40px', 
-                      height: isMobile ? '24px' : '32px' 
-                    }}
-                  >
-                    –
-                  </td>
-                ))}
-              </tr>
-
-              {/* Aircraft Rows */}
-              {filteredAircraftSchedule.map((aircraft) => (
-                <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium"                 style={{ 
-                  minWidth: isMobile ? '60px' : '80px', 
-                  width: isMobile ? '60px' : '80px' 
-                }}>
-                    <span className="truncate block">{aircraft.name}</span>
-                  </td>
-                  {timeSlots.map((slot, idx) => {
-                    const event = getEventForCell(aircraft, slot.hour);
-                    const span = event ? getEventSpan(event) : 1;
-                    const isFirstCell = event && slot.hour === parseInt(event.start_time.split(':')[0]);
-                    
-                    return (
-                      <td
-                        key={idx}
-                        className="relative border-r border-gray-200 p-0"
-                        style={{ 
-                          minWidth: isMobile ? '30px' : '40px', 
-                          width: isMobile ? '30px' : '40px', 
-                          height: isMobile ? '32px' : '40px' 
-                        }}
-                        colSpan={isFirstCell ? span : undefined}
-                      >
-                        {isFirstCell && (
-                          <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`}
-                            style={{ width: '95%' }}
-                          >
-                            <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
-                          </div>
-                        )}
+              {calendarViewMode === 'day' ? (
+                <>
+                  <thead className="sticky top-0 z-20 bg-gray-50">
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
+                      {timeSlots.map((slot, idx) => (
+                        <th key={idx} className="text-center px-0.5 sm:px-1 md:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px' }}>
+                          {slot.hour === 0 ? '12a' : slot.hour < 12 ? `${slot.hour}a` : slot.hour === 12 ? '12p' : `${slot.hour - 12}p`}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-gray-200">
+                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}>
+                        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
+                          <FiSearch className="text-gray-400 flex-shrink-0" size={isMobile ? 12 : 14} />
+                          <input type="text" placeholder="Search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border-none outline-none text-[10px] sm:text-xs md:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400" />
+                        </div>
                       </td>
-                    );
-                  })}
-                </tr>
-              ))}
-
-              {/* Divider line between Aircraft and Instructor sections */}
-              {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
-                <tr className="border-b border-dashed border-gray-300 bg-purple-50">
-                  <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ 
-                    minWidth: isMobile ? '60px' : '80px', 
-                    width: isMobile ? '60px' : '80px' 
-                  }}>
-                  </td>
-                  {timeSlots.map((_, idx) => (
-                    <td
-                      key={idx}
-                      className="border-r border-gray-200 bg-purple-50"
-                      style={{ 
-                        minWidth: isMobile ? '30px' : '40px', 
-                        width: isMobile ? '30px' : '40px', 
-                        height: isMobile ? '4px' : '5px',
-                        borderTop: '1px dashed #d1d5db',
-                        borderBottom: '1px dashed #d1d5db'
-                      }}
-                    >
-                    </td>
-                  ))}
-                </tr>
+                      {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}></td>)}
+                    </tr>
+                    <tr className="border-b border-gray-200 bg-purple-50">
+                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3></td>
+                      {timeSlots.map((_, idx) => <td key={idx} className="text-center border-r border-gray-200 text-gray-400" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '24px' : '32px' }}>–</td>)}
+                    </tr>
+                    {filteredAircraftSchedule.map((aircraft) => (
+                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{aircraft.name}</span></td>
+                        {timeSlots.map((slot, idx) => {
+                          const event = getEventForCell(aircraft, slot.hour);
+                          const span = event ? getEventSpan(event) : 1;
+                          const isFirstCell = event && slot.hour === parseInt(String(event.start_time).split(':')[0]);
+                          return (
+                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
+                              {isFirstCell && (
+                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }}>
+                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
+                      <tr className="border-b border-dashed border-gray-300 bg-purple-50">
+                        <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></td>
+                        {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-purple-50" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '4px' : '5px', borderTop: '1px dashed #d1d5db', borderBottom: '1px dashed #d1d5db' }}></td>)}
+                      </tr>
+                    )}
+                    {filteredUserSchedule.map((user) => (
+                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{user.name}</span></td>
+                        {timeSlots.map((slot, idx) => {
+                          const event = getEventForCell(user, slot.hour);
+                          const span = event ? getEventSpan(event) : 1;
+                          const isFirstCell = event && slot.hour === parseInt(String(event.start_time).split(':')[0]);
+                          return (
+                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
+                              {isFirstCell && (
+                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
+                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </>
+              ) : (
+                <>
+                  <thead className="sticky top-0 z-20 bg-gray-50">
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
+                      {getDisplayDates().map((day, idx) => (
+                        <th key={idx} className="text-center px-1 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px' }}>
+                          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]} {day.getDate()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-gray-200">
+                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}>
+                        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
+                          <FiSearch className="text-gray-400 flex-shrink-0" size={isMobile ? 12 : 14} />
+                          <input type="text" placeholder="Search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border-none outline-none text-[10px] sm:text-xs md:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400" />
+                        </div>
+                      </td>
+                      {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '32px' : '40px' }}></td>)}
+                    </tr>
+                    <tr className="border-b border-gray-200 bg-purple-50">
+                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3></td>
+                      {getDisplayDates().map((_, idx) => <td key={idx} className="text-center border-r border-gray-200 text-gray-400" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '24px' : '32px' }}>–</td>)}
+                    </tr>
+                    {filteredAircraftSchedule.map((aircraft) => (
+                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{aircraft.name}</span></td>
+                        {getDisplayDates().map((day, idx) => {
+                          const dateStr = formatDateStr(day);
+                          const dayEvents = getEventsForDay(aircraft, dateStr);
+                          return (
+                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
+                              {dayEvents.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {dayEvents.slice(0, 3).map((ev, i) => (
+                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate ${getEventColor(ev.color)} text-white`} title={ev.title || `${ev.start_time} - ${ev.end_time}`}>{ev.start_time}</div>
+                                  ))}
+                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
+                                </div>
+                              ) : '–'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
+                      <tr className="border-b border-dashed border-gray-300 bg-purple-50">
+                        <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></td>
+                        {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-purple-50" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '4px' : '5px', borderTop: '1px dashed #d1d5db', borderBottom: '1px dashed #d1d5db' }}></td>)}
+                      </tr>
+                    )}
+                    {filteredUserSchedule.map((user) => (
+                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{user.name}</span></td>
+                        {getDisplayDates().map((day, idx) => {
+                          const dateStr = formatDateStr(day);
+                          const dayEvents = getEventsForDay(user, dateStr);
+                          return (
+                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
+                              {dayEvents.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {dayEvents.slice(0, 3).map((ev, i) => (
+                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={ev.title || `${ev.start_time} - ${ev.end_time}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{ev.start_time}</div>
+                                  ))}
+                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
+                                </div>
+                              ) : '–'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </>
               )}
-
-              {/* User Schedule Rows */}
-              {filteredUserSchedule.map((user) => (
-                <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                  <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium"                 style={{ 
-                  minWidth: isMobile ? '60px' : '80px', 
-                  width: isMobile ? '60px' : '80px' 
-                }}>
-                    <span className="truncate block">{user.name}</span>
-                  </td>
-                  {timeSlots.map((slot, idx) => {
-                    const event = getEventForCell(user, slot.hour);
-                    const span = event ? getEventSpan(event) : 1;
-                    const isFirstCell = event && slot.hour === parseInt(event.start_time.split(':')[0]);
-                    
-                    return (
-                      <td
-                        key={idx}
-                        className="relative border-r border-gray-200 p-0"
-                        style={{ 
-                          minWidth: isMobile ? '30px' : '40px', 
-                          width: isMobile ? '30px' : '40px', 
-                          height: isMobile ? '32px' : '40px' 
-                        }}
-                        colSpan={isFirstCell ? span : undefined}
-                      >
-                        {isFirstCell && (
-                          <div
-                            className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`}
-                            style={{ width: '95%' }}
-                            onMouseEnter={(e) => handleEventHover(event, e)}
-                            onMouseLeave={handleEventLeave}
-                            onClick={() => handleEventClick(event)}
-                          >
-                            <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
           </table>
         </div>
       </div>
@@ -1891,7 +1998,9 @@ const Calendar = () => {
                       <option value="">Select Location</option>
                       {locationsList.length > 0 ? (
                         locationsList.map((loc) => (
-                          <option key={loc.id} value={String(loc.id)}>{loc.name}{loc.address ? ` – ${loc.address}` : ''}</option>
+                          <option key={loc.id} value={String(loc.id)}>
+                            {loc.name}{loc.address ? ` – ${loc.address}` : ''}{loc.isCustom ? ' (from settings)' : ''}
+                          </option>
                         ))
                       ) : (
                         <option value="" disabled>No locations. Admin can add locations for this organization.</option>
