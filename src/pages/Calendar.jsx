@@ -652,8 +652,15 @@ const Calendar = () => {
       }
 
       // Merge API locations with calendar settings custom_locations (so both show in reservation dropdown)
-      const apiLocations = (locationsRes.success && Array.isArray(locationsRes.data)) ? locationsRes.data : [];
+      const apiLocationsRaw = (locationsRes.success && Array.isArray(locationsRes.data)) ? locationsRes.data : [];
       const customLocationNames = (settingsRes?.success && Array.isArray(settingsRes?.data?.custom_locations)) ? settingsRes.data.custom_locations : [];
+      // Normalize: items with id null are custom (from calendar settings) – use id "new:Name" so submit can create them
+      const apiLocations = apiLocationsRaw.map(loc => {
+        const name = (loc.name || '').trim();
+        if (name && (loc.id == null || loc.id === undefined))
+          return { id: `new:${name}`, name, address: loc.address || '', isCustom: true };
+        return { ...loc, name: loc.name || '', address: loc.address || '' };
+      });
       const apiNamesSet = new Set(apiLocations.map(l => (l.name || '').trim().toLowerCase()));
       const customOnly = customLocationNames
         .filter(name => name && typeof name === 'string' && !apiNamesSet.has(name.trim().toLowerCase()))
@@ -1812,26 +1819,40 @@ const Calendar = () => {
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Student:</h4>
                       <div className="space-y-2 text-sm">
-                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.customer?.name}</span></p>
-                        <p><span className="text-gray-500">Flight:</span> <span className="font-medium text-gray-800">{selectedReservation.customer?.flight}</span></p>
+                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.student ?? selectedReservation.students?.[0]?.name ?? '—'}</span></p>
+                        <p><span className="text-gray-500">Flight:</span> <span className="font-medium text-gray-800">{selectedReservation.flight_type ?? '—'}</span></p>
                       </div>
                     </div>
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Instructor:</h4>
                       <div className="space-y-2 text-sm">
-                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.instructor?.name}</span></p>
-                        <p><span className="text-gray-500">Aircraft:</span> <span className="font-medium text-gray-800">{selectedReservation.instructor?.aircraft}</span></p>
+                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.instructor ?? selectedReservation.instructors?.[0]?.name ?? '—'}</span></p>
+                        <p><span className="text-gray-500">Aircraft:</span> <span className="font-medium text-gray-800">{selectedReservation.aircraft ? [selectedReservation.aircraft.name, selectedReservation.aircraft.model].filter(Boolean).join(' ') : '—'}</span></p>
                       </div>
                     </div>
                   </div>
+
+                  {/* Location (from calendar settings / locations – admin role) */}
+                  {(selectedReservation.location?.name ?? selectedReservation.location_id) && (
+                    <div className="border-b border-dashed border-gray-300 pb-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Location:</h4>
+                      <div className="text-sm">
+                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.location?.name ?? '—'}</span></p>
+                        {selectedReservation.location?.address && (
+                          <p className="mt-1"><span className="text-gray-500">Address:</span> <span className="font-medium text-gray-800">{selectedReservation.location.address}</span></p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Description */}
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-2">Description</label>
                     <textarea
-                      value={selectedReservation.description || 'In publishing and graphic design, Lorem ipsum is a placeholder text commonly used to demonstrate the visual form of a document or a typeface'}
+                      value={selectedReservation.description ?? selectedReservation.notes ?? ''}
                       readOnly
                       rows="6"
+                      placeholder="No description"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-800 resize-none"
                     />
                   </div>

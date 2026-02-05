@@ -78,6 +78,7 @@ const LessonDetails = () => {
               : (lessonData.student?.name || lessonData.student_name || lessonData.students?.[0]?.name || 'N/A'),
             instructor_ids: lessonData.instructors?.map(inst => inst.id) || [],
             student_ids: lessonData.students?.map(std => std.id) || [],
+            location: lessonData.location ? { name: lessonData.location.name, address: lessonData.location.address } : null,
           });
           
           // Set feedback text if feedback exists
@@ -412,6 +413,12 @@ const LessonDetails = () => {
                         <div className="flex flex-col gap-3">
                           <h3 className="fw6 text-[#101828]">Duration</h3>
                           <p className=" text-[#3D3D3D]">{lesson.duration} minutes</p>
+                        </div>
+                      )}
+                      {lesson.location?.name && (
+                        <div className="flex flex-col gap-3">
+                          <h3 className="fw6 text-[#101828]">Location</h3>
+                          <p className=" text-[#3D3D3D]">{lesson.location.name}{lesson.location.address ? ` – ${lesson.location.address}` : ''}</p>
                         </div>
                       )}
                     </div>
