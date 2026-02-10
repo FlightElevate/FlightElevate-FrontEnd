@@ -3,6 +3,7 @@ import { HiDotsVertical } from "react-icons/hi";
 import { FiSearch, FiEdit2, FiTrash2, FiX, FiPlus, FiDownload, FiFilter } from "react-icons/fi";
 import Pagination from "../../components/Pagination";
 import { useAuth } from "../../context/AuthContext";
+import { useRole } from "../../hooks/useRole";
 import { logbookService } from "../../api/services/logbookService";
 import { userService } from "../../api/services/userService";
 import { aircraftService } from "../../api/services/aircraftService";
@@ -12,6 +13,8 @@ import { aircraftCategories, getClassesForCategory, simulatorTypes } from "../..
 
 const Logbook = () => {
   const { user } = useAuth();
+  const { isAdmin, isSuperAdmin } = useRole();
+  const isAdminView = isAdmin() || isSuperAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -22,13 +25,16 @@ const Logbook = () => {
   const [loading, setLoading] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState({ total_hours: 0, this_month_count: 0 });
+  const [instructorStats, setInstructorStats] = useState(null);
 
   // Filter states
   const [filterStudentId, setFilterStudentId] = useState("");
+  const [filterInstructorId, setFilterInstructorId] = useState("");
   const [filterMonth, setFilterMonth] = useState(""); // YYYY-MM for monthly filter
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [students, setStudents] = useState([]);
+  const [instructors, setInstructors] = useState([]);
   const [aircraft, setAircraft] = useState([]);
   const [showFilters, setShowFilters] = useState(true);
   
@@ -90,9 +96,13 @@ const Logbook = () => {
 
   useEffect(() => {
     fetchLogbooks();
+  }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterInstructorId, filterMonth, filterStartDate, filterEndDate, searchTerm]);
+
+  useEffect(() => {
     fetchStudents();
+    if (isAdminView) fetchInstructors();
     fetchAircraft();
-  }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterMonth, filterStartDate, filterEndDate, searchTerm]);
+  }, [isAdminView]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -123,6 +133,7 @@ const Logbook = () => {
         per_page: itemsPerPage,
         ...(searchTerm ? { search: searchTerm } : {}),
         ...(filterStudentId ? { student_id: filterStudentId } : {}),
+        ...(filterInstructorId ? { instructor_id: filterInstructorId } : {}),
         ...(start_date ? { start_date } : {}),
         ...(end_date ? { end_date } : {}),
       };
@@ -136,6 +147,7 @@ const Logbook = () => {
           total_hours: response.meta?.total_hours ?? 0,
           this_month_count: response.meta?.this_month_count ?? 0,
         });
+        setInstructorStats(response.meta?.instructor_stats ?? null);
       }
     } catch (error) {
       console.error('Error fetching logbooks:', error);
@@ -147,17 +159,27 @@ const Logbook = () => {
 
   const fetchStudents = async () => {
     try {
-      // Backend automatically filters by organization via forOrganization() scope
-      // So we just need to pass role, and it will return only students from current user's organization
       const response = await userService.getUsers({ role: 'Student', per_page: 1000 });
       if (response.success) {
-        // Backend returns data in response.data (array) or response.data.data (if paginated)
         const studentsData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         setStudents(studentsData);
       }
     } catch (error) {
       console.error('Error fetching students:', error);
       showErrorToast('Failed to fetch students');
+    }
+  };
+
+  const fetchInstructors = async () => {
+    try {
+      const response = await userService.getUsers({ role: 'Instructor', per_page: 1000 });
+      if (response.success) {
+        const instructorsData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        setInstructors(instructorsData);
+      }
+    } catch (error) {
+      console.error('Error fetching instructors:', error);
+      showErrorToast('Failed to fetch instructors');
     }
   };
 
@@ -452,6 +474,7 @@ const Logbook = () => {
         page: 1,
         ...(searchTerm ? { search: searchTerm } : {}),
         ...(filterStudentId ? { student_id: filterStudentId } : {}),
+        ...(filterInstructorId ? { instructor_id: filterInstructorId } : {}),
         ...(start_date ? { start_date } : {}),
         ...(end_date ? { end_date } : {}),
       };
@@ -514,6 +537,29 @@ const Logbook = () => {
         </div>
       </div>
 
+      {/* Instructor stats - when instructor filter is selected (admin) */}
+      {isAdminView && filterInstructorId && instructorStats && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-indigo-800 mb-3">
+            Instructor stats {instructors.find(i => String(i.id) === filterInstructorId)?.name && `– ${instructors.find(i => String(i.id) === filterInstructorId).name}`}
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <div className="text-xs text-indigo-600">Dual Given (hrs)</div>
+              <div className="text-xl font-bold text-indigo-900">{Number(instructorStats.instructor_total_dual_given ?? 0).toFixed(1)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-indigo-600">Total Flights</div>
+              <div className="text-xl font-bold text-indigo-900">{instructorStats.instructor_total_flights ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-xs text-indigo-600">This Month</div>
+              <div className="text-xl font-bold text-indigo-900">{instructorStats.instructor_this_month_count ?? 0}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters - list ke upar */}
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -529,14 +575,15 @@ const Logbook = () => {
             onClick={() => {
               setFilterMonth("");
               setFilterStudentId("");
+              setFilterInstructorId("");
               setFilterStartDate("");
               setFilterEndDate("");
               setSearchTerm("");
               setCurrentPage(1);
             }}
-            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition"
           >
-            Clear Filters
+            Clear all
           </button>
         </div>
 
@@ -557,7 +604,7 @@ const Logbook = () => {
                   onClick={() => { setFilterMonth(""); setCurrentPage(1); }}
                   className="mt-1 text-xs text-blue-600 hover:underline"
                 >
-                  Clear month
+                  Clear
                 </button>
               )}
             </div>
@@ -565,7 +612,7 @@ const Logbook = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
               <select
                 value={filterStudentId}
-                onChange={(e) => setFilterStudentId(e.target.value)}
+                onChange={(e) => { setFilterStudentId(e.target.value); setCurrentPage(1); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Students</option>
@@ -573,7 +620,40 @@ const Logbook = () => {
                   <option key={student.id} value={student.id}>{student.name}</option>
                 ))}
               </select>
+              {filterStudentId && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterStudentId(""); setCurrentPage(1); }}
+                  className="mt-1 text-xs text-blue-600 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
             </div>
+            {isAdminView && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
+                <select
+                  value={filterInstructorId}
+                  onChange={(e) => { setFilterInstructorId(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Instructors</option>
+                  {instructors.map(inst => (
+                    <option key={inst.id} value={inst.id}>{inst.name}</option>
+                  ))}
+                </select>
+                {filterInstructorId && (
+                  <button
+                    type="button"
+                    onClick={() => { setFilterInstructorId(""); setCurrentPage(1); }}
+                    className="mt-1 text-xs text-blue-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
               <input
@@ -582,6 +662,15 @@ const Logbook = () => {
                 onChange={(e) => { setFilterStartDate(e.target.value); setFilterMonth(""); setCurrentPage(1); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {filterStartDate && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterStartDate(""); setCurrentPage(1); }}
+                  className="mt-1 text-xs text-blue-600 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
@@ -591,20 +680,40 @@ const Logbook = () => {
                 onChange={(e) => { setFilterEndDate(e.target.value); setFilterMonth(""); setCurrentPage(1); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {filterEndDate && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterEndDate(""); setCurrentPage(1); }}
+                  className="mt-1 text-xs text-blue-600 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
         )}
 
         <div className="mt-4">
-          <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by student, aircraft, or notes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by student, aircraft, or notes..."
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => { setSearchTerm(""); setCurrentPage(1); }}
+                className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         </div>
       </div>

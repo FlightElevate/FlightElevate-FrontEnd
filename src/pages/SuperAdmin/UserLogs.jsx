@@ -229,9 +229,9 @@ const UserLogs = () => {
                 <thead className="bg-[#F9FAFB] text-black font-inter font-medium">
                   <tr className="h-[44px]">
                     <th className="pl-5">Date</th>
-                    <th className="pl-5">User</th>
+                    <th className="pl-5">User Name</th>
                     <th className="pl-5">Email</th>
-                    <th className="pl-5">Time</th>
+                    <th className="pl-5">Time (Login)</th>
                     <th className="pl-5">Role</th>
                     <th className="pl-5">Role Performed</th>
                   </tr>
@@ -243,12 +243,12 @@ const UserLogs = () => {
                         key={log.id}
                         className="border-b border-[#EAECF0] hover:bg-gray-50 transition-colors h-[72px]"
                       >
-                        <td className="p-6">{log.date}</td>
-                        <td className="p-6">{log.user}</td>
+                        <td className="p-6">{log.date_display || log.date}</td>
+                        <td className="p-6">{log.user_name || log.user}</td>
                         <td className="p-6">{log.email}</td>
-                        <td className="p-6">{log.time}</td>
+                        <td className="p-6">{log.time_display || log.time}</td>
                         <td className="p-6">{log.role}</td>
-                        <td className="p-6">{log.role_performed || log.description}</td>
+                        <td className="p-6">{log.role_performed || log.description || '—'}</td>
                       </tr>
                     ))
                   ) : (
@@ -272,7 +272,7 @@ const UserLogs = () => {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-800 truncate">{log.user}</h4>
+                        <h4 className="font-medium text-gray-800 truncate">{log.user_name || log.user}</h4>
                         <p className="text-sm text-gray-600 truncate mt-1">{log.email}</p>
                       </div>
                       <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 flex-shrink-0 ml-2">
@@ -282,16 +282,16 @@ const UserLogs = () => {
                     <div className="space-y-2 pt-3 border-t border-gray-100">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-500">Date</span>
-                        <span className="text-sm text-gray-700">{log.date}</span>
+                        <span className="text-sm text-gray-700">{log.date_display || log.date}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Time</span>
-                        <span className="text-sm text-gray-700">{log.time}</span>
+                        <span className="text-xs text-gray-500">Time (Login)</span>
+                        <span className="text-sm text-gray-700">{log.time_display || log.time}</span>
                       </div>
                       <div className="flex items-start justify-between">
-                        <span className="text-xs text-gray-500">Action</span>
+                        <span className="text-xs text-gray-500">Role Performed</span>
                         <span className="text-sm text-gray-700 text-right flex-1 ml-2">
-                          {log.role_performed || log.description || 'N/A'}
+                          {log.role_performed || log.description || '—'}
                         </span>
                       </div>
                     </div>

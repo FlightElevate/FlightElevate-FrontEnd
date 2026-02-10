@@ -774,10 +774,12 @@ const Calendar = () => {
     if (!item.events || item.events.length === 0) return null;
     const targetDate = dateStr || formatDateStr(currentDate);
     const dayEvents = item.events.filter(e => (e.date || '').toString().slice(0, 10) === targetDate);
-    return dayEvents.find(event => {
-      const eventHour = parseInt(String(event.start_time).split(':')[0]);
+    const inHour = dayEvents.filter(event => {
+      const parts = String(event.start_time || '').split(':');
+      const eventHour = parseInt(parts[0], 10);
       return eventHour === hour;
     });
+    return inHour.length > 0 ? inHour.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))[0] : null;
   };
 
   const getEventsForDay = (item, dateStr) => {
