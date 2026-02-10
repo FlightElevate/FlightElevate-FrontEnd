@@ -6,6 +6,7 @@ import { lessonService } from "../../../api/services/lessonService";
 import { useRole } from "../../../hooks/useRole";
 import { useAuth } from "../../../context/AuthContext";
 import { showSuccessToast, showErrorToast } from "../../../utils/notifications";
+import { safeDisplay } from "../../../utils/safeDisplay";
 
 const LessonDetails = () => {
   const { id } = useParams();
@@ -264,7 +265,7 @@ const LessonDetails = () => {
           {from === 'reservations' ? 'Reservations' : from === 'requests' ? 'Requests' : 'My Lessons'}
         </button>
         <span className="w-4 h-4">{">"}</span>
-        <span className="text-[#0A090B] font-medium break-words">{lesson.title}</span>
+        <span className="text-[#0A090B] font-medium break-words">{safeDisplay(lesson.title)}</span>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -272,7 +273,7 @@ const LessonDetails = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 sm:py-5 px-3 sm:px-4 border-b border-[#F3F4F6] gap-3">
             <div className="flex flex-col gap-2.5 flex-1 min-w-0">
               <h1 className="text-lg sm:text-xl fw6 text-gray-900 flex flex-wrap items-center gap-2 sm:gap-4 leading-[100%] tracking-[0px]">
-                <span className="break-words">{lesson.title}</span>
+                <span className="break-words">{safeDisplay(lesson.title)}</span>
                 <span
                   className={`text-xs px-2 py-1 rounded-[5px] align-middle leading-4.5 tracking-[4%] font-medium whitespace-nowrap ${
                     getStatusColor(lesson.status)
@@ -282,7 +283,7 @@ const LessonDetails = () => {
                 </span>
               </h1>
               <p className="text-sm fw4 font-inter leading-5 tracking-[-0.05px] text-[#7F7D83] break-words">
-                {lesson.description}
+                {safeDisplay(lesson.description, '')}
               </p>
             </div>
           </div>
@@ -388,12 +389,12 @@ const LessonDetails = () => {
                       {(isAssignedInstructor() || isAdmin() || isSuperAdmin()) && (
                         <div className="flex flex-col gap-3">
                           <h3 className="fw6 text-[#101828]">Student</h3>
-                          <p className=" text-[#3D3D3D]">{lesson.student}</p>
+                          <p className=" text-[#3D3D3D]">{safeDisplay(lesson.student)}</p>
                         </div>
                       )}
                       <div className="flex flex-col gap-3">
                         <h3 className="fw6 text-[#101828]">Instructor</h3>
-                        <p className=" text-[#3D3D3D]">{lesson.instructor}</p>
+                        <p className=" text-[#3D3D3D]">{safeDisplay(lesson.instructor)}</p>
                       </div>
                       <div className="flex flex-col gap-3">
                         <h3 className="fw6 text-[#101828]">Date</h3>
@@ -403,10 +404,10 @@ const LessonDetails = () => {
                         <h3 className="fw6 text-[#101828]">Time</h3>
                         <p className=" text-[#3D3D3D]">{formatTime(lesson.time)}</p>
                       </div>
-                      {lesson.aircraft && lesson.aircraft !== "N/A" && (
+                      {safeDisplay(lesson.aircraft, '') && safeDisplay(lesson.aircraft) !== "N/A" && (
                         <div className="flex flex-col gap-3">
                           <h3 className="fw6 text-[#101828]">Aircraft</h3>
-                          <p className=" text-[#3D3D3D]">{lesson.aircraft}</p>
+                          <p className=" text-[#3D3D3D]">{safeDisplay(lesson.aircraft)}</p>
                         </div>
                       )}
                       {lesson.duration && (
@@ -415,10 +416,10 @@ const LessonDetails = () => {
                           <p className=" text-[#3D3D3D]">{lesson.duration} minutes</p>
                         </div>
                       )}
-                      {lesson.location?.name && (
+                      {safeDisplay(lesson.location?.name, '') && (
                         <div className="flex flex-col gap-3">
                           <h3 className="fw6 text-[#101828]">Location</h3>
-                          <p className=" text-[#3D3D3D]">{lesson.location.name}{lesson.location.address ? ` – ${lesson.location.address}` : ''}</p>
+                          <p className=" text-[#3D3D3D]">{safeDisplay(lesson.location?.name)}{lesson.location?.address != null && lesson.location?.address !== '' ? ` – ${safeDisplay(lesson.location?.address)}` : ''}</p>
                         </div>
                       )}
                     </div>
@@ -427,7 +428,7 @@ const LessonDetails = () => {
                       <h3 className="text-base text-[#101828] leading-[100%] tracking-[0px] fw6">
                         Special Instructions
                       </h3>
-                      <p className="text-[#344054]">{lesson.specialInstructions}</p>
+                      <p className="text-[#344054]">{safeDisplay(lesson.specialInstructions, '')}</p>
                     </div>
                   </>
                 ) : (
@@ -435,7 +436,7 @@ const LessonDetails = () => {
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
                       <h3 className="text-base text-[#101828] leading-[100%] tracking-[0px] fw6">
-                        {canEditFeedback() ? `Feedback for ${lesson.student}` : 'Feedback'}
+                        {canEditFeedback() ? `Feedback for ${safeDisplay(lesson.student)}` : 'Feedback'}
                       </h3>
                       <p className="text-sm text-gray-600">
                         {canEditFeedback() 

@@ -10,6 +10,7 @@ import { settingsService } from "../../../api/services/settingsService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast, showBlockUserConfirm } from "../../../utils/notifications";
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { getImageUrl } from "../../../utils/imageUtils";
+import { safeDisplay } from "../../../utils/safeDisplay";
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -416,13 +417,13 @@ const UserProfile = () => {
                     <tbody>
                       {filteredFlightLogs.map((log, index) => (
                         <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-3">{log.date || formatDate(log.full_date)}</td>
-                          <td className="px-4 py-3">{log.time || formatTime(log.full_time)}</td>
-                          <td className="px-4 py-3">{log.instructor}</td>
+                          <td className="px-4 py-3">{safeDisplay(log.date || (log.full_date ? formatDate(log.full_date) : null))}</td>
+                          <td className="px-4 py-3">{safeDisplay(log.time || (log.full_time ? formatTime(log.full_time) : null))}</td>
+                          <td className="px-4 py-3">{safeDisplay(log.instructor)}</td>
                           <td className="px-4 py-3">
-                            <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{log.status}</span>
+                            <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{safeDisplay(log.status)}</span>
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{log.flight_type}</td>
+                          <td className="px-4 py-3 text-gray-600">{safeDisplay(log.flight_type)}</td>
                         </tr>
                       ))}
                     </tbody>

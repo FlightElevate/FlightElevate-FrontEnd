@@ -10,7 +10,7 @@ import { lessonService } from "../../api/services/lessonService";
 import { userService } from "../../api/services/userService";
 import { aircraftService } from "../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../utils/notifications";
-
+import { safeDisplay } from "../../utils/safeDisplay";
 
 const getStatusColor = (status) => {
   if (!status) return "bg-gray-100 text-gray-600";
@@ -1205,16 +1205,16 @@ const InstructorLessons = () => {
               {currentItems.length > 0 ? (
                 currentItems.map((lesson) => (
                   <tr key={lesson.id} className="hover:bg-gray-50 relative">
-                    <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.student}</td>
-                    <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.date}</td>
-                    <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.time}</td>
-                    <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.flightType}</td>
+                    <td className="py-2 px-3 border border-[#E5E1E6]">{safeDisplay(lesson.student)}</td>
+                    <td className="py-2 px-3 border border-[#E5E1E6]">{safeDisplay(lesson.date)}</td>
+                    <td className="py-2 px-3 border border-[#E5E1E6]">{safeDisplay(lesson.time)}</td>
+                    <td className="py-2 px-3 border border-[#E5E1E6]">{safeDisplay(lesson.flightType)}</td>
                     <td className="py-2 px-3 border border-[#E5E1E6]">
                       <span className={`px-2 py-1 text-xs rounded font-medium ${getStatusColor(lesson.status)}`}>
-                        {formatStatus(lesson.status)}
+                        {safeDisplay(formatStatus(lesson.status))}
                       </span>
                     </td>
-                    <td className="py-2 px-3 border border-[#E5E1E6]">{lesson.notes}</td>
+                    <td className="py-2 px-3 border border-[#E5E1E6]">{safeDisplay(lesson.notes)}</td>
                     <td className="py-2 px-3 border border-[#E5E1E6] text-center relative">
                       {showRequests && !(isAdmin || isSuperAdmin) && lesson.status?.toLowerCase() === 'requested' ? (
                         <div className="flex items-center justify-center gap-2">
@@ -1531,13 +1531,13 @@ const InstructorLessons = () => {
                 <div key={lesson.id} className="border border-[#E5E7EB] rounded-xl p-4 bg-white shadow-sm relative">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-col">
-                      <h3 className="text-sm font-medium text-gray-900">{lesson.student}</h3>
+                      <h3 className="text-sm font-medium text-gray-900">{safeDisplay(lesson.student)}</h3>
                       {lesson.lesson_title && (
                         <p className="text-xs text-blue-600 mt-1 font-medium">
-                          {lesson.lesson_number ? `Lesson ${lesson.lesson_number}: ${lesson.lesson_title}` : lesson.lesson_title}
+                          {lesson.lesson_number ? `Lesson ${lesson.lesson_number}: ${safeDisplay(lesson.lesson_title)}` : safeDisplay(lesson.lesson_title)}
                         </p>
                       )}
-                      <p className="text-xs text-[#797979] mt-1">{lesson.flightType}</p>
+                      <p className="text-xs text-[#797979] mt-1">{safeDisplay(lesson.flightType)}</p>
                       {showRequests && !(isAdmin || isSuperAdmin) && (
                         <span className={`mt-2 inline-block px-2 py-1 text-xs rounded font-medium ${getStatusColor(lesson.status)}`}>
                           {formatStatus(lesson.status)}

@@ -9,6 +9,7 @@ import { userService } from "../../api/services/userService";
 import { aircraftService } from "../../api/services/aircraftService";
 import { lessonService } from "../../api/services/lessonService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../utils/notifications";
+import { safeDisplay } from "../../utils/safeDisplay";
 import { aircraftCategories, getClassesForCategory, simulatorTypes } from "../../data/aircraftMakesModels";
 
 const Logbook = () => {
@@ -759,18 +760,18 @@ const Logbook = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="font-medium text-gray-900">
-                        {[logbook.aircraft_make, logbook.aircraft_model].filter(Boolean).join(' ') || logbook.aircraft || '—'}
+                          {[logbook.aircraft_make, logbook.aircraft_model].filter(Boolean).join(' ') || safeDisplay(logbook.aircraft)}
                       </div>
-                      <div className="text-xs text-gray-500">{logbook.aircraft_registration || '—'}</div>
+                      <div className="text-xs text-gray-500">{safeDisplay(logbook.aircraft_registration)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {[logbook.aircraft_category, logbook.aircraft_class].filter(Boolean).join(' / ') || '—'}
+                      {[safeDisplay(logbook.aircraft_category, ''), safeDisplay(logbook.aircraft_class, '')].filter(Boolean).join(' / ') || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {logbook.student}
+                      {safeDisplay(logbook.student)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {logbook.route_from} → {logbook.route_to}
+                      {safeDisplay(logbook.route_from)} → {safeDisplay(logbook.route_to)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                       {parseFloat(logbook.total_hours || 0).toFixed(1)}

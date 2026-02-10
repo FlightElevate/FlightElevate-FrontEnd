@@ -7,6 +7,7 @@ import { userService } from '../api/services/userService';
 import { organizationService } from '../api/services/organizationService';
 import { locationService } from '../api/services/locationService';
 import { showErrorToast, showSuccessToast } from '../utils/notifications';
+import { safeDisplay } from '../utils/safeDisplay';
 import { useAuth } from '../context/AuthContext';
 import { useRole } from '../hooks/useRole';
 import { api } from '../api/apiClient';
@@ -1456,7 +1457,7 @@ const Calendar = () => {
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{aircraft.name}</span></td>
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.name)}</span></td>
                         {timeSlots.map((slot, idx) => {
                           const event = getEventForCell(aircraft, slot.hour);
                           const span = event ? getEventSpan(event) : 1;
@@ -1465,7 +1466,7 @@ const Calendar = () => {
                             <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
                               {isFirstCell && (
                                 <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }}>
-                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
+                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{safeDisplay(event.start_time)}</div>
                                 </div>
                               )}
                             </td>
@@ -1481,7 +1482,7 @@ const Calendar = () => {
                     )}
                     {filteredUserSchedule.map((user) => (
                       <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{user.name}</span></td>
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
                         {timeSlots.map((slot, idx) => {
                           const event = getEventForCell(user, slot.hour);
                           const span = event ? getEventSpan(event) : 1;
@@ -1490,7 +1491,7 @@ const Calendar = () => {
                             <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
                               {isFirstCell && (
                                 <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
-                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{event.start_time}</div>
+                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{safeDisplay(event.start_time)}</div>
                                 </div>
                               )}
                             </td>
@@ -1528,7 +1529,7 @@ const Calendar = () => {
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{aircraft.name}</span></td>
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.name)}</span></td>
                         {getDisplayDates().map((day, idx) => {
                           const dateStr = formatDateStr(day);
                           const dayEvents = getEventsForDay(aircraft, dateStr);
@@ -1537,7 +1538,7 @@ const Calendar = () => {
                               {dayEvents.length > 0 ? (
                                 <div className="space-y-0.5">
                                   {dayEvents.slice(0, 3).map((ev, i) => (
-                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate ${getEventColor(ev.color)} text-white`} title={ev.title || `${ev.start_time} - ${ev.end_time}`}>{ev.start_time}</div>
+                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${safeDisplay(ev.start_time)} - ${safeDisplay(ev.end_time)}`}>{safeDisplay(ev.start_time)}</div>
                                   ))}
                                   {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
                                 </div>
@@ -1555,7 +1556,7 @@ const Calendar = () => {
                     )}
                     {filteredUserSchedule.map((user) => (
                       <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{user.name}</span></td>
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
                         {getDisplayDates().map((day, idx) => {
                           const dateStr = formatDateStr(day);
                           const dayEvents = getEventsForDay(user, dateStr);
@@ -1564,7 +1565,7 @@ const Calendar = () => {
                               {dayEvents.length > 0 ? (
                                 <div className="space-y-0.5">
                                   {dayEvents.slice(0, 3).map((ev, i) => (
-                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={ev.title || `${ev.start_time} - ${ev.end_time}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{ev.start_time}</div>
+                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${safeDisplay(ev.start_time)} - ${safeDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{ev.start_time}</div>
                                   ))}
                                   {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
                                 </div>
@@ -1595,20 +1596,20 @@ const Calendar = () => {
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
-              {hoveredEvent.instructor?.name?.charAt(0) || 'U'}
+              {(safeDisplay(hoveredEvent.instructor, 'U').charAt(0) || 'U').toUpperCase()}
             </div>
             <div>
               <div className="font-medium text-sm text-gray-800">
-                {hoveredEvent.instructor?.name || 'Unknown'}
+                {safeDisplay(hoveredEvent.instructor, 'Unknown')}
               </div>
             </div>
           </div>
-          <p className="text-xs text-gray-600">{hoveredEvent.description || 'No description'}</p>
-          {(hoveredEvent.location?.name || hoveredEvent.location_name) && (
+          <p className="text-xs text-gray-600">{safeDisplay(hoveredEvent.description, 'No description')}</p>
+          {(safeDisplay(hoveredEvent.location?.name, '') || safeDisplay(hoveredEvent.location_name, '')) ? (
             <p className="text-xs text-gray-600 mt-1">
-              📍 {hoveredEvent.location?.name || hoveredEvent.location_name}
+              📍 {safeDisplay(hoveredEvent.location?.name || hoveredEvent.location_name)}
             </p>
-          )}
+          ) : null}
           <div className="mt-2 text-xs text-gray-500">
             {hoveredEvent.date && (
               <div className="mb-1 font-medium text-gray-700">
@@ -1621,7 +1622,7 @@ const Calendar = () => {
               </div>
             )}
             <div>
-              {hoveredEvent.start_time} - {hoveredEvent.end_time}
+              {safeDisplay(hoveredEvent.start_time)} - {safeDisplay(hoveredEvent.end_time)}
             </div>
           </div>
         </div>
@@ -1791,15 +1792,15 @@ const Calendar = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm border-t border-dashed border-gray-300 pt-4">
                     <div>
                       <p className="text-gray-500 mb-1">Issued</p>
-                      <p className="font-medium text-gray-800">{selectedReservation.issued_date}</p>
+                      <p className="font-medium text-gray-800">{safeDisplay(selectedReservation.issued_date)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500 mb-1">Due Date</p>
-                      <p className="font-medium text-gray-800">{selectedReservation.due_date}</p>
+                      <p className="font-medium text-gray-800">{safeDisplay(selectedReservation.due_date)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500 mb-1">Reservation No.</p>
-                      <p className="font-medium text-gray-800">{selectedReservation.reservation_no}</p>
+                      <p className="font-medium text-gray-800">{safeDisplay(selectedReservation.reservation_no)}</p>
                     </div>
                   </div>
                 </div>
@@ -1810,7 +1811,7 @@ const Calendar = () => {
                     <label className="block text-sm font-medium text-gray-500 mb-2">Title</label>
                     <input
                       type="text"
-                      value={selectedReservation.title}
+                      value={safeDisplay(selectedReservation.title, '')}
                       readOnly
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-800"
                     />
@@ -1821,15 +1822,15 @@ const Calendar = () => {
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Student:</h4>
                       <div className="space-y-2 text-sm">
-                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.student ?? selectedReservation.students?.[0]?.name ?? '—'}</span></p>
-                        <p><span className="text-gray-500">Flight:</span> <span className="font-medium text-gray-800">{selectedReservation.flight_type ?? '—'}</span></p>
+                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{safeDisplay(selectedReservation.student ?? selectedReservation.students?.[0])}</span></p>
+                        <p><span className="text-gray-500">Flight:</span> <span className="font-medium text-gray-800">{safeDisplay(selectedReservation.flight_type)}</span></p>
                       </div>
                     </div>
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Instructor:</h4>
                       <div className="space-y-2 text-sm">
-                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.instructor ?? selectedReservation.instructors?.[0]?.name ?? '—'}</span></p>
-                        <p><span className="text-gray-500">Aircraft:</span> <span className="font-medium text-gray-800">{selectedReservation.aircraft ? [selectedReservation.aircraft.name, selectedReservation.aircraft.model].filter(Boolean).join(' ') : '—'}</span></p>
+                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{safeDisplay(selectedReservation.instructor ?? selectedReservation.instructors?.[0])}</span></p>
+                        <p><span className="text-gray-500">Aircraft:</span> <span className="font-medium text-gray-800">{safeDisplay(selectedReservation.aircraft)}</span></p>
                       </div>
                     </div>
                   </div>
@@ -1839,9 +1840,9 @@ const Calendar = () => {
                     <div className="border-b border-dashed border-gray-300 pb-4">
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">Location:</h4>
                       <div className="text-sm">
-                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{selectedReservation.location?.name ?? '—'}</span></p>
-                        {selectedReservation.location?.address && (
-                          <p className="mt-1"><span className="text-gray-500">Address:</span> <span className="font-medium text-gray-800">{selectedReservation.location.address}</span></p>
+                        <p><span className="text-gray-500">Name:</span> <span className="font-medium text-gray-800">{safeDisplay(selectedReservation.location?.name)}</span></p>
+                        {(selectedReservation.location?.address != null && selectedReservation.location?.address !== '') && (
+                          <p className="mt-1"><span className="text-gray-500">Address:</span> <span className="font-medium text-gray-800">{safeDisplay(selectedReservation.location?.address)}</span></p>
                         )}
                       </div>
                     </div>
@@ -1851,7 +1852,7 @@ const Calendar = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-500 mb-2">Description</label>
                     <textarea
-                      value={selectedReservation.description ?? selectedReservation.notes ?? ''}
+                      value={safeDisplay(selectedReservation.description ?? selectedReservation.notes, '')}
                       readOnly
                       rows="6"
                       placeholder="No description"
