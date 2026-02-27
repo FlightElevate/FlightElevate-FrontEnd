@@ -1565,7 +1565,7 @@ const Calendar = () => {
                               {dayEvents.length > 0 ? (
                                 <div className="space-y-0.5">
                                   {dayEvents.slice(0, 3).map((ev, i) => (
-                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${safeDisplay(ev.start_time)} - ${safeDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{ev.start_time}</div>
+                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${safeDisplay(ev.start_time)} - ${safeDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{safeDisplay(ev.start_time)}</div>
                                   ))}
                                   {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
                                 </div>

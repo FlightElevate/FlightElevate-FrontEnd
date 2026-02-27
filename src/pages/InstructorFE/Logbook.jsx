@@ -42,50 +42,43 @@ const Logbook = () => {
   // Edit modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingLogbook, setEditingLogbook] = useState(null);
-  const [editForm, setEditForm] = useState({
-    // Aircraft Identification
-    aircraft_make: '',
-    aircraft_model: '',
-    // Aircraft Classification (FAA)
+  // blankForm covers every Figma column + architecture requirements
+  const blankForm = {
+    aircraft_model: '',        // Aircraft Name
+    aircraft_make: '',         // Aircraft Make
+    aircraft_registration: '', // Aircraft Ident
     aircraft_category: '',
     aircraft_class: '',
     simulator_device_type: '',
-    // Basic Info
     student_id: '',
     instructor_id: '',
     flight_date: '',
-    flight_time: '',
-    // Time Fields
-    dual_hours: 0,
-    dual_given_hours: 0,
-    solo_hours: 0,
-    pic_hours: 0,
-    sic_hours: 0,
-    total_hours: 0,
-    // FAA Time Breakdown
-    cross_country_hours: 0,
-    instrument_hours: 0,
-    actual_instrument_hours: 0,
-    simulated_instrument_hours: 0,
-    flight_simulator_hours: 0,
-    approach_type: [],
-    approach_count: 0,
-    night_hours: 0,
-    turbine_hours: 0,
-    // Additional Details
-    aircraft_registration: '',
     route_from: '',
     route_to: '',
-    number_of_flights: 1,
-    takeoffs_day: 0,
-    takeoffs_night: 0,
-    landings_day: 0,
-    landings_night: 0,
-    notes: '',
-    summary: '',
-    lesson_type: '',
-    lesson_reference: '',
-  });
+    total_hours: 0,        // Figma: Total Flight Time (block time – sole source of truth)
+    asel_hours: 0,         // Figma: Airplane Single Engine Land
+    ases_hours: 0,         // Figma: Airplane Single Engine Sea
+    amel_hours: 0,         // Figma: Airplane Multi Engine Land
+    helicopter_hours: 0,   // Figma: Rotorcraft Helicopter
+    turbine_hours: 0,      // Figma: Turbine
+    ames_hours: 0,         // Figma: Airplane Multi Engine Sea
+    tailwheel_hours: 0,    // Figma: Tailwheel
+    glider_hours: 0,       // Figma: Glider
+    night_hours: 0,        // Figma: Night
+    actual_instrument_hours: 0,     // Figma: Actual Instrument
+    simulated_instrument_hours: 0,  // Figma: Simulated Instrument
+    flight_simulator_hours: 0,      // Figma: Flight Simulator
+    cross_country_hours: 0,  // Figma: Cross Country
+    solo_hours: 0,           // Figma: Solo
+    pic_hours: 0,            // Figma: Pilot in Command
+    sic_hours: 0,            // Figma: Second in Command
+    dual_hours: 0,           // Figma: Dual Received
+    dual_given_hours: 0,     // Figma: Dual Given
+    notes: '',               // Figma: Remarks
+    approach_type: [],       // B7: kept in form & export
+    approach_count: 0,
+  };
+  const [editForm, setEditForm] = useState(blankForm);
 
   const [availableModels, setAvailableModels] = useState([]);
   const [availableClasses, setAvailableClasses] = useState([]);
@@ -121,6 +114,8 @@ const Logbook = () => {
   const fetchLogbooks = async () => {
     setLoading(true);
     try {
+      // By default (no date filter): do not send start_date/end_date — backend returns all logbook entries and all-time stats
+      // When user applies Month or Start/End date: send date params — backend filters list and stats by that range
       let start_date = filterStartDate;
       let end_date = filterEndDate;
       if (filterMonth) {
@@ -231,42 +226,48 @@ const Logbook = () => {
   const handleEdit = (logbook) => {
     setEditingLogbook(logbook);
     setEditForm({
-      aircraft_make: logbook.aircraft_make || '',
       aircraft_model: logbook.aircraft_model || '',
+      aircraft_make: logbook.aircraft_make || '',
+      aircraft_registration: logbook.aircraft_registration || '',
       aircraft_category: logbook.aircraft_category || '',
       aircraft_class: logbook.aircraft_class || '',
       simulator_device_type: logbook.simulator_device_type || '',
       student_id: logbook.student_id || '',
       instructor_id: logbook.instructor_id || user?.id || '',
       flight_date: logbook.flight_date || '',
-      flight_time: logbook.flight_time || '',
-      dual_hours: logbook.dual_hours || 0,
-      dual_given_hours: logbook.dual_given_hours || 0,
-      solo_hours: logbook.solo_hours || 0,
-      pic_hours: logbook.pic_hours || 0,
-      sic_hours: logbook.sic_hours || 0,
+      route_from: logbook.route_from || '',
+      route_to: logbook.route_to || '',
       total_hours: logbook.total_hours || 0,
-      cross_country_hours: logbook.cross_country_hours || 0,
-      instrument_hours: logbook.instrument_hours || 0,
+      asel_hours: logbook.asel_hours || 0,
+      ases_hours: logbook.ases_hours || 0,
+      amel_hours: logbook.amel_hours || 0,
+      helicopter_hours: logbook.helicopter_hours || 0,
+      turbine_hours: logbook.turbine_hours || 0,
+      ames_hours: logbook.ames_hours || 0,
+      tailwheel_hours: logbook.tailwheel_hours || 0,
+      glider_hours: logbook.glider_hours || 0,
+      night_hours: logbook.night_hours || 0,
       actual_instrument_hours: logbook.actual_instrument_hours || 0,
       simulated_instrument_hours: logbook.simulated_instrument_hours || 0,
       flight_simulator_hours: logbook.flight_simulator_hours || 0,
-      approach_type: Array.isArray(logbook.approach_type) ? logbook.approach_type : (logbook.approach_type ? [logbook.approach_type] : []),
-      approach_count: logbook.approach_count || 0,
-      night_hours: logbook.night_hours || 0,
-      turbine_hours: logbook.turbine_hours || 0,
-      aircraft_registration: logbook.aircraft_registration || '',
-      route_from: logbook.route_from || '',
-      route_to: logbook.route_to || '',
-      number_of_flights: logbook.number_of_flights || 1,
-      takeoffs_day: logbook.takeoffs_day || 0,
-      takeoffs_night: logbook.takeoffs_night || 0,
-      landings_day: logbook.landings_day || 0,
-      landings_night: logbook.landings_night || 0,
+      cross_country_hours: logbook.cross_country_hours || 0,
+      solo_hours: logbook.solo_hours || 0,
+      pic_hours: logbook.pic_hours || 0,
+      sic_hours: logbook.sic_hours || 0,
+      dual_hours: logbook.dual_hours || 0,
+      dual_given_hours: logbook.dual_given_hours || 0,
       notes: logbook.notes || '',
-      summary: logbook.summary || '',
-      lesson_type: logbook.lesson_type || '',
-      lesson_reference: logbook.lesson_reference || '',
+      approach_type: Array.isArray(logbook.approach_type)
+        ? logbook.approach_type
+        : (logbook.approach_type ? [logbook.approach_type] : []),
+      // If existing entry has types but count is 0, default count to number of types
+      approach_count: (() => {
+        const types = Array.isArray(logbook.approach_type)
+          ? logbook.approach_type
+          : (logbook.approach_type ? [logbook.approach_type] : []);
+        const count = parseInt(logbook.approach_count, 10) || 0;
+        return types.length > 0 && count === 0 ? types.length : count;
+      })(),
     });
     
     // Set available models based on selected make from organization's aircraft
@@ -312,7 +313,7 @@ const Logbook = () => {
         .map(a => a.model)
         .filter((v, i, a) => a.indexOf(v) === i && v); // unique and truthy
       setAvailableModels(models);
-      setEditForm(prev => ({ ...prev, aircraft_model: '' }));
+      setEditForm(prev => ({ ...prev, aircraft_model: prev.aircraft_model }));
     }
 
     // Update available classes when category changes
@@ -328,11 +329,22 @@ const Logbook = () => {
     e.preventDefault();
     
     try {
+      // Normalize approach fields before sending: if types selected but count is 0, default count
+      const payload = { ...editForm };
+      const approachTypes = Array.isArray(payload.approach_type) ? payload.approach_type : [];
+      const approachCount = parseInt(payload.approach_count, 10) || 0;
+      if (approachTypes.length > 0 && approachCount === 0) {
+        payload.approach_count = approachTypes.length;
+      }
+      if (approachTypes.length === 0) {
+        payload.approach_count = 0;
+      }
+
       let response;
       if (editingLogbook) {
-        response = await logbookService.updateEntry(editingLogbook.id, editForm);
+        response = await logbookService.updateEntry(editingLogbook.id, payload);
       } else {
-        response = await logbookService.createEntry(editForm);
+        response = await logbookService.createEntry(payload);
       }
 
       if (response.success) {
@@ -349,37 +361,9 @@ const Logbook = () => {
   const handleAddNew = () => {
     setEditingLogbook(null);
     setEditForm({
-      aircraft_make: '',
-      aircraft_model: '',
-      aircraft_category: '',
-      aircraft_class: '',
-      simulator_device_type: '',
-      student_id: '',
-      instructor_id: user?.id || '',
+      ...blankForm,
       flight_date: new Date().toISOString().split('T')[0],
-      flight_time: '',
-      dual_hours: 0,
-      dual_given_hours: 0,
-      solo_hours: 0,
-      pic_hours: 0,
-      sic_hours: 0,
-      total_hours: 0,
-      cross_country_hours: 0,
-      instrument_hours: 0,
-      night_hours: 0,
-      turbine_hours: 0,
-      aircraft_registration: '',
-      route_from: '',
-      route_to: '',
-      number_of_flights: 1,
-      takeoffs_day: 0,
-      takeoffs_night: 0,
-      landings_day: 0,
-      landings_night: 0,
-      notes: '',
-      summary: '',
-      lesson_type: '',
-      lesson_reference: '',
+      instructor_id: user?.id || '',
     });
     setAvailableModels([]);
     setAvailableClasses([]);
@@ -388,14 +372,19 @@ const Logbook = () => {
 
   // Build CSV from list data – same API as table (getEntries), so export matches list exactly
   const buildCsvFromListData = (rows) => {
+    // Figma-exact column order; admin: Student + Instructor right after Date
     const headers = [
-      'Date', 'Aircraft Make', 'Aircraft Model', 'Category', 'Class', 'Registration',
-      'Student', 'Instructor', 'Route From', 'Route To',
-      'Total (Block)', 'PIC', 'SIC', 'Dual Received', 'Solo', 'Dual Given',
-      'Cross-Country', 'Instrument', 'Actual Instrument', 'Simulated Instrument (Hood)', 'Flight Simulator',
-      'Approach Type', 'Approach Count', 'Night', 'Turbine',
-      'Day Takeoffs', 'Night Takeoffs', 'Day Landings', 'Night Landings',
-      'Notes', 'Summary'
+      'Date',
+      ...(isAdminView ? ['Student', 'Instructor'] : []),
+      'Aircraft Name', 'Aircraft Make', 'Aircraft Ident',
+      'From', 'To', 'Total Flight Time',
+      'Airplane Single Engine Land', 'Airplane Single Engine Sea',
+      'Airplane Multi Engine Land', 'Rotorcraft Helicopter',
+      'Turbine', 'Airplane Multi Engine Sea', 'Tailwheel', 'Glider',
+      'Night', 'Actual Instrument', 'Simulated Instrument', 'Flight Simulator',
+      'Cross Country', 'Solo', 'Pilot in Command', 'Second in Command',
+      'Dual Received', 'Dual Given', 'Remarks',
+      'Approach Count', 'Approach Types',
     ];
     const escapeCsv = (v) => {
       if (v == null || v === '') return '';
@@ -403,6 +392,7 @@ const Logbook = () => {
       if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
       return s;
     };
+    // Always output YYYY-MM-DD; use UTC for ISO strings so Excel/local TZ doesn't shift the day
     const toDateStr = (row) => {
       const d = row.flight_date ?? row.flight_date_formatted ?? '';
       if (!d) return '';
@@ -410,51 +400,56 @@ const Logbook = () => {
       try {
         const date = new Date(d);
         if (!Number.isNaN(date.getTime())) {
-          const y = date.getFullYear();
-          const m = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
+          // Use UTC to avoid wrong day when API sends "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss.sssZ"
+          const y = date.getUTCFullYear();
+          const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(date.getUTCDate()).padStart(2, '0');
           return `${y}-${m}-${day}`;
         }
       } catch (_) {}
       return String(d);
+    };
+    // Excel: prefix with tab so the cell is treated as text and date displays as YYYY-MM-DD (no auto-parse/serial)
+    const excelDate = (row) => {
+      const s = toDateStr(row);
+      return s ? `\t${s}` : '';
     };
     const lines = [headers.map(escapeCsv).join(',')];
     rows.forEach((row) => {
       const approachTypeStr = Array.isArray(row.approach_type) && row.approach_type.length
         ? row.approach_type.join(',')
         : (row.approach_type ?? '');
+      // Figma-exact column order; admin: Student + Instructor right after Date (excelDate = tab prefix for Excel)
       lines.push([
-        toDateStr(row),
+        excelDate(row),
+        ...(isAdminView ? [row.student ?? '', row.instructor ?? ''] : []),
+        row.aircraft_model ?? row.aircraft ?? '',
         row.aircraft_make ?? '',
-        row.aircraft_model ?? '',
-        row.aircraft_category ?? '',
-        row.aircraft_class ?? '',
         row.aircraft_registration ?? '',
-        row.student ?? 'N/A',
-        row.instructor ?? 'N/A',
         row.route_from ?? '',
         row.route_to ?? '',
         parseFloat(row.total_hours ?? 0),
-        parseFloat(row.pic_hours ?? 0),
-        parseFloat(row.sic_hours ?? 0),
-        parseFloat(row.dual_hours ?? 0),
-        parseFloat(row.solo_hours ?? 0),
-        parseFloat(row.dual_given_hours ?? 0),
-        parseFloat(row.cross_country_hours ?? 0),
-        parseFloat(row.instrument_hours ?? 0),
+        parseFloat(row.asel_hours ?? 0),
+        parseFloat(row.ases_hours ?? 0),
+        parseFloat(row.amel_hours ?? 0),
+        parseFloat(row.helicopter_hours ?? 0),
+        parseFloat(row.turbine_hours ?? 0),
+        parseFloat(row.ames_hours ?? 0),
+        parseFloat(row.tailwheel_hours ?? 0),
+        parseFloat(row.glider_hours ?? 0),
+        parseFloat(row.night_hours ?? 0),
         parseFloat(row.actual_instrument_hours ?? 0),
         parseFloat(row.simulated_instrument_hours ?? 0),
         parseFloat(row.flight_simulator_hours ?? 0),
-        approachTypeStr,
+        parseFloat(row.cross_country_hours ?? 0),
+        parseFloat(row.solo_hours ?? 0),
+        parseFloat(row.pic_hours ?? 0),
+        parseFloat(row.sic_hours ?? 0),
+        parseFloat(row.dual_hours ?? 0),
+        parseFloat(row.dual_given_hours ?? 0),
+        (row.notes ?? row.summary ?? '').replace(/\n/g, ' '),
         row.approach_count ?? 0,
-        parseFloat(row.night_hours ?? 0),
-        parseFloat(row.turbine_hours ?? 0),
-        row.takeoffs_day ?? 0,
-        row.takeoffs_night ?? 0,
-        row.landings_day ?? 0,
-        row.landings_night ?? 0,
-        (row.notes ?? '').replace(/\n/g, ' '),
-        (row.summary ?? '').replace(/\n/g, ' '),
+        approachTypeStr,
       ].map(escapeCsv).join(','));
     });
     return '\uFEFF' + lines.join('\r\n'); // UTF-8 BOM for Excel
@@ -522,11 +517,12 @@ const Logbook = () => {
         </div>
       </div>
 
-      {/* Stats - filter ke mutabiq backend se aate hain */}
+      {/* Stats — completed reservation/lesson flights only, no manual entries, no double count */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">Total Flight Hours</div>
           <div className="text-3xl font-bold text-blue-600">{Number(stats.total_hours).toFixed(1)}</div>
+          <div className="text-xs text-gray-400 mt-1">From completed reservations</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">Total Flights</div>
@@ -535,6 +531,7 @@ const Logbook = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-600 mb-1">This Month</div>
           <div className="text-3xl font-bold text-gray-900">{stats.this_month_count}</div>
+          <div className="text-xs text-gray-400 mt-1">Completed reservations</div>
         </div>
       </div>
 
@@ -609,28 +606,30 @@ const Logbook = () => {
                 </button>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
-              <select
-                value={filterStudentId}
-                onChange={(e) => { setFilterStudentId(e.target.value); setCurrentPage(1); }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Students</option>
-                {students.map(student => (
-                  <option key={student.id} value={student.id}>{student.name}</option>
-                ))}
-              </select>
-              {filterStudentId && (
-                <button
-                  type="button"
-                  onClick={() => { setFilterStudentId(""); setCurrentPage(1); }}
-                  className="mt-1 text-xs text-blue-600 hover:underline"
+            {isAdminView && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
+                <select
+                  value={filterStudentId}
+                  onChange={(e) => { setFilterStudentId(e.target.value); setCurrentPage(1); }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  Clear
-                </button>
-              )}
-            </div>
+                  <option value="">All Students</option>
+                  {students.map(student => (
+                    <option key={student.id} value={student.id}>{student.name}</option>
+                  ))}
+                </select>
+                {filterStudentId && (
+                  <button
+                    type="button"
+                    onClick={() => { setFilterStudentId(""); setCurrentPage(1); }}
+                    className="mt-1 text-xs text-blue-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
             {isAdminView && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
@@ -733,103 +732,145 @@ const Logbook = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aircraft</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category/Class</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total (Block)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PIC</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dual Rec</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dual Given</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">X-C</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Night</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Act. Inst</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sim Inst</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Approach</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  {/* Figma col 1: Date; Admin: Student & Instructor right after Date */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+                  {isAdminView && (
+                    <>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Student</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Instructor</th>
+                    </>
+                  )}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Name</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Make</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Ident</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">From</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">To</th>
+                  {/* Figma col 7 */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total Flight Time</th>
+                  {/* Figma cols 8–15: category hours */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Airplane Single Engine Land</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Airplane Single Engine Sea</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Airplane Multi Engine Land</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Rotorcraft Helicopter</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Turbine</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Airplane Multi Engine Sea</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tailwheel</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Glider</th>
+                  {/* Figma cols 16–19: condition hours */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Night</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actual Instrument</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Simulated Instrument</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Flight Simulator</th>
+                  {/* Figma cols 20–25: role hours */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Cross Country</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Solo</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Pilot in Command</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Second in Command</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dual Received</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dual Given</th>
+                  {/* Figma col 26 */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Remarks</th>
+                  {!isAdminView && (
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {logbooks.map((logbook) => (
+                {logbooks.map((logbook) => {
+                  const hr = (v) => parseFloat(v ?? 0);
+                  const disp = (v) => hr(v) > 0 ? hr(v).toFixed(1) : '--';
+                  return (
                   <tr key={logbook.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
                       {new Date(logbook.flight_date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="font-medium text-gray-900">
-                          {[logbook.aircraft_make, logbook.aircraft_model].filter(Boolean).join(' ') || safeDisplay(logbook.aircraft)}
-                      </div>
-                      <div className="text-xs text-gray-500">{safeDisplay(logbook.aircraft_registration)}</div>
+                    {isAdminView && (
+                      <>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {safeDisplay(logbook.student) || '--'}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
+                          {safeDisplay(logbook.instructor) || '--'}
+                        </td>
+                      </>
+                    )}
+                    <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {safeDisplay(logbook.aircraft_model) || safeDisplay(logbook.aircraft) || '--'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {[safeDisplay(logbook.aircraft_category, ''), safeDisplay(logbook.aircraft_class, '')].filter(Boolean).join(' / ') || '—'}
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                      {safeDisplay(logbook.aircraft_make) || '--'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {safeDisplay(logbook.student)}
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                      {safeDisplay(logbook.aircraft_registration) || '--'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {safeDisplay(logbook.route_from)} → {safeDisplay(logbook.route_to)}
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                      {safeDisplay(logbook.route_from) || '--'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                      {parseFloat(logbook.total_hours || 0).toFixed(1)}
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                      {safeDisplay(logbook.route_to) || '--'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {parseFloat(logbook.pic_hours || 0).toFixed(1)}
+                    <td className="px-3 py-3 whitespace-nowrap text-sm font-semibold text-blue-700">
+                      {hr(logbook.total_hours) > 0 ? hr(logbook.total_hours).toFixed(1) : '--'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {parseFloat(logbook.dual_hours || 0).toFixed(1)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {parseFloat(logbook.dual_given_hours || 0).toFixed(1)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {parseFloat(logbook.cross_country_hours || 0).toFixed(1)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {parseFloat(logbook.night_hours || 0).toFixed(1)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {parseFloat(logbook.actual_instrument_hours || 0).toFixed(1)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {parseFloat(logbook.simulated_instrument_hours || 0).toFixed(1)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {logbook.approach_count ?? 0}
-                      {Array.isArray(logbook.approach_type) && logbook.approach_type.length
-                        ? ` (${logbook.approach_type.join(',')})`
-                        : ''}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm relative">
-                      <button
-                        onClick={() => setOpenMenuId(openMenuId === logbook.id ? null : logbook.id)}
-                        className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100"
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.asel_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.ases_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.amel_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.helicopter_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.turbine_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.ames_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.tailwheel_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.glider_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.night_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.actual_instrument_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.simulated_instrument_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.flight_simulator_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.cross_country_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.solo_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.pic_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.sic_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.dual_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.dual_given_hours)}</td>
+                    <td className="px-3 py-3 text-sm text-gray-600 max-w-[160px]">
+                      <span
+                        title={logbook.notes || logbook.summary || ''}
+                        className="block truncate"
                       >
-                        <HiDotsVertical />
-                      </button>
-                      
-                      {openMenuId === logbook.id && (
-                        <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+                        {logbook.notes || logbook.summary || '--'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-right text-sm relative">
+                      {!isAdminView && (
+                        <>
                           <button
-                            onClick={() => handleEdit(logbook)}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                            onClick={() => setOpenMenuId(openMenuId === logbook.id ? null : logbook.id)}
+                            className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100"
                           >
-                            <FiEdit2 className="mr-2" /> Edit
+                            <HiDotsVertical />
                           </button>
-                          <button
-                            onClick={() => handleDelete(logbook.id)}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
-                          >
-                            <FiTrash2 className="mr-2" /> Delete
-                          </button>
-                        </div>
+                          {openMenuId === logbook.id && (
+                            <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+                              <button
+                                onClick={() => handleEdit(logbook)}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                              >
+                                <FiEdit2 className="mr-2" /> Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(logbook.id)}
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                              >
+                                <FiTrash2 className="mr-2" /> Delete
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -864,430 +905,278 @@ const Logbook = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Aircraft Information */}
+
+              {/* ── Section 1: Aircraft (Figma cols 2-4) ── */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Aircraft Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Aircraft</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Make *</label>
-                    <input
-                      type="text"
-                      list="makes-list"
-                      required
-                      value={editForm.aircraft_make}
-                      onChange={(e) => handleFormChange('aircraft_make', e.target.value)}
-                      placeholder="Select or type aircraft make"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <datalist id="makes-list">
-                      {availableMakes.map(make => (
-                        <option key={make} value={make} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Model *</label>
-                    <input
-                      type="text"
-                      list="models-list"
-                      required
-                      value={editForm.aircraft_model}
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Aircraft Name *</label>
+                    <input type="text" required value={editForm.aircraft_model}
                       onChange={(e) => handleFormChange('aircraft_model', e.target.value)}
-                      placeholder="Select or type aircraft model"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <datalist id="models-list">
-                      {availableModels.map(model => (
-                        <option key={model} value={model} />
-                      ))}
-                    </datalist>
+                      placeholder="C172, PA-28…"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                    <input
-                      type="text"
-                      list="categories-list"
-                      required
-                      value={editForm.aircraft_category}
-                      onChange={(e) => handleFormChange('aircraft_category', e.target.value)}
-                      placeholder="Select or type category"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <datalist id="categories-list">
-                      {availableCategories.length > 0 ? availableCategories.map(cat => (
-                        <option key={cat} value={cat} />
-                      )) : aircraftCategories.map(cat => (
-                        <option key={cat} value={cat} />
-                      ))}
-                    </datalist>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Aircraft Make *</label>
+                    <input type="text" list="makes-list" required value={editForm.aircraft_make}
+                      onChange={(e) => handleFormChange('aircraft_make', e.target.value)}
+                      placeholder="Cessna, Piper…"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <datalist id="makes-list">{availableMakes.map(m => <option key={m} value={m} />)}</datalist>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
-                    <input
-                      type="text"
-                      list="classes-list"
-                      required
-                      value={editForm.aircraft_class}
-                      onChange={(e) => handleFormChange('aircraft_class', e.target.value)}
-                      placeholder="Select or type aircraft class"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      disabled={!editForm.aircraft_category}
-                    />
-                    <datalist id="classes-list">
-                      {availableClasses.map(cls => (
-                        <option key={cls} value={cls} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Registration (N-Number)</label>
-                    <input
-                      type="text"
-                      value={editForm.aircraft_registration}
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Aircraft Ident (N-Number) *</label>
+                    <input type="text" required value={editForm.aircraft_registration}
                       onChange={(e) => handleFormChange('aircraft_registration', e.target.value)}
                       placeholder="N12345"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
-
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
+                    <input type="text" list="categories-list" required value={editForm.aircraft_category}
+                      onChange={(e) => handleFormChange('aircraft_category', e.target.value)}
+                      placeholder="Airplane, Rotorcraft…"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <datalist id="categories-list">
+                      {(availableCategories.length > 0 ? availableCategories : aircraftCategories).map(c => <option key={c} value={c} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Class *</label>
+                    <input type="text" list="classes-list" required value={editForm.aircraft_class}
+                      onChange={(e) => handleFormChange('aircraft_class', e.target.value)}
+                      placeholder="ASEL, AMEL…"
+                      disabled={!editForm.aircraft_category}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100" />
+                    <datalist id="classes-list">{availableClasses.map(c => <option key={c} value={c} />)}</datalist>
+                  </div>
                   {editForm.aircraft_category === 'Simulator' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Simulator Type</label>
-                      <input
-                        type="text"
-                        list="simulator-types-list"
-                        value={editForm.simulator_device_type}
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Simulator Type</label>
+                      <input type="text" list="sim-types-list" value={editForm.simulator_device_type}
                         onChange={(e) => handleFormChange('simulator_device_type', e.target.value)}
-                        placeholder="Select or type simulator type"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <datalist id="simulator-types-list">
-                        {simulatorTypes.map(type => (
-                          <option key={type.value} value={type.value}>{type.label}</option>
-                        ))}
-                      </datalist>
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      <datalist id="sim-types-list">{simulatorTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</datalist>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Flight Information */}
+              {/* ── Section 2: Flight Info (Figma cols 1, 5, 6, 7) ── */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Flight Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Flight Information</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Student *</label>
-                    <select
-                      required
-                      value={editForm.student_id}
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Student *</label>
+                    <select required value={editForm.student_id}
                       onChange={(e) => handleFormChange('student_id', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">Select Student</option>
-                      {students.map(student => (
-                        <option key={student.id} value={student.id}>{student.name}</option>
-                      ))}
+                      {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Flight Date *</label>
-                    <input
-                      type="date"
-                      required
-                      value={editForm.flight_date}
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Instructor *</label>
+                    <select required value={editForm.instructor_id}
+                      onChange={(e) => handleFormChange('instructor_id', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Instructor</option>
+                      {isAdminView
+                        ? instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)
+                        : <option value={user?.id || ''}>{user?.name || 'Current User'}</option>}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+                    <input type="date" required value={editForm.flight_date}
                       onChange={(e) => handleFormChange('flight_date', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">From (Departure)</label>
-                    <input
-                      type="text"
-                      value={editForm.route_from}
-                      onChange={(e) => handleFormChange('route_from', e.target.value)}
-                      placeholder="KPDK"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+                    <input type="text" value={editForm.route_from}
+                      onChange={(e) => handleFormChange('route_from', e.target.value)} placeholder="KMQS"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">To (Arrival)</label>
-                    <input
-                      type="text"
-                      value={editForm.route_to}
-                      onChange={(e) => handleFormChange('route_to', e.target.value)}
-                      placeholder="KATL"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+                    <input type="text" value={editForm.route_to}
+                      onChange={(e) => handleFormChange('route_to', e.target.value)} placeholder="KATL"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Total Flight Time * (block hours)</label>
+                    <input type="number" step="0.1" min="0" required value={editForm.total_hours}
+                      onChange={(e) => handleFormChange('total_hours', e.target.value)} placeholder="1.5"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
               </div>
 
-              {/* Flight Hours: Total = Block Time only. PIC/Dual/SIC are subsets. */}
+              {/* ── Section 3: Category Hours (Figma cols 8-15) ── */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Flight Hours (Total = Block Time)</h3>
+                <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Aircraft Category Hours</h3>
+                <p className="text-xs text-gray-500 mb-3">Enter time for the category flown; leave others at 0. Each is a subset of Total Flight Time.</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    ['asel_hours',       'Airplane Single Engine Land'],
+                    ['ases_hours',       'Airplane Single Engine Sea'],
+                    ['amel_hours',       'Airplane Multi Engine Land'],
+                    ['helicopter_hours', 'Rotorcraft Helicopter'],
+                    ['turbine_hours',    'Turbine'],
+                    ['ames_hours',       'Airplane Multi Engine Sea'],
+                    ['tailwheel_hours',  'Tailwheel'],
+                    ['glider_hours',     'Glider'],
+                  ].map(([field, label]) => (
+                    <div key={field}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                      <input type="number" step="0.1" min="0" value={editForm[field]}
+                        onChange={(e) => handleFormChange(field, e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Section 4: Condition / Environment Hours (Figma cols 16-19) ── */}
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Condition Hours</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    ['night_hours',               'Night'],
+                    ['actual_instrument_hours',   'Actual Instrument'],
+                    ['simulated_instrument_hours','Simulated Instrument (Hood)'],
+                    ['flight_simulator_hours',    'Flight Simulator'],
+                  ].map(([field, label]) => (
+                    <div key={field}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                      <input type="number" step="0.1" min="0" value={editForm[field]}
+                        onChange={(e) => handleFormChange(field, e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Section 5: Role Hours (Figma cols 20-25) ── */}
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Role Hours</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[
+                    ['cross_country_hours', 'Cross Country'],
+                    ['solo_hours',          'Solo'],
+                    ['pic_hours',           'Pilot in Command'],
+                    ['sic_hours',           'Second in Command'],
+                    ['dual_hours',          'Dual Received'],
+                    ['dual_given_hours',    'Dual Given'],
+                  ].map(([field, label]) => (
+                    <div key={field}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                      <input type="number" step="0.1" min="0" value={editForm[field]}
+                        onChange={(e) => handleFormChange(field, e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Section 6: Approaches (B7) ── */}
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Approaches</h3>
+                <div className="space-y-4">
+                  {/* Approach Types – toggle chips (tap to select/deselect, multiple allowed) */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total (Block)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={editForm.total_hours}
-                      onChange={(e) => handleFormChange('total_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Block time"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-2">
+                      Approach Types <span className="text-gray-400 font-normal">(optional – tap to select multiple)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['ILS','LPV','LNAV','RNAV','VOR','LOC','NDB','Visual'].map((type) => {
+                        const isSelected = Array.isArray(editForm.approach_type) && editForm.approach_type.includes(type);
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => {
+                              const current = Array.isArray(editForm.approach_type) ? editForm.approach_type : [];
+                              const updated = isSelected
+                                ? current.filter(t => t !== type)
+                                : [...current, type];
+                              setEditForm(prev => ({
+                                ...prev,
+                                approach_type: updated,
+                                approach_count: updated.length > 0 && (prev.approach_count === 0 || prev.approach_count === '0')
+                                  ? updated.length
+                                  : (updated.length === 0 ? 0 : prev.approach_count),
+                              }));
+                            }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                              isSelected
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {Array.isArray(editForm.approach_type) && editForm.approach_type.length > 0 && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Selected: {editForm.approach_type.join(', ')}
+                        <button
+                          type="button"
+                          onClick={() => setEditForm(prev => ({ ...prev, approach_type: [], approach_count: 0 }))}
+                          className="ml-2 text-gray-400 hover:text-red-500 underline"
+                        >
+                          Clear all
+                        </button>
+                      </p>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">PIC</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.pic_hours}
-                      onChange={(e) => handleFormChange('pic_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">SIC</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.sic_hours}
-                      onChange={(e) => handleFormChange('sic_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Dual Received</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.dual_hours}
-                      onChange={(e) => handleFormChange('dual_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Solo</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.solo_hours}
-                      onChange={(e) => handleFormChange('solo_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Dual Given</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.dual_given_hours}
-                      onChange={(e) => handleFormChange('dual_given_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Cross-Country</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.cross_country_hours}
-                      onChange={(e) => handleFormChange('cross_country_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Instrument</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.instrument_hours}
-                      onChange={(e) => handleFormChange('instrument_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Actual Instrument</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.actual_instrument_hours}
-                      onChange={(e) => handleFormChange('actual_instrument_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Simulated Instrument (Hood)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.simulated_instrument_hours}
-                      onChange={(e) => handleFormChange('simulated_instrument_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Flight Simulator</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.flight_simulator_hours}
-                      onChange={(e) => handleFormChange('flight_simulator_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Approach Count</label>
+                  {/* Approach Count – required when types are selected */}
+                  <div className="max-w-xs">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Approach Count
+                      {editForm.approach_type?.length > 0 && <span className="text-red-500 ml-1">*</span>}
+                    </label>
                     <input
                       type="number"
                       min="0"
                       value={editForm.approach_count}
                       onChange={(e) => handleFormChange('approach_count', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={editForm.approach_type?.length > 0 ? 'Enter count (required)' : '0'}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        editForm.approach_type?.length > 0 && (editForm.approach_count === 0 || editForm.approach_count === '0')
+                          ? 'border-red-400 bg-red-50'
+                          : 'border-gray-300'
+                      }`}
                     />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Approach Type (optional, multi)</label>
-                    <select
-                      multiple
-                      value={editForm.approach_type}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, approach_type: [...e.target.selectedOptions].map(o => o.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {['ILS', 'LPV', 'LNAV', 'RNAV', 'VOR', 'LOC', 'NDB', 'Visual'].map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Night</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.night_hours}
-                      onChange={(e) => handleFormChange('night_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Turbine</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.turbine_hours}
-                      onChange={(e) => handleFormChange('turbine_hours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    {editForm.approach_type?.length > 0 && (editForm.approach_count === 0 || editForm.approach_count === '0') && (
+                      <p className="text-xs text-red-500 mt-1">Required when approach types are selected</p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Takeoffs and Landings */}
+              {/* ── Section 7: Remarks (Figma col 26) ── */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Takeoffs & Landings</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Day Takeoffs</label>
-                    <input
-                      type="number"
-                      value={editForm.takeoffs_day}
-                      onChange={(e) => handleFormChange('takeoffs_day', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Night Takeoffs</label>
-                    <input
-                      type="number"
-                      value={editForm.takeoffs_night}
-                      onChange={(e) => handleFormChange('takeoffs_night', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Day Landings</label>
-                    <input
-                      type="number"
-                      value={editForm.landings_day}
-                      onChange={(e) => handleFormChange('landings_day', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Night Landings</label>
-                    <input
-                      type="number"
-                      value={editForm.landings_night}
-                      onChange={(e) => handleFormChange('landings_night', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                    <textarea
-                      rows="3"
-                      value={editForm.notes}
-                      onChange={(e) => handleFormChange('notes', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Flight notes, remarks, maneuvers practiced, etc."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Summary</label>
-                    <textarea
-                      rows="2"
-                      value={editForm.summary}
-                      onChange={(e) => handleFormChange('summary', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Brief summary of the flight"
-                    />
-                  </div>
-                </div>
+                <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Remarks</h3>
+                <textarea rows="3" value={editForm.notes}
+                  onChange={(e) => handleFormChange('notes', e.target.value)}
+                  placeholder="Flight notes, maneuvers, remarks…"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                >
+                <button type="button" onClick={() => setShowEditModal(false)}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
+                <button type="submit"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                   {editingLogbook ? 'Update Entry' : 'Create Entry'}
                 </button>
               </div>
