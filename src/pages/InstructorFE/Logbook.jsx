@@ -55,7 +55,12 @@ const Logbook = () => {
     flight_date: '',
     route_from: '',
     route_to: '',
+    route_via: '',
     total_hours: 0,        // Figma: Total Flight Time (block time – sole source of truth)
+    takeoffs_day: 0,
+    takeoffs_night: 0,
+    landings_day: 0,
+    landings_night: 0,
     asel_hours: 0,         // Figma: Airplane Single Engine Land
     ases_hours: 0,         // Figma: Airplane Single Engine Sea
     amel_hours: 0,         // Figma: Airplane Multi Engine Land
@@ -237,6 +242,11 @@ const Logbook = () => {
       flight_date: logbook.flight_date || '',
       route_from: logbook.route_from || '',
       route_to: logbook.route_to || '',
+      route_via: logbook.route_via || '',
+      takeoffs_day: logbook.takeoffs_day ?? 0,
+      takeoffs_night: logbook.takeoffs_night ?? 0,
+      landings_day: logbook.landings_day ?? 0,
+      landings_night: logbook.landings_night ?? 0,
       total_hours: logbook.total_hours || 0,
       asel_hours: logbook.asel_hours || 0,
       ases_hours: logbook.ases_hours || 0,
@@ -372,19 +382,21 @@ const Logbook = () => {
 
   // Build CSV from list data – same API as table (getEntries), so export matches list exactly
   const buildCsvFromListData = (rows) => {
-    // Figma-exact column order; admin: Student + Instructor right after Date
+    // Admin export includes Student & Instructor after Date
     const headers = [
       'Date',
       ...(isAdminView ? ['Student', 'Instructor'] : []),
       'Aircraft Name', 'Aircraft Make', 'Aircraft Ident',
-      'From', 'To', 'Total Flight Time',
+      'From', 'To', 'Via', 'Total Flight Time',
       'Airplane Single Engine Land', 'Airplane Single Engine Sea',
       'Airplane Multi Engine Land', 'Rotorcraft Helicopter',
       'Turbine', 'Airplane Multi Engine Sea', 'Tailwheel', 'Glider',
       'Night', 'Actual Instrument', 'Simulated Instrument', 'Flight Simulator',
       'Cross Country', 'Solo', 'Pilot in Command', 'Second in Command',
-      'Dual Received', 'Dual Given', 'Remarks',
-      'Approach Count', 'Approach Types',
+      'Dual Received', 'Dual Given',
+      'No. of Approaches', 'Approach Types',
+      'Takeoffs (Day)', 'Takeoffs (Night)', 'Landings (Day)', 'Landings (Night)',
+      'Remarks',
     ];
     const escapeCsv = (v) => {
       if (v == null || v === '') return '';
@@ -419,7 +431,6 @@ const Logbook = () => {
       const approachTypeStr = Array.isArray(row.approach_type) && row.approach_type.length
         ? row.approach_type.join(',')
         : (row.approach_type ?? '');
-      // Figma-exact column order; admin: Student + Instructor right after Date (excelDate = tab prefix for Excel)
       lines.push([
         excelDate(row),
         ...(isAdminView ? [row.student ?? '', row.instructor ?? ''] : []),
@@ -428,6 +439,7 @@ const Logbook = () => {
         row.aircraft_registration ?? '',
         row.route_from ?? '',
         row.route_to ?? '',
+        row.route_via ?? '',
         parseFloat(row.total_hours ?? 0),
         parseFloat(row.asel_hours ?? 0),
         parseFloat(row.ases_hours ?? 0),
@@ -447,9 +459,13 @@ const Logbook = () => {
         parseFloat(row.sic_hours ?? 0),
         parseFloat(row.dual_hours ?? 0),
         parseFloat(row.dual_given_hours ?? 0),
-        (row.notes ?? row.summary ?? '').replace(/\n/g, ' '),
         row.approach_count ?? 0,
         approachTypeStr,
+        row.takeoffs_day ?? 0,
+        row.takeoffs_night ?? 0,
+        row.landings_day ?? 0,
+        row.landings_night ?? 0,
+        (row.notes ?? row.summary ?? '').replace(/\n/g, ' '),
       ].map(escapeCsv).join(','));
     });
     return '\uFEFF' + lines.join('\r\n'); // UTF-8 BOM for Excel
@@ -734,7 +750,6 @@ const Logbook = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  {/* Figma col 1: Date; Admin: Student & Instructor right after Date */}
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
                   {isAdminView && (
                     <>
@@ -747,7 +762,7 @@ const Logbook = () => {
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Ident</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">From</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">To</th>
-                  {/* Figma col 7 */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Via</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total Flight Time</th>
                   {/* Figma cols 8–15: category hours */}
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Airplane Single Engine Land</th>
@@ -770,7 +785,12 @@ const Logbook = () => {
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Second in Command</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dual Received</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dual Given</th>
-                  {/* Figma col 26 */}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">No. of Approaches</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Approach Types</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Takeoffs (D)</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Takeoffs (N)</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Landings (D)</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Landings (N)</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Remarks</th>
                   {!isAdminView && (
                     <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
@@ -811,6 +831,9 @@ const Logbook = () => {
                     <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
                       {safeDisplay(logbook.route_to) || '--'}
                     </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                      {safeDisplay(logbook.route_via) || '--'}
+                    </td>
                     <td className="px-3 py-3 whitespace-nowrap text-sm font-semibold text-blue-700">
                       {hr(logbook.total_hours) > 0 ? hr(logbook.total_hours).toFixed(1) : '--'}
                     </td>
@@ -832,6 +855,14 @@ const Logbook = () => {
                     <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.sic_hours)}</td>
                     <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.dual_hours)}</td>
                     <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{disp(logbook.dual_given_hours)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{logbook.approach_count ?? 0}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 max-w-[120px] truncate" title={Array.isArray(logbook.approach_type) ? logbook.approach_type.join(', ') : (logbook.approach_type || '--')}>
+                      {Array.isArray(logbook.approach_type) && logbook.approach_type.length ? logbook.approach_type.join(', ') : '--'}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{logbook.takeoffs_day ?? '--'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{logbook.takeoffs_night ?? '--'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{logbook.landings_day ?? '--'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">{logbook.landings_night ?? '--'}</td>
                     <td className="px-3 py-3 text-sm text-gray-600 max-w-[160px]">
                       <span
                         title={logbook.notes || logbook.summary || ''}
@@ -1006,10 +1037,45 @@ const Logbook = () => {
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Via</label>
+                    <input type="text" value={editForm.route_via}
+                      onChange={(e) => handleFormChange('route_via', e.target.value)} placeholder="e.g. Ahmedabad (optional)"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Total Flight Time * (block hours)</label>
                     <input type="number" step="0.1" min="0" required value={editForm.total_hours}
                       onChange={(e) => handleFormChange('total_hours', e.target.value)} placeholder="1.5"
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Takeoffs & Landings (regulatory)</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-0.5">Takeoffs (Day)</label>
+                        <input type="number" min="0" value={editForm.takeoffs_day}
+                          onChange={(e) => handleFormChange('takeoffs_day', e.target.value)}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-0.5">Takeoffs (Night)</label>
+                        <input type="number" min="0" value={editForm.takeoffs_night}
+                          onChange={(e) => handleFormChange('takeoffs_night', e.target.value)}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-0.5">Landings (Day)</label>
+                        <input type="number" min="0" value={editForm.landings_day}
+                          onChange={(e) => handleFormChange('landings_day', e.target.value)}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-0.5">Landings (Night)</label>
+                        <input type="number" min="0" value={editForm.landings_night}
+                          onChange={(e) => handleFormChange('landings_night', e.target.value)}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
