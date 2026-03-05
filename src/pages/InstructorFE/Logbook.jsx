@@ -44,7 +44,7 @@ const Logbook = () => {
   const [editingLogbook, setEditingLogbook] = useState(null);
   // blankForm covers every Figma column + architecture requirements
   const blankForm = {
-    aircraft_model: '',        // Aircraft Name
+    aircraft_model: '',        // Aircraft model
     aircraft_make: '',         // Aircraft Make
     aircraft_registration: '', // Aircraft Ident
     aircraft_category: '',
@@ -385,8 +385,8 @@ const Logbook = () => {
     // Admin export includes Student & Instructor after Date
     const headers = [
       'Date',
-      ...(isAdminView ? ['Student', 'Instructor'] : []),
-      'Aircraft Name', 'Aircraft Make', 'Aircraft Ident',
+      ...(isAdminView ? ['Pilot', 'Instructor'] : []),
+      'Aircraft model', 'Aircraft Make', 'Aircraft Ident',
       'From', 'To', 'Via', 'Total Flight Time',
       'Airplane Single Engine Land', 'Airplane Single Engine Sea',
       'Airplane Multi Engine Land', 'Rotorcraft Helicopter',
@@ -624,13 +624,13 @@ const Logbook = () => {
             </div>
             {isAdminView && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pilot</label>
                 <select
                   value={filterStudentId}
                   onChange={(e) => { setFilterStudentId(e.target.value); setCurrentPage(1); }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">All Students</option>
+                  <option value="">All Pilots</option>
                   {students.map(student => (
                     <option key={student.id} value={student.id}>{student.name}</option>
                   ))}
@@ -753,11 +753,11 @@ const Logbook = () => {
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
                   {isAdminView && (
                     <>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Student</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Pilot</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Instructor</th>
                     </>
                   )}
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Name</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft model</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Make</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Ident</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">From</th>
@@ -942,7 +942,7 @@ const Logbook = () => {
                 <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Aircraft</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Aircraft Name *</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Aircraft model *</label>
                     <input type="text" required value={editForm.aircraft_model}
                       onChange={(e) => handleFormChange('aircraft_model', e.target.value)}
                       placeholder="C172, PA-28…"
@@ -999,11 +999,11 @@ const Logbook = () => {
                 <h3 className="text-base font-semibold text-gray-900 mb-3 pb-1 border-b">Flight Information</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Student *</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Pilot *</label>
                     <select required value={editForm.student_id}
                       onChange={(e) => handleFormChange('student_id', e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">Select Student</option>
+                      <option value="">Select Pilot</option>
                       {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
