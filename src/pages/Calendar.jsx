@@ -656,15 +656,23 @@ const Calendar = () => {
       const apiLocationsRaw = (locationsRes.success && Array.isArray(locationsRes.data)) ? locationsRes.data : [];
       const customLocationNames = (settingsRes?.success && Array.isArray(settingsRes?.data?.custom_locations)) ? settingsRes.data.custom_locations : [];
       // Normalize: items with id null are custom (from calendar settings) – use id "new:Name" so submit can create them
-      const apiLocations = apiLocationsRaw.map(loc => {
+      const apiLocationsMapped = apiLocationsRaw.map(loc => {
         const name = (loc.name || '').trim();
         if (name && (loc.id == null || loc.id === undefined))
           return { id: `new:${name}`, name, address: loc.address || '', isCustom: true };
         return { ...loc, name: loc.name || '', address: loc.address || '' };
       });
-      const apiNamesSet = new Set(apiLocations.map(l => (l.name || '').trim().toLowerCase()));
+      // Deduplicate API locations by name (case-insensitive) to handle duplicate entries in API response
+      const seenNames = new Set();
+      const apiLocations = apiLocationsMapped.filter(loc => {
+        const key = (loc.name || '').trim().toLowerCase();
+        if (seenNames.has(key)) return false;
+        seenNames.add(key);
+        return true;
+      });
+      // Only include custom locations whose names aren't already present in the API locations
       const customOnly = customLocationNames
-        .filter(name => name && typeof name === 'string' && !apiNamesSet.has(name.trim().toLowerCase()))
+        .filter(name => name && typeof name === 'string' && !seenNames.has(name.trim().toLowerCase()))
         .map(name => ({ id: `new:${name.trim()}`, name: name.trim(), address: '', isCustom: true }));
       setLocationsList([...apiLocations, ...customOnly]);
     } catch (err) {
