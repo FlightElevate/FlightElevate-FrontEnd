@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { FiChevronLeft, FiChevronRight, FiSettings, FiX, FiSearch } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSettings, FiX } from 'react-icons/fi';
 import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
 import { userService } from '../api/services/userService';
@@ -31,17 +31,9 @@ const Calendar = () => {
   const [filteredUserSchedule, setFilteredUserSchedule] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [calendarViewMode, setCalendarViewMode] = useState('week'); // 'week' | 'day' | 'custom', default week
-  const [customStartDate, setCustomStartDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
-  const [customEndDate, setCustomEndDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
+  const [orgLocationsForFilter, setOrgLocationsForFilter] = useState([]);
+  const [calendarLocationId, setCalendarLocationId] = useState('');
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const tooltipRef = useRef(null);
@@ -57,7 +49,7 @@ const Calendar = () => {
   // Calendar settings state
   const [calendarSettings, setCalendarSettings] = useState({
     time_format: '12h',
-    default_view: 'week',
+    default_view: 'day',
     working_hours_start: '08:00',
     working_hours_end: '18:00',
     show_weekends: true,
@@ -119,14 +111,19 @@ const Calendar = () => {
   // Store student's existing bookings to prevent double booking
   const [studentBookings, setStudentBookings] = useState([]);
 
-  // Generate time slots (24 hours)
-  const timeSlots = Array.from({ length: 24 }, (_, i) => {
-    const hour = i;
-    return {
-      hour,
-      label: hour === 0 ? '12 am' : hour < 12 ? `${hour} am` : hour === 12 ? '12 pm' : `${hour - 12} pm`,
-    };
-  });
+  const timeSlots = useMemo(() => {
+    const use24 = calendarSettings.time_format === '24h';
+    return Array.from({ length: 24 }, (_, i) => {
+      const hour = i;
+      const label = use24
+        ? `${String(hour).padStart(2, '0')}:00`
+        : hour === 0 ? '12 am' : hour < 12 ? `${hour} am` : hour === 12 ? '12 pm' : `${hour - 12} pm`;
+      const shortLabel = use24
+        ? `${String(hour).padStart(2, '0')}`
+        : hour === 0 ? '12a' : hour < 12 ? `${hour}a` : hour === 12 ? '12p' : `${hour - 12}p`;
+      return { hour, label, shortLabel };
+    });
+  }, [calendarSettings.time_format]);
 
   // Fetch organizations only once on mount
   useEffect(() => {
@@ -134,15 +131,47 @@ const Calendar = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch schedule when date, organization, view mode, or custom range changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await calendarService.getSettings();
+        if (!cancelled && r.success && r.data) {
+          setCalendarSettings((prev) => ({ ...prev, ...r.data }));
+        }
+      } catch (e) {
+        console.error('Calendar settings load failed', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await locationService.getLocations();
+        if (!cancelled && r.success && Array.isArray(r.data)) {
+          setOrgLocationsForFilter(r.data.filter((loc) => loc.id != null && loc.id !== ''));
+        }
+      } catch (e) {
+        console.error('Locations load failed', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!isStudent() && orgLocationsForFilter.length > 0 && calendarLocationId === '') {
+      setCalendarLocationId(String(orgLocationsForFilter[0].id));
+    }
+  }, [orgLocationsForFilter, calendarLocationId]);
+
+  // Fetch schedule when date, organization, or calendar location changes
   useEffect(() => {
     fetchSchedule();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate, selectedOrganizationId, calendarViewMode, customStartDate, customEndDate]);
-
-  useEffect(() => {
-    filterSchedules();
-  }, [searchQuery, aircraftSchedule, userSchedule]);
+  }, [currentDate, selectedOrganizationId, calendarLocationId]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -552,39 +581,92 @@ const Calendar = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const normalizeToHi = (t) => {
+    if (!t || typeof t !== 'string') return '';
+    const s = t.trim();
+    return s.length >= 5 ? s.slice(0, 5) : s;
+  };
+
+  const formatTimeForDisplay = (timeStr) => {
+    const hi = normalizeToHi(timeStr);
+    if (!hi) return '';
+    const [hs, ms] = hi.split(':');
+    const h = parseInt(hs, 10);
+    const m = parseInt(ms, 10) || 0;
+    if (Number.isNaN(h)) return hi;
+    if (calendarSettings.time_format === '24h') {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    const ap = h >= 12 ? 'pm' : 'am';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
+  };
+
+  const parseEventInstant = (dateStr, timeStr) => {
+    const hi = normalizeToHi(timeStr);
+    if (!dateStr || !hi) return null;
+    const [hs, ms] = hi.split(':').map((x) => parseInt(x, 10));
+    if (Number.isNaN(hs)) return null;
+    const d = new Date(`${dateStr}T00:00:00`);
+    d.setHours(hs, Number.isNaN(ms) ? 0 : ms, 0, 0);
+    return d;
+  };
+
+  const eventEndInstant = (event) => {
+    const start = parseEventInstant(event.date, event.start_time);
+    if (!start) return null;
+    const dur = Number(event.duration_minutes);
+    const minutes = Number.isFinite(dur) && dur > 0 ? dur : 60;
+    return new Date(start.getTime() + minutes * 60000);
+  };
+
+  const getVisibleSegmentForCalendarDay = (event, dateStr) => {
+    const start = parseEventInstant(event.date, event.start_time);
+    const end = eventEndInstant(event);
+    if (!start || !end) return null;
+    const dayStart = new Date(`${dateStr}T00:00:00`);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+    const segStart = start > dayStart ? start : dayStart;
+    const segEnd = end < dayEnd ? end : dayEnd;
+    if (segStart >= segEnd) return null;
+    return { segStart, segEnd };
+  };
+
+  const hourSlotRange = (dateStr, hour) => {
+    const slotStart = new Date(`${dateStr}T00:00:00`);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(slotStart);
+    slotEnd.setHours(hour + 1);
+    return { slotStart, slotEnd };
+  };
+
+  const intervalsOverlap = (a0, a1, b0, b1) => a0 < b1 && b0 < a1;
+
   const fetchSchedule = async () => {
     setLoading(true);
     try {
-      let startDateStr, endDateStr;
-      if (calendarViewMode === 'day') {
-        startDateStr = formatDateStr(currentDate);
-        endDateStr = startDateStr;
-      } else if (calendarViewMode === 'custom') {
-        startDateStr = customStartDate;
-        endDateStr = customEndDate;
-        if (startDateStr > endDateStr) {
-          const swap = startDateStr;
-          startDateStr = endDateStr;
-          endDateStr = swap;
-        }
-      } else {
-        const start = new Date(currentDate);
-        start.setDate(start.getDate() - start.getDay());
-        const end = new Date(start);
-        end.setDate(end.getDate() + 6);
-        startDateStr = formatDateStr(start);
-        endDateStr = formatDateStr(end);
-      }
-      
-      const response = await calendarService.getSchedule({
+      const startDateStr = formatDateStr(currentDate);
+      const endDateStr = startDateStr;
+
+      const params = {
         start_date: startDateStr,
         end_date: endDateStr,
         organization_id: selectedOrganizationId || undefined,
-      });
+      };
+      if (!isStudent() && calendarLocationId) {
+        params.location_id = calendarLocationId;
+      }
+
+      const response = await calendarService.getSchedule(params);
 
       if (response.success) {
-        setAircraftSchedule(response.data.aircraft_schedule || []);
-        setUserSchedule(response.data.user_schedule || []);
+        const ac = response.data.aircraft_schedule || [];
+        const us = response.data.user_schedule || [];
+        setAircraftSchedule(ac);
+        setUserSchedule(us);
+        setFilteredAircraftSchedule(ac);
+        setFilteredUserSchedule(us);
       }
     } catch (err) {
       console.error('Error fetching schedule:', err);
@@ -679,90 +761,10 @@ const Calendar = () => {
     }
   };
 
-  const filterSchedules = () => {
-    if (!searchQuery.trim()) {
-      setFilteredAircraftSchedule(aircraftSchedule);
-      setFilteredUserSchedule(userSchedule);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase();
-    const filteredAircraft = aircraftSchedule.filter(item =>
-      item.name.toLowerCase().includes(query) ||
-      item.events?.some(event =>
-        event.instructor?.name?.toLowerCase().includes(query) ||
-        event.title?.toLowerCase().includes(query)
-      )
-    );
-
-    const filteredUsers = userSchedule.filter(item =>
-      item.name.toLowerCase().includes(query) ||
-      item.events?.some(event =>
-        event.instructor?.name?.toLowerCase().includes(query) ||
-        event.aircraft?.name?.toLowerCase().includes(query) ||
-        event.title?.toLowerCase().includes(query)
-      )
-    );
-
-    setFilteredAircraftSchedule(filteredAircraft);
-    setFilteredUserSchedule(filteredUsers);
-  };
-
-  const getDisplayDates = () => {
-    if (calendarViewMode === 'day') {
-      return [new Date(currentDate)];
-    }
-    if (calendarViewMode === 'custom') {
-      let start = new Date(customStartDate);
-      let end = new Date(customEndDate);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(0, 0, 0, 0);
-      if (start > end) {
-        const swap = start;
-        start = end;
-        end = swap;
-      }
-      const days = [];
-      const maxDays = 31;
-      const d = new Date(start);
-      while (d <= end && days.length < maxDays) {
-        days.push(new Date(d));
-        d.setDate(d.getDate() + 1);
-      }
-      return days;
-    }
-    const start = new Date(currentDate);
-    start.setDate(start.getDate() - start.getDay());
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  };
-
   const getDateRangeLabel = () => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const fmt = (date) => `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-    if (calendarViewMode === 'day') {
-      return fmt(new Date(currentDate));
-    }
-    if (calendarViewMode === 'custom') {
-      const start = new Date(customStartDate);
-      const end = new Date(customEndDate);
-      if (start > end) return `${fmt(end)} - ${fmt(start)}`;
-      return start.getTime() === end.getTime() ? fmt(start) : `${fmt(start)} - ${fmt(end)}`;
-    }
-    const start = new Date(currentDate);
-    start.setDate(start.getDate() - start.getDay());
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-    return `${fmt(start)} - ${fmt(end)}`;
-  };
-
-  const navigateWeek = (direction) => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + (direction * 7));
-    setCurrentDate(newDate);
+    return fmt(new Date(currentDate));
   };
 
   const navigateDay = (direction) => {
@@ -774,34 +776,41 @@ const Calendar = () => {
   const getEventForCell = (item, hour, dateStr = null) => {
     if (!item.events || item.events.length === 0) return null;
     const targetDate = dateStr || formatDateStr(currentDate);
-    const dayEvents = item.events.filter(e => (e.date || '').toString().slice(0, 10) === targetDate);
-    const inHour = dayEvents.filter(event => {
-      const parts = String(event.start_time || '').split(':');
-      const eventHour = parseInt(parts[0], 10);
-      return eventHour === hour;
+    const { slotStart, slotEnd } = hourSlotRange(targetDate, hour);
+    const matches = item.events.filter((ev) => {
+      const seg = getVisibleSegmentForCalendarDay(ev, targetDate);
+      if (!seg) return false;
+      return intervalsOverlap(seg.segStart, seg.segEnd, slotStart, slotEnd);
     });
-    return inHour.length > 0 ? inHour.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))[0] : null;
+    if (!matches.length) return null;
+    const startingHere = matches.filter((ev) => {
+      const seg = getVisibleSegmentForCalendarDay(ev, targetDate);
+      return seg && seg.segStart >= slotStart && seg.segStart < slotEnd;
+    });
+    const pool = startingHere.length ? startingHere : matches;
+    return pool.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))[0];
   };
 
   const getEventsForDay = (item, dateStr) => {
     if (!item.events || item.events.length === 0) return [];
-    return item.events.filter(e => (e.date || '').toString().slice(0, 10) === dateStr);
+    return item.events.filter((ev) => getVisibleSegmentForCalendarDay(ev, dateStr));
   };
 
-  const getEventSpan = (event) => {
+  const isFirstCellOfEventOnDay = (event, hour, dateStr) => {
+    const seg = getVisibleSegmentForCalendarDay(event, dateStr);
+    if (!seg) return false;
+    const { slotStart, slotEnd } = hourSlotRange(dateStr, hour);
+    return seg.segStart >= slotStart && seg.segStart < slotEnd;
+  };
+
+  const getEventSpan = (event, dateStr = null) => {
     if (!event) return 1;
-    
-    const startHour = parseInt(event.start_time.split(':')[0]);
-    const startMin = parseInt(event.start_time.split(':')[1]);
-    const endHour = parseInt(event.end_time.split(':')[0]);
-    const endMin = parseInt(event.end_time.split(':')[1]);
-    
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    const durationMinutes = endMinutes - startMinutes;
-    
-    // Calculate how many time slots this event spans (each slot is 1 hour = 60 minutes)
-    return Math.ceil(durationMinutes / 60);
+    const d = dateStr || formatDateStr(currentDate);
+    const seg = getVisibleSegmentForCalendarDay(event, d);
+    if (!seg) return 1;
+    const startMin = seg.segStart.getHours() * 60 + seg.segStart.getMinutes();
+    const endMin = seg.segEnd.getHours() * 60 + seg.segEnd.getMinutes();
+    return Math.max(1, Math.ceil(endMin / 60) - Math.floor(startMin / 60));
   };
 
   const getEventColor = (color) => {
@@ -951,14 +960,13 @@ const Calendar = () => {
       const response = await calendarService.getAvailableTimeSlots(params);
       
       if (response.success) {
-        const selectedTime = reservationForm.lesson_time;
+        const selectedTime = normalizeToHi(reservationForm.lesson_time);
         const availableSlots = response.data.available_slots || [];
         
         // Check if selected time is in available slots
         const isTimeAvailable = availableSlots.some(slot => {
-          const slotTime = slot.time.split(':');
-          const selectedTimeParts = selectedTime.split(':');
-          return slotTime[0] === selectedTimeParts[0] && slotTime[1] === selectedTimeParts[1];
+          const slotHi = normalizeToHi(slot.time || '');
+          return slotHi === selectedTime;
         });
 
         // Check student availability (if we have student_id, we need to check their existing bookings)
@@ -989,12 +997,15 @@ const Calendar = () => {
           }
           
           if (eventsToCheck.length > 0) {
-            const selectedDateTime = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
+            const lt = normalizeToHi(reservationForm.lesson_time);
+            const selectedDateTime = new Date(`${reservationForm.lesson_date}T${lt.length === 5 ? lt : '00:00'}`);
             const endDateTime = new Date(selectedDateTime.getTime() + reservationForm.duration_minutes * 60000);
             
             const conflictingEvent = eventsToCheck.find(event => {
-              const eventStart = new Date(`${event.date}T${event.start_time}`);
-              const eventEnd = new Date(eventStart.getTime() + (event.duration || 60) * 60000);
+              const st = normalizeToHi(event.start_time);
+              const eventStart = new Date(`${event.date}T${st.length === 5 ? st : '00:00'}`);
+              const evDur = Number(event.duration_minutes);
+              const eventEnd = new Date(eventStart.getTime() + (Number.isFinite(evDur) && evDur > 0 ? evDur : 60) * 60000);
               
               return (selectedDateTime < eventEnd && endDateTime > eventStart);
             });
@@ -1130,6 +1141,7 @@ const Calendar = () => {
         lesson_template_id: reservationForm.lesson_template_id ? parseInt(reservationForm.lesson_template_id) : null,
         acting_pic_user_id: reservationForm.acting_pic_user_id ? parseInt(reservationForm.acting_pic_user_id, 10) : null,
         location_id: locationId,
+        lesson_time: normalizeToHi(reservationForm.lesson_time),
       };
       
       // Remove old single ID fields
@@ -1253,6 +1265,47 @@ const Calendar = () => {
     );
   }
 
+  const scheduleDayStr = formatDateStr(currentDate);
+
+  const buildDayTimelineCells = (item, interactive) => {
+    const cells = [];
+    let skip = 0;
+    for (let idx = 0; idx < timeSlots.length; idx++) {
+      if (skip > 0) {
+        skip--;
+        continue;
+      }
+      const slot = timeSlots[idx];
+      const event = getEventForCell(item, slot.hour, scheduleDayStr);
+      const isFirst = event && isFirstCellOfEventOnDay(event, slot.hour, scheduleDayStr);
+      const span = isFirst ? getEventSpan(event, scheduleDayStr) : 1;
+      if (isFirst && span > 1) {
+        skip = span - 1;
+      }
+      cells.push(
+        <td
+          key={idx}
+          className="relative border-r border-gray-200 p-0"
+          style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}
+          colSpan={isFirst && span > 1 ? span : undefined}
+        >
+          {isFirst && event ? (
+            <div
+              className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 z-0 flex items-center ${getEventColor(event.color)} ${interactive ? 'cursor-pointer' : ''}`}
+              style={{ width: '95%' }}
+              onMouseEnter={interactive ? (e) => handleEventHover(event, e) : undefined}
+              onMouseLeave={interactive ? handleEventLeave : undefined}
+              onClick={interactive ? () => handleEventClick(event) : undefined}
+            >
+              <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{formatTimeForDisplay(event.start_time)}</div>
+            </div>
+          ) : null}
+        </td>
+      );
+    }
+    return cells;
+  };
+
   // Flight type options
   const flightTypes = [
     'Solo',
@@ -1319,79 +1372,39 @@ const Calendar = () => {
               </select>
             )}
 
-            {/* Week / Day / Custom view toggle */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-gray-300 p-0.5 bg-gray-50 flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setCalendarViewMode('week')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'week' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+            {!isStudent() && orgLocationsForFilter.length > 0 && (
+              <select
+                value={calendarLocationId}
+                onChange={(e) => setCalendarLocationId(e.target.value)}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:min-w-[160px]"
+                aria-label="Schedule location"
               >
-                Week
-              </button>
-              <button
-                type="button"
-                onClick={() => setCalendarViewMode('day')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'day' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Day
-              </button>
-              <button
-                type="button"
-                onClick={() => setCalendarViewMode('custom')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'custom' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Custom
-              </button>
-            </div>
-
-            {/* Custom date range inputs (visible when Custom view) */}
-            {calendarViewMode === 'custom' && (
-              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">From</label>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
-                />
-                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">To</label>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
-                />
-              </div>
+                {orgLocationsForFilter.map((loc) => (
+                  <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                ))}
+              </select>
             )}
 
-            {/* Date Navigation (hidden for Custom view) */}
             <div className="flex items-center gap-1 sm:gap-2 justify-between sm:justify-start flex-1 min-w-0">
-              {calendarViewMode !== 'custom' && (
-                <>
-                  <button
-                    onClick={() => calendarViewMode === 'day' ? navigateDay(-1) : navigateWeek(-1)}
-                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                    aria-label={calendarViewMode === 'day' ? 'Previous day' : 'Previous week'}
-                  >
-                    <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
-                  </button>
-                  <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
-                    {getDateRangeLabel()}
-                  </span>
-                  <button
-                    onClick={() => calendarViewMode === 'day' ? navigateDay(1) : navigateWeek(1)}
-                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                    aria-label={calendarViewMode === 'day' ? 'Next day' : 'Next week'}
-                  >
-                    <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
-                  </button>
-                </>
-              )}
-              {calendarViewMode === 'custom' && (
-                <span className="text-xs sm:text-sm font-medium text-gray-700 px-1 sm:px-2 truncate">
-                  {getDateRangeLabel()}
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={() => navigateDay(-1)}
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                aria-label="Previous day"
+              >
+                <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
+              </button>
+              <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
+                {getDateRangeLabel()}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigateDay(1)}
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                aria-label="Next day"
+              >
+                <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -1420,37 +1433,24 @@ const Calendar = () => {
           }}
         >
           <table className="border-collapse" style={{ 
-            minWidth: calendarViewMode === 'day'
-              ? (isMobile ? '600px' : '800px')
-              : (calendarViewMode === 'custom' ? Math.min(getDisplayDates().length * (isMobile ? 70 : 90), 2000) : (isMobile ? '400px' : '600px')),
-            width: calendarViewMode === 'day' ? (isMobile ? '600px' : '800px') : 'auto',
+            minWidth: isMobile ? '600px' : '800px',
+            width: isMobile ? '600px' : '800px',
             display: 'table',
             margin: 0,
             tableLayout: 'auto',
             boxSizing: 'border-box'
           }}>
-              {calendarViewMode === 'day' ? (
-                <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
                     <tr className="border-b border-gray-200">
                       <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
                       {timeSlots.map((slot, idx) => (
                         <th key={idx} className="text-center px-0.5 sm:px-1 md:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px' }}>
-                          {slot.hour === 0 ? '12a' : slot.hour < 12 ? `${slot.hour}a` : slot.hour === 12 ? '12p' : `${slot.hour - 12}p`}
+                          {slot.shortLabel}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}>
-                        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
-                          <FiSearch className="text-gray-400 flex-shrink-0" size={isMobile ? 12 : 14} />
-                          <input type="text" placeholder="Search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border-none outline-none text-[10px] sm:text-xs md:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400" />
-                        </div>
-                      </td>
-                      {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}></td>)}
-                    </tr>
                     <tr className="border-b border-gray-200 bg-purple-50">
                       <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3></td>
                       {timeSlots.map((_, idx) => <td key={idx} className="text-center border-r border-gray-200 text-gray-400" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '24px' : '32px' }}>–</td>)}
@@ -1458,20 +1458,7 @@ const Calendar = () => {
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
                         <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.name)}</span></td>
-                        {timeSlots.map((slot, idx) => {
-                          const event = getEventForCell(aircraft, slot.hour);
-                          const span = event ? getEventSpan(event) : 1;
-                          const isFirstCell = event && slot.hour === parseInt(String(event.start_time).split(':')[0]);
-                          return (
-                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
-                              {isFirstCell && (
-                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }}>
-                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{safeDisplay(event.start_time)}</div>
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
+                        {buildDayTimelineCells(aircraft, true)}
                       </tr>
                     ))}
                     {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
@@ -1483,101 +1470,10 @@ const Calendar = () => {
                     {filteredUserSchedule.map((user) => (
                       <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
                         <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
-                        {timeSlots.map((slot, idx) => {
-                          const event = getEventForCell(user, slot.hour);
-                          const span = event ? getEventSpan(event) : 1;
-                          const isFirstCell = event && slot.hour === parseInt(String(event.start_time).split(':')[0]);
-                          return (
-                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
-                              {isFirstCell && (
-                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
-                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{safeDisplay(event.start_time)}</div>
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
+                        {buildDayTimelineCells(user, true)}
                       </tr>
                     ))}
                   </tbody>
-                </>
-              ) : (
-                <>
-                  <thead className="sticky top-0 z-20 bg-gray-50">
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
-                      {getDisplayDates().map((day, idx) => (
-                        <th key={idx} className="text-center px-1 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px' }}>
-                          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]} {day.getDate()}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-white z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}>
-                        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
-                          <FiSearch className="text-gray-400 flex-shrink-0" size={isMobile ? 12 : 14} />
-                          <input type="text" placeholder="Search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="border-none outline-none text-[10px] sm:text-xs md:text-sm w-full bg-transparent text-gray-700 placeholder-gray-400" />
-                        </div>
-                      </td>
-                      {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '32px' : '40px' }}></td>)}
-                    </tr>
-                    <tr className="border-b border-gray-200 bg-purple-50">
-                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3></td>
-                      {getDisplayDates().map((_, idx) => <td key={idx} className="text-center border-r border-gray-200 text-gray-400" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '24px' : '32px' }}>–</td>)}
-                    </tr>
-                    {filteredAircraftSchedule.map((aircraft) => (
-                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.name)}</span></td>
-                        {getDisplayDates().map((day, idx) => {
-                          const dateStr = formatDateStr(day);
-                          const dayEvents = getEventsForDay(aircraft, dateStr);
-                          return (
-                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
-                              {dayEvents.length > 0 ? (
-                                <div className="space-y-0.5">
-                                  {dayEvents.slice(0, 3).map((ev, i) => (
-                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${safeDisplay(ev.start_time)} - ${safeDisplay(ev.end_time)}`}>{safeDisplay(ev.start_time)}</div>
-                                  ))}
-                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
-                                </div>
-                              ) : '–'}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                    {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
-                      <tr className="border-b border-dashed border-gray-300 bg-purple-50">
-                        <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></td>
-                        {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-purple-50" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '4px' : '5px', borderTop: '1px dashed #d1d5db', borderBottom: '1px dashed #d1d5db' }}></td>)}
-                      </tr>
-                    )}
-                    {filteredUserSchedule.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
-                        {getDisplayDates().map((day, idx) => {
-                          const dateStr = formatDateStr(day);
-                          const dayEvents = getEventsForDay(user, dateStr);
-                          return (
-                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
-                              {dayEvents.length > 0 ? (
-                                <div className="space-y-0.5">
-                                  {dayEvents.slice(0, 3).map((ev, i) => (
-                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${safeDisplay(ev.start_time)} - ${safeDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{safeDisplay(ev.start_time)}</div>
-                                  ))}
-                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
-                                </div>
-                              ) : '–'}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </>
-              )}
           </table>
         </div>
       </div>
@@ -1622,7 +1518,7 @@ const Calendar = () => {
               </div>
             )}
             <div>
-              {safeDisplay(hoveredEvent.start_time)} - {safeDisplay(hoveredEvent.end_time)}
+              {formatTimeForDisplay(hoveredEvent.start_time)} – {formatTimeForDisplay(hoveredEvent.end_time)}
             </div>
           </div>
         </div>
@@ -2186,7 +2082,8 @@ const Calendar = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
                     <input
                       type="time"
-                      value={reservationForm.lesson_time}
+                      step={60}
+                      value={normalizeToHi(reservationForm.lesson_time)}
                       onChange={(e) => {
                         setReservationForm({ ...reservationForm, lesson_time: e.target.value });
                         // Clear availability status when time changes

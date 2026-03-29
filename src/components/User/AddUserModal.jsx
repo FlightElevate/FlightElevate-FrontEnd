@@ -3,6 +3,7 @@ import { FiX, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useUserForm } from '../../hooks/useUserForm';
 import { useRoles } from '../../hooks/useRoles';
 import { userService } from '../../api/services/userService';
+import { locationService } from '../../api/services/locationService';
 import { showSuccessToast, showErrorToast } from '../../utils/notifications';
 
 
@@ -12,10 +13,11 @@ const AddUserModal = ({
   onSuccess,
   initialData = {}
 }) => {
-  const { formData, formErrors, handleChange, validate, reset, setErrors } = useUserForm(initialData);
+  const { formData, formErrors, handleChange, validate, reset, setErrors, updateField } = useUserForm(initialData);
   const { roles, loading: loadingRoles, isCacheValid } = useRoles();
   const [submitting, setSubmitting] = React.useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [locationOptions, setLocationOptions] = useState([]);
 
   
   useEffect(() => {
@@ -24,6 +26,22 @@ const AddUserModal = ({
     }
     
   }, [isOpen]); 
+
+  useEffect(() => {
+    let c = false;
+    (async () => {
+      if (!isOpen) return;
+      try {
+        const r = await locationService.getLocations();
+        if (!c && r.success && Array.isArray(r.data)) {
+          setLocationOptions(r.data.filter((l) => l.id != null && l.id !== ''));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => { c = true; };
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,6 +55,16 @@ const AddUserModal = ({
       const payload = { ...formData };
       if (payload.certificate_level === '' || payload.certificate_level == null) {
         delete payload.certificate_level;
+      }
+      if (payload.default_location_id === '' || payload.default_location_id == null) {
+        delete payload.default_location_id;
+      } else {
+        payload.default_location_id = parseInt(payload.default_location_id, 10);
+      }
+      if (!Array.isArray(payload.calendar_location_ids) || payload.calendar_location_ids.length === 0) {
+        delete payload.calendar_location_ids;
+      } else {
+        payload.calendar_location_ids = payload.calendar_location_ids.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n));
       }
       const response = await userService.createUser(payload);
       if (response.success) {
@@ -227,6 +255,40 @@ const AddUserModal = ({
                   <option value="ATP">ATP</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">Used for Acting PIC default (Student → Instructor PIC; Private+ → Student PIC)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Default calendar location</label>
+                <select
+                  name="default_location_id"
+                  value={formData.default_location_id || ''}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">None</option>
+                  {locationOptions.map((loc) => (
+                    <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Additional schedule locations</label>
+                <select
+                  multiple
+                  value={(formData.calendar_location_ids || []).map(String)}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions).map((o) => parseInt(o.value, 10));
+                    updateField('calendar_location_ids', selected);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[96px]"
+                >
+                  {locationOptions.map((loc) => (
+                    <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">Ctrl/Cmd+click for multiple. Applies to students and instructors for schedule access.</p>
               </div>
             </div>
 

@@ -14,6 +14,8 @@ export const useUserForm = (initialData = {}, options = {}) => {
     status: 'active',
     organization_name: '',
     certificate_level: '',
+    default_location_id: '',
+    calendar_location_ids: [],
   }), []);
 
   // Normalize initialData to ensure role is always a string

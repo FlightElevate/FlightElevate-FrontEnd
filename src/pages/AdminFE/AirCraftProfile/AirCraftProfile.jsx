@@ -4,6 +4,7 @@ import { MdFilterList } from "react-icons/md";
 import { HiChevronDown } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { aircraftService } from "../../../api/services/aircraftService";
+import { locationService } from "../../../api/services/locationService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../../utils/notifications";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -33,7 +34,10 @@ const AirCraftProfile = () => {
     status: 'in_service',
     total_hours: 0,
     total_cycles: 0,
+    default_location_id: '',
+    calendar_location_ids: [],
   });
+  const [locationOptions, setLocationOptions] = useState([]);
   const [additionalAttributes, setAdditionalAttributes] = useState([{ key: '', value: '' }]);
   const [submitting, setSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState(null);
@@ -42,6 +46,21 @@ const AirCraftProfile = () => {
   
   useEffect(() => {
     fetchAircraft();
+  }, []);
+
+  useEffect(() => {
+    let c = false;
+    (async () => {
+      try {
+        const r = await locationService.getLocations();
+        if (!c && r.success && Array.isArray(r.data)) {
+          setLocationOptions(r.data.filter((l) => l.id != null && l.id !== ''));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => { c = true; };
   }, []);
 
   
@@ -112,6 +131,8 @@ const AirCraftProfile = () => {
       status: 'in_service',
       total_hours: 0,
       total_cycles: 0,
+      default_location_id: '',
+      calendar_location_ids: [],
     });
     setAdditionalAttributes([{ key: '', value: '' }]);
     setImageFile(null);
@@ -137,6 +158,8 @@ const AirCraftProfile = () => {
       status: aircraft.status || 'in_service',
       total_hours: aircraft.total_hours || 0,
       total_cycles: aircraft.total_cycles || 0,
+      default_location_id: aircraft.default_location_id != null ? String(aircraft.default_location_id) : '',
+      calendar_location_ids: Array.isArray(aircraft.calendar_location_ids) ? aircraft.calendar_location_ids : [],
     });
     
     // Set existing image preview if available
@@ -209,16 +232,22 @@ const AirCraftProfile = () => {
       const finalFormData = {
         ...formData,
         additional_attributes: Object.keys(attrsObject).length > 0 ? attrsObject : null,
+        default_location_id: formData.default_location_id ? parseInt(formData.default_location_id, 10) : null,
+        calendar_location_ids: Array.isArray(formData.calendar_location_ids) ? formData.calendar_location_ids.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n)) : [],
       };
       
       const dataToSend = imageFile ? new FormData() : { ...finalFormData };
       
       if (imageFile) {
         Object.keys(finalFormData).forEach(key => {
+          if (key === 'calendar_location_ids' && Array.isArray(finalFormData[key])) {
+            finalFormData[key].forEach((id) => dataToSend.append('calendar_location_ids[]', id));
+            return;
+          }
           if (key === 'additional_attributes' && finalFormData[key]) {
             dataToSend.append(key, JSON.stringify(finalFormData[key]));
           } else if (key !== 'image' || !finalFormData.image) {
-            if (finalFormData[key] !== null && finalFormData[key] !== undefined) {
+            if (finalFormData[key] !== null && finalFormData[key] !== undefined && key !== 'calendar_location_ids') {
               dataToSend.append(key, finalFormData[key]);
             }
           }
@@ -520,6 +549,39 @@ const AirCraftProfile = () => {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Default calendar location</label>
+                  <select
+                    value={formData.default_location_id}
+                    onChange={(e) => setFormData({ ...formData, default_location_id: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">None</option>
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Used to show this aircraft on the schedule for the selected location.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Additional schedule locations</label>
+                  <select
+                    multiple
+                    value={formData.calendar_location_ids.map(String)}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions).map((o) => parseInt(o.value, 10));
+                      setFormData({ ...formData, calendar_location_ids: selected });
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[96px]"
+                  >
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Hold Ctrl (Windows) or Cmd (Mac) to select multiple.</p>
                 </div>
 
                 <div>

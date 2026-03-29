@@ -4,6 +4,7 @@ import { MdFilterList } from "react-icons/md";
 import { HiDotsVertical } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { userService } from "../../api/services/userService";
+import { locationService } from "../../api/services/locationService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../utils/notifications";
 import { useAuth } from "../../context/AuthContext";
 import { useRole } from "../../hooks/useRole";
@@ -28,7 +29,10 @@ const Instructors = () => {
     phone: '',
     password: '',
     status: 'active',
+    default_location_id: '',
+    calendar_location_ids: [],
   });
+  const [locationOptions, setLocationOptions] = useState([]);
   const sortRef = useRef(null);
   const menuRefs = useRef({});
   const listMenuRefs = useRef({});
@@ -47,6 +51,23 @@ const Instructors = () => {
 
   useEffect(() => {
     fetchInstructors();
+  }, []);
+
+  useEffect(() => {
+    let c = false;
+    (async () => {
+      if (isStudent()) return;
+      try {
+        const r = await locationService.getLocations();
+        if (!c && r.success && Array.isArray(r.data)) {
+          setLocationOptions(r.data.filter((l) => l.id != null && l.id !== ''));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => { c = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   
@@ -113,22 +134,38 @@ const Instructors = () => {
       phone: '',
       password: '',
       status: 'active',
+      default_location_id: '',
+      calendar_location_ids: [],
     });
     setShowModal(true);
   };
 
-  const handleEdit = (instructor, e) => {
+  const handleEdit = async (instructor, e) => {
     if (e) {
       e.stopPropagation();
     }
     setEditingInstructor(instructor);
+    let defaultLocationId = '';
+    let calendarLocationIds = [];
+    try {
+      const res = await userService.getUser(instructor.id);
+      if (res.success && res.data) {
+        const u = res.data;
+        defaultLocationId = u.default_location_id != null ? String(u.default_location_id) : '';
+        calendarLocationIds = Array.isArray(u.calendar_location_ids) ? u.calendar_location_ids : [];
+      }
+    } catch (err) {
+      console.error(err);
+    }
     setFormData({
       name: instructor.name || '',
       email: instructor.email || '',
       username: instructor.username || '',
       phone: instructor.phone || '',
-      password: '', 
+      password: '',
       status: instructor.status || 'active',
+      default_location_id: defaultLocationId,
+      calendar_location_ids: calendarLocationIds,
     });
     setMenuOpenId(null);
     setShowModal(true);
@@ -167,6 +204,17 @@ const Instructors = () => {
       
       if (editingInstructor && !data.password) {
         delete data.password;
+      }
+
+      if (data.default_location_id === '' || data.default_location_id == null) {
+        delete data.default_location_id;
+      } else {
+        data.default_location_id = parseInt(data.default_location_id, 10);
+      }
+      if (!Array.isArray(data.calendar_location_ids) || data.calendar_location_ids.length === 0) {
+        delete data.calendar_location_ids;
+      } else {
+        data.calendar_location_ids = data.calendar_location_ids.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n));
       }
 
       if (editingInstructor) {
@@ -486,7 +534,7 @@ const Instructors = () => {
       {}
       {showModal && !isStudent && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-800">
                 {editingInstructor ? 'Edit Instructor' : 'Add New Instructor'}
@@ -587,6 +635,38 @@ const Instructors = () => {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Default calendar location</label>
+                  <select
+                    value={formData.default_location_id || ''}
+                    onChange={(e) => setFormData({ ...formData, default_location_id: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">None</option>
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Additional schedule locations</label>
+                  <select
+                    multiple
+                    value={(formData.calendar_location_ids || []).map(String)}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions).map((o) => parseInt(o.value, 10));
+                      setFormData({ ...formData, calendar_location_ids: selected });
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[88px]"
+                  >
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">Ctrl/Cmd+click for multiple.</p>
                 </div>
               </div>
 
