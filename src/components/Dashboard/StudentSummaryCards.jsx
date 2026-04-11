@@ -171,14 +171,14 @@ const StudentSummaryCards = () => {
         textColor="#10B981"
         label="Total Flights Logged"
         count={loading.flights ? '...' : totalFlightsLogged}
-        viewLink="/my-lessons"
+        viewLink="/logbook"
       />
       <Widgets
         bgColor="#FEE2E2"
         textColor="#EF4444"
         label="Total Flights Hours"
         count={loading.hours ? '...' : totalFlightHours}
-        viewLink="/my-lessons"
+        viewLink="/logbook"
       />
       <Widgets
         bgColor="#FFF1DA"

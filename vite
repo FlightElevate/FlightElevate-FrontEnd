@@ -1,0 +1,118 @@
+
+
+  VITE v7.3.1  ready in 3642 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+✘ [ERROR] Could not resolve "./chunk-FN
+✘ [ERROR] Could not resolve "./chunk-FNSCYPCZ.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/dom-export.mjs:17:7:
+      17 │ ...m "./chunk-FNSCYPCZ.mjs";
+         ╵      ~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "./chunk-EP
+✘ [ERROR] Could not resolve "./chunk-EPOLDU6W.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/dom-export.mjs:45:7:
+      45 │ ...m "./chunk-EPOLDU6W.mjs";
+         ╵      ~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "./chunk-FN
+✘ [ERROR] Could not resolve "./chunk-FNSCYPCZ.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/index.mjs:31:7:
+      31 │ ...m "./chunk-FNSCYPCZ.mjs";
+         ╵      ~R] Could not resolve "./chunk-EP
+✘ [EOR] Could not resolve "./chunk-EPOLDU6W.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/index.mjs:144:7:
+      144 │ ...m "./chunk-EPOLDU6W.m...
+          ╵      ~~~~~~~~~~~~~~~~~~~
+
+/Users/farhan/Projects/FlightElevate_co
+/Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/node_modul
+/Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/node_modules/esbuild/lib/main.js:1467
+  let error = new Error(text);
+              ^
+
+Error: Error during dependency optimiza
+Error: Error during dependency optimization:
+
+✘ [ERROR] Could not resolve "./chunk-FN
+✘ [ERROR] Could not resolve "./chunk-FNSCYPCZ.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/dom-export.mjs:17:7:
+      17 │ } from "./chunk-FNSCYPCZ.mjs
+      17 │ } from "./chunk-FNSCYPCZ.mjs";
+         ╵        ~~~~~~~~~~~~~~~~~~~~~
+         ╵        ~~~~~~~~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] Could not resolve "./chunk-EP
+✘ [Elve "./chunk-EPOLDU6W.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/dom-export.mjs:45:7:
+      45 │ } from "./chunk-EPOLDU6W.mjs
+      45 │ } from "./chunk-EPOLDU6W.mjs";
+         ╵        ~~~~~~~~~~~~~~~~~~~~~
+         ╵        ~~~~~~~~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] Could not resolve "./chunk-FN
+✘ [ERROR] Could not resolve "./chunk-FNSCYPCZ.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/index.mjs:31:7:
+      31 │ } from "./chunk-FNSCYPCZ.mjs
+      31 │ } from "./chunk-FNSCYPCZ.mjs";
+         ╵        ~~~~~~~~~~~~~~~~~~~~~
+         ╵        ~~~~~~~~~~~~~~~~~~~~~~
+
+
+✘ [ERROR] Could not resolve "./chunk-EP
+✘ [ERROR] Could not resolve "./chunk-EPOLDU6W.mjs"
+
+    node_modules/react-router/dist/deve
+    node_modules/react-router/dist/development/index.mjs:144:7:
+      144 │ } from "./chunk-EPOLDU6W.mj
+      144 │ } from "./chunk-EPOLDU6W.mjs";
+          ╵        ~~~~~~~~~~~~~~~~~~~~
+      ~~~~~
+
+
+    at failureErrorWithLog (/Users/farh
+    at failureErrorWithLog (/Users/farhan/Projects/FlightElevate_combine/Fligh
+    at failureErrorWithLog (/Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/node_modules/esbuild/
+    at failureErrorWithLog (/Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/farhan/Projects/FlightEle
+    at /Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/nod
+    at /Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/node_modules/esbuild/lib/main.js:926:25
+    at /Users/farhan/Projects/FlightEle
+    at /Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/nod
+    at /Users/farhan/Projects/FlightElevate_combine/FlightElevate-FrontEnd/node_modules/esbuild/lib/main.js:1345:9
+    at process.processTicksAndRejection
+    at process.processTicksAndRejections (node:internal/process/task_queues:10
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v25.9.0
+[A[A
+
+xq
+
+
+
+
+
+
+

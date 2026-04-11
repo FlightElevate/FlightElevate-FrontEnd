@@ -95,9 +95,15 @@ export const ENDPOINTS = {
   RESERVATIONS: {
     LIST: '/reservations',
     SHOW: (id) => `/reservations/${id}`,
+    DETAIL: (id) => `/reservations/${id}/detail`,
     CREATE: '/reservations',
     UPDATE: (id) => `/reservations/${id}`,
     DELETE: (id) => `/reservations/${id}`,
+    DISPATCH: (id) => `/reservations/${id}/dispatch`,
+    CHECKIN: (id) => `/reservations/${id}/checkin`,
+    INVOICE: (id) => `/reservations/${id}/invoice`,
+    INVOICE_CHARGE: (id) => `/reservations/${id}/invoice/charge`,
+    INVOICE_REFUND: (id) => `/reservations/${id}/invoice/refund`,
   },
 
   

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight, FiSettings, FiX } from 'react-icons/fi';
 import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
@@ -14,10 +14,78 @@ import { api } from '../api/apiClient';
 import { ENDPOINTS } from '../api/config';
 import FindTimeModal from '../components/Calendar/FindTimeModal';
 
+const pad2 = (n) => String(n).padStart(2, '0');
+
+const parseTimeParts = (t) => {
+  if (t === undefined || t === null || t === '') return [0, 0];
+  const parts = String(t).split(':');
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1] ?? 0, 10);
+  return [Number.isNaN(h) ? 0 : h, Number.isNaN(m) ? 0 : m];
+};
+
+const eventStartEndMs = (event) => {
+  const [sh, sm] = parseTimeParts(event.start_time);
+  const [eh, em] = parseTimeParts(event.end_time);
+  const startDate = (event.date || '').toString().slice(0, 10);
+  const endDate = (event.end_date || startDate).toString().slice(0, 10);
+  const start = new Date(`${startDate}T${pad2(sh)}:${pad2(sm)}:00`);
+  let end = new Date(`${endDate}T${pad2(eh)}:${pad2(em)}:00`);
+  if (end.getTime() <= start.getTime()) {
+    end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+  }
+  return { start, end, startMs: start.getTime(), endMs: end.getTime() };
+};
+
+const eventOverlapsCalendarDay = (event, dateStr) => {
+  const { startMs, endMs } = eventStartEndMs(event);
+  const dayStart = new Date(`${dateStr}T00:00:00`).getTime();
+  const dayEnd = new Date(`${dateStr}T23:59:59.999`).getTime();
+  return startMs <= dayEnd && endMs >= dayStart;
+};
+
+const portionOnDayMs = (event, dateStr) => {
+  const { startMs, endMs } = eventStartEndMs(event);
+  const dayStart = new Date(`${dateStr}T00:00:00`).getTime();
+  const dayEnd = new Date(`${dateStr}T23:59:59.999`).getTime();
+  const segStart = Math.max(startMs, dayStart);
+  const segEnd = Math.min(endMs, dayEnd);
+  if (segEnd <= segStart) return null;
+  return { segStart, segEnd };
+};
+
+const firstVisibleHourOnDay = (event, dateStr) => {
+  const p = portionOnDayMs(event, dateStr);
+  if (!p) return null;
+  return new Date(p.segStart).getHours();
+};
+
+const getEventForCellHour = (item, hour, dateStr) => {
+  if (!item.events || item.events.length === 0) return null;
+  const hourStart = new Date(`${dateStr}T${pad2(hour)}:00:00`).getTime();
+  const hourEnd = new Date(`${dateStr}T${pad2(hour)}:59:59.999`).getTime();
+  const matches = item.events.filter((e) => {
+    if (!eventOverlapsCalendarDay(e, dateStr)) return false;
+    const p = portionOnDayMs(e, dateStr);
+    if (!p) return false;
+    return p.segStart < hourEnd && p.segEnd > hourStart;
+  });
+  if (matches.length === 0) return null;
+  return matches.sort((a, b) => eventStartEndMs(a).startMs - eventStartEndMs(b).startMs)[0];
+};
+
+const getEventSpanHours = (event, dateStr) => {
+  const p = portionOnDayMs(event, dateStr);
+  if (!p) return 1;
+  const durationMin = Math.max(1, Math.ceil((p.segEnd - p.segStart) / 60000));
+  return Math.min(24, Math.max(1, Math.ceil(durationMin / 60)));
+};
+
 const Calendar = () => {
   const { user } = useAuth();
   const { isStudent, isSuperAdmin } = useRole();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const editLessonId = searchParams.get('edit');
   const modalOnly = searchParams.get('modal') === 'true'; // If true, only show modal, hide calendar
@@ -32,8 +100,15 @@ const Calendar = () => {
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [orgLocationsForFilter, setOrgLocationsForFilter] = useState([]);
-  const [calendarLocationId, setCalendarLocationId] = useState('');
+  const [calendarViewMode, setCalendarViewMode] = useState('day'); // 'week' | 'day' | 'custom'
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const tooltipRef = useRef(null);
@@ -47,6 +122,8 @@ const Calendar = () => {
   const [loadingReservation, setLoadingReservation] = useState(false);
 
   // Calendar settings state
+  const [selectedCalendarLocationId, setSelectedCalendarLocationId] = useState('');
+
   const [calendarSettings, setCalendarSettings] = useState({
     time_format: '12h',
     default_view: 'day',
@@ -112,18 +189,35 @@ const Calendar = () => {
   const [studentBookings, setStudentBookings] = useState([]);
 
   const timeSlots = useMemo(() => {
-    const use24 = calendarSettings.time_format === '24h';
+    const fmt24 = (hour) => `${pad2(hour)}:00`;
     return Array.from({ length: 24 }, (_, i) => {
       const hour = i;
-      const label = use24
-        ? `${String(hour).padStart(2, '0')}:00`
-        : hour === 0 ? '12 am' : hour < 12 ? `${hour} am` : hour === 12 ? '12 pm' : `${hour - 12} pm`;
-      const shortLabel = use24
-        ? `${String(hour).padStart(2, '0')}`
-        : hour === 0 ? '12a' : hour < 12 ? `${hour}a` : hour === 12 ? '12p' : `${hour - 12}p`;
-      return { hour, label, shortLabel };
+      let label;
+      if (calendarSettings.time_format === '24h') {
+        label = fmt24(hour);
+      } else {
+        const h12 = hour % 12 === 0 ? 12 : hour % 12;
+        const suf = hour < 12 ? 'am' : 'pm';
+        label = `${h12} ${suf}`;
+      }
+      return { hour, label };
     });
   }, [calendarSettings.time_format]);
+
+  const formatEventTimeForDisplay = (timeStr) => {
+    const [h, m] = parseTimeParts(timeStr);
+    if (calendarSettings.time_format === '24h') {
+      return `${pad2(h)}:${pad2(m)}`;
+    }
+    const suf = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${pad2(m)} ${suf}`;
+  };
+
+  const normalizeTimeKey = (t) => {
+    const [h, m] = parseTimeParts(t);
+    return `${pad2(h)}:${pad2(m)}`;
+  };
 
   // Fetch organizations only once on mount
   useEffect(() => {
@@ -131,47 +225,36 @@ const Calendar = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await calendarService.getSettings();
-        if (!cancelled && r.success && r.data) {
-          setCalendarSettings((prev) => ({ ...prev, ...r.data }));
-        }
-      } catch (e) {
-        console.error('Calendar settings load failed', e);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const r = await locationService.getLocations();
-        if (!cancelled && r.success && Array.isArray(r.data)) {
-          setOrgLocationsForFilter(r.data.filter((loc) => loc.id != null && loc.id !== ''));
-        }
-      } catch (e) {
-        console.error('Locations load failed', e);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    if (!isStudent() && orgLocationsForFilter.length > 0 && calendarLocationId === '') {
-      setCalendarLocationId(String(orgLocationsForFilter[0].id));
-    }
-  }, [orgLocationsForFilter, calendarLocationId]);
-
-  // Fetch schedule when date, organization, or calendar location changes
+  // Fetch schedule when date, organization, view mode, or custom range changes
   useEffect(() => {
     fetchSchedule();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate, selectedOrganizationId, calendarLocationId]);
+  }, [currentDate, selectedOrganizationId, calendarViewMode, customStartDate, customEndDate, selectedCalendarLocationId]);
+
+  useEffect(() => {
+    setFilteredAircraftSchedule(aircraftSchedule);
+    setFilteredUserSchedule(userSchedule);
+  }, [aircraftSchedule, userSchedule]);
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      try {
+        const res = await calendarService.getSettings();
+        if (res.success && res.data) {
+          setCalendarSettings((prev) => ({ ...prev, ...res.data }));
+          const dv = res.data.default_view;
+          if (dv === 'day' || dv === 'week') {
+            setCalendarViewMode(dv);
+          } else if (dv === 'month') {
+            setCalendarViewMode('week');
+          }
+        }
+      } catch (e) {
+        console.error('Calendar settings bootstrap', e);
+      }
+    };
+    bootstrap();
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -581,92 +664,44 @@ const Calendar = () => {
     return `${year}-${month}-${day}`;
   };
 
-  const normalizeToHi = (t) => {
-    if (!t || typeof t !== 'string') return '';
-    const s = t.trim();
-    return s.length >= 5 ? s.slice(0, 5) : s;
-  };
-
-  const formatTimeForDisplay = (timeStr) => {
-    const hi = normalizeToHi(timeStr);
-    if (!hi) return '';
-    const [hs, ms] = hi.split(':');
-    const h = parseInt(hs, 10);
-    const m = parseInt(ms, 10) || 0;
-    if (Number.isNaN(h)) return hi;
-    if (calendarSettings.time_format === '24h') {
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    }
-    const ap = h >= 12 ? 'pm' : 'am';
-    const h12 = h % 12 || 12;
-    return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
-  };
-
-  const parseEventInstant = (dateStr, timeStr) => {
-    const hi = normalizeToHi(timeStr);
-    if (!dateStr || !hi) return null;
-    const [hs, ms] = hi.split(':').map((x) => parseInt(x, 10));
-    if (Number.isNaN(hs)) return null;
-    const d = new Date(`${dateStr}T00:00:00`);
-    d.setHours(hs, Number.isNaN(ms) ? 0 : ms, 0, 0);
-    return d;
-  };
-
-  const eventEndInstant = (event) => {
-    const start = parseEventInstant(event.date, event.start_time);
-    if (!start) return null;
-    const dur = Number(event.duration_minutes);
-    const minutes = Number.isFinite(dur) && dur > 0 ? dur : 60;
-    return new Date(start.getTime() + minutes * 60000);
-  };
-
-  const getVisibleSegmentForCalendarDay = (event, dateStr) => {
-    const start = parseEventInstant(event.date, event.start_time);
-    const end = eventEndInstant(event);
-    if (!start || !end) return null;
-    const dayStart = new Date(`${dateStr}T00:00:00`);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setDate(dayEnd.getDate() + 1);
-    const segStart = start > dayStart ? start : dayStart;
-    const segEnd = end < dayEnd ? end : dayEnd;
-    if (segStart >= segEnd) return null;
-    return { segStart, segEnd };
-  };
-
-  const hourSlotRange = (dateStr, hour) => {
-    const slotStart = new Date(`${dateStr}T00:00:00`);
-    slotStart.setHours(hour, 0, 0, 0);
-    const slotEnd = new Date(slotStart);
-    slotEnd.setHours(hour + 1);
-    return { slotStart, slotEnd };
-  };
-
-  const intervalsOverlap = (a0, a1, b0, b1) => a0 < b1 && b0 < a1;
-
   const fetchSchedule = async () => {
     setLoading(true);
     try {
-      const startDateStr = formatDateStr(currentDate);
-      const endDateStr = startDateStr;
-
-      const params = {
+      let startDateStr, endDateStr;
+      if (calendarViewMode === 'day') {
+        startDateStr = formatDateStr(currentDate);
+        endDateStr = startDateStr;
+      } else if (calendarViewMode === 'custom') {
+        startDateStr = customStartDate;
+        endDateStr = customEndDate;
+        if (startDateStr > endDateStr) {
+          const swap = startDateStr;
+          startDateStr = endDateStr;
+          endDateStr = swap;
+        }
+      } else {
+        const start = new Date(currentDate);
+        start.setDate(start.getDate() - start.getDay());
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        startDateStr = formatDateStr(start);
+        endDateStr = formatDateStr(end);
+      }
+      
+      const scheduleParams = {
         start_date: startDateStr,
         end_date: endDateStr,
         organization_id: selectedOrganizationId || undefined,
       };
-      if (!isStudent() && calendarLocationId) {
-        params.location_id = calendarLocationId;
+      const locId = selectedCalendarLocationId ? parseInt(selectedCalendarLocationId, 10) : NaN;
+      if (!Number.isNaN(locId) && locId > 0) {
+        scheduleParams.location_id = locId;
       }
-
-      const response = await calendarService.getSchedule(params);
+      const response = await calendarService.getSchedule(scheduleParams);
 
       if (response.success) {
-        const ac = response.data.aircraft_schedule || [];
-        const us = response.data.user_schedule || [];
-        setAircraftSchedule(ac);
-        setUserSchedule(us);
-        setFilteredAircraftSchedule(ac);
-        setFilteredUserSchedule(us);
+        setAircraftSchedule(response.data.aircraft_schedule || []);
+        setUserSchedule(response.data.user_schedule || []);
       }
     } catch (err) {
       console.error('Error fetching schedule:', err);
@@ -738,15 +773,23 @@ const Calendar = () => {
       const apiLocationsRaw = (locationsRes.success && Array.isArray(locationsRes.data)) ? locationsRes.data : [];
       const customLocationNames = (settingsRes?.success && Array.isArray(settingsRes?.data?.custom_locations)) ? settingsRes.data.custom_locations : [];
       // Normalize: items with id null are custom (from calendar settings) – use id "new:Name" so submit can create them
-      const apiLocations = apiLocationsRaw.map(loc => {
+      const apiLocationsMapped = apiLocationsRaw.map(loc => {
         const name = (loc.name || '').trim();
         if (name && (loc.id == null || loc.id === undefined))
           return { id: `new:${name}`, name, address: loc.address || '', isCustom: true };
         return { ...loc, name: loc.name || '', address: loc.address || '' };
       });
-      const apiNamesSet = new Set(apiLocations.map(l => (l.name || '').trim().toLowerCase()));
+      // Deduplicate API locations by name (case-insensitive) to handle duplicate entries in API response
+      const seenNames = new Set();
+      const apiLocations = apiLocationsMapped.filter(loc => {
+        const key = (loc.name || '').trim().toLowerCase();
+        if (seenNames.has(key)) return false;
+        seenNames.add(key);
+        return true;
+      });
+      // Only include custom locations whose names aren't already present in the API locations
       const customOnly = customLocationNames
-        .filter(name => name && typeof name === 'string' && !apiNamesSet.has(name.trim().toLowerCase()))
+        .filter(name => name && typeof name === 'string' && !seenNames.has(name.trim().toLowerCase()))
         .map(name => ({ id: `new:${name.trim()}`, name: name.trim(), address: '', isCustom: true }));
       setLocationsList([...apiLocations, ...customOnly]);
     } catch (err) {
@@ -761,10 +804,61 @@ const Calendar = () => {
     }
   };
 
+  const getDisplayDates = () => {
+    if (calendarViewMode === 'day') {
+      return [new Date(currentDate)];
+    }
+    if (calendarViewMode === 'custom') {
+      let start = new Date(customStartDate);
+      let end = new Date(customEndDate);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      if (start > end) {
+        const swap = start;
+        start = end;
+        end = swap;
+      }
+      const days = [];
+      const maxDays = 31;
+      const d = new Date(start);
+      while (d <= end && days.length < maxDays) {
+        days.push(new Date(d));
+        d.setDate(d.getDate() + 1);
+      }
+      return days;
+    }
+    const start = new Date(currentDate);
+    start.setDate(start.getDate() - start.getDay());
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  };
+
   const getDateRangeLabel = () => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const fmt = (date) => `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-    return fmt(new Date(currentDate));
+    if (calendarViewMode === 'day') {
+      return fmt(new Date(currentDate));
+    }
+    if (calendarViewMode === 'custom') {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      if (start > end) return `${fmt(end)} - ${fmt(start)}`;
+      return start.getTime() === end.getTime() ? fmt(start) : `${fmt(start)} - ${fmt(end)}`;
+    }
+    const start = new Date(currentDate);
+    start.setDate(start.getDate() - start.getDay());
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return `${fmt(start)} - ${fmt(end)}`;
+  };
+
+  const navigateWeek = (direction) => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + (direction * 7));
+    setCurrentDate(newDate);
   };
 
   const navigateDay = (direction) => {
@@ -773,44 +867,9 @@ const Calendar = () => {
     setCurrentDate(newDate);
   };
 
-  const getEventForCell = (item, hour, dateStr = null) => {
-    if (!item.events || item.events.length === 0) return null;
-    const targetDate = dateStr || formatDateStr(currentDate);
-    const { slotStart, slotEnd } = hourSlotRange(targetDate, hour);
-    const matches = item.events.filter((ev) => {
-      const seg = getVisibleSegmentForCalendarDay(ev, targetDate);
-      if (!seg) return false;
-      return intervalsOverlap(seg.segStart, seg.segEnd, slotStart, slotEnd);
-    });
-    if (!matches.length) return null;
-    const startingHere = matches.filter((ev) => {
-      const seg = getVisibleSegmentForCalendarDay(ev, targetDate);
-      return seg && seg.segStart >= slotStart && seg.segStart < slotEnd;
-    });
-    const pool = startingHere.length ? startingHere : matches;
-    return pool.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))[0];
-  };
-
   const getEventsForDay = (item, dateStr) => {
     if (!item.events || item.events.length === 0) return [];
-    return item.events.filter((ev) => getVisibleSegmentForCalendarDay(ev, dateStr));
-  };
-
-  const isFirstCellOfEventOnDay = (event, hour, dateStr) => {
-    const seg = getVisibleSegmentForCalendarDay(event, dateStr);
-    if (!seg) return false;
-    const { slotStart, slotEnd } = hourSlotRange(dateStr, hour);
-    return seg.segStart >= slotStart && seg.segStart < slotEnd;
-  };
-
-  const getEventSpan = (event, dateStr = null) => {
-    if (!event) return 1;
-    const d = dateStr || formatDateStr(currentDate);
-    const seg = getVisibleSegmentForCalendarDay(event, d);
-    if (!seg) return 1;
-    const startMin = seg.segStart.getHours() * 60 + seg.segStart.getMinutes();
-    const endMin = seg.segEnd.getHours() * 60 + seg.segEnd.getMinutes();
-    return Math.max(1, Math.ceil(endMin / 60) - Math.floor(startMin / 60));
+    return item.events.filter((e) => eventOverlapsCalendarDay(e, dateStr));
   };
 
   const getEventColor = (color) => {
@@ -878,8 +937,16 @@ const Calendar = () => {
     setLoadingSettings(true);
     try {
       const response = await calendarService.getSettings();
-      if (response.success) {
-        setCalendarSettings(response.data);
+      if (response.success && response.data) {
+        // merge: keep existing defaults for any key not returned by API
+        setCalendarSettings(prev => ({ ...prev, ...response.data }));
+        // also sync the view mode if default_view is in saved settings
+        const dv = response.data.default_view;
+        if (dv === 'day' || dv === 'week') {
+          setCalendarViewMode(dv);
+        } else if (dv === 'month') {
+          setCalendarViewMode('week');
+        }
       }
     } catch (err) {
       console.error('Error fetching calendar settings:', err);
@@ -894,6 +961,14 @@ const Calendar = () => {
       const response = await calendarService.updateSettings(calendarSettings);
       if (response.success) {
         showSuccessToast('Calendar settings saved successfully');
+        const saved = response.data || calendarSettings;
+        setCalendarSettings((prev) => ({ ...prev, ...saved }));
+        const dv = saved.default_view;
+        if (dv === 'day' || dv === 'week') {
+          setCalendarViewMode(dv);
+        } else if (dv === 'month') {
+          setCalendarViewMode('week');
+        }
         setShowSettingsModal(false);
         await fetchOrganizations(); // Refresh organizations
       }
@@ -960,13 +1035,14 @@ const Calendar = () => {
       const response = await calendarService.getAvailableTimeSlots(params);
       
       if (response.success) {
-        const selectedTime = normalizeToHi(reservationForm.lesson_time);
+        const selectedTime = reservationForm.lesson_time;
         const availableSlots = response.data.available_slots || [];
         
         // Check if selected time is in available slots
-        const isTimeAvailable = availableSlots.some(slot => {
-          const slotHi = normalizeToHi(slot.time || '');
-          return slotHi === selectedTime;
+        const selectedKey = normalizeTimeKey(selectedTime);
+        const isTimeAvailable = availableSlots.some((slot) => {
+          const slotKey = normalizeTimeKey(slot.time);
+          return slotKey === selectedKey;
         });
 
         // Check student availability (if we have student_id, we need to check their existing bookings)
@@ -997,17 +1073,14 @@ const Calendar = () => {
           }
           
           if (eventsToCheck.length > 0) {
-            const lt = normalizeToHi(reservationForm.lesson_time);
-            const selectedDateTime = new Date(`${reservationForm.lesson_date}T${lt.length === 5 ? lt : '00:00'}`);
+            const selectedDateTime = new Date(`${reservationForm.lesson_date}T${normalizeTimeKey(reservationForm.lesson_time)}:00`);
             const endDateTime = new Date(selectedDateTime.getTime() + reservationForm.duration_minutes * 60000);
             
-            const conflictingEvent = eventsToCheck.find(event => {
-              const st = normalizeToHi(event.start_time);
-              const eventStart = new Date(`${event.date}T${st.length === 5 ? st : '00:00'}`);
-              const evDur = Number(event.duration_minutes);
-              const eventEnd = new Date(eventStart.getTime() + (Number.isFinite(evDur) && evDur > 0 ? evDur : 60) * 60000);
-              
-              return (selectedDateTime < eventEnd && endDateTime > eventStart);
+            const conflictingEvent = eventsToCheck.find((event) => {
+              const { startMs, endMs } = eventStartEndMs(event);
+              const selStart = selectedDateTime.getTime();
+              const selEnd = endDateTime.getTime();
+              return selStart < endMs && selEnd > startMs;
             });
             
             if (conflictingEvent) {
@@ -1141,7 +1214,6 @@ const Calendar = () => {
         lesson_template_id: reservationForm.lesson_template_id ? parseInt(reservationForm.lesson_template_id) : null,
         acting_pic_user_id: reservationForm.acting_pic_user_id ? parseInt(reservationForm.acting_pic_user_id, 10) : null,
         location_id: locationId,
-        lesson_time: normalizeToHi(reservationForm.lesson_time),
       };
       
       // Remove old single ID fields
@@ -1265,47 +1337,6 @@ const Calendar = () => {
     );
   }
 
-  const scheduleDayStr = formatDateStr(currentDate);
-
-  const buildDayTimelineCells = (item, interactive) => {
-    const cells = [];
-    let skip = 0;
-    for (let idx = 0; idx < timeSlots.length; idx++) {
-      if (skip > 0) {
-        skip--;
-        continue;
-      }
-      const slot = timeSlots[idx];
-      const event = getEventForCell(item, slot.hour, scheduleDayStr);
-      const isFirst = event && isFirstCellOfEventOnDay(event, slot.hour, scheduleDayStr);
-      const span = isFirst ? getEventSpan(event, scheduleDayStr) : 1;
-      if (isFirst && span > 1) {
-        skip = span - 1;
-      }
-      cells.push(
-        <td
-          key={idx}
-          className="relative border-r border-gray-200 p-0"
-          style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}
-          colSpan={isFirst && span > 1 ? span : undefined}
-        >
-          {isFirst && event ? (
-            <div
-              className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 z-0 flex items-center ${getEventColor(event.color)} ${interactive ? 'cursor-pointer' : ''}`}
-              style={{ width: '95%' }}
-              onMouseEnter={interactive ? (e) => handleEventHover(event, e) : undefined}
-              onMouseLeave={interactive ? handleEventLeave : undefined}
-              onClick={interactive ? () => handleEventClick(event) : undefined}
-            >
-              <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{formatTimeForDisplay(event.start_time)}</div>
-            </div>
-          ) : null}
-        </td>
-      );
-    }
-    return cells;
-  };
-
   // Flight type options
   const flightTypes = [
     'Solo',
@@ -1372,39 +1403,97 @@ const Calendar = () => {
               </select>
             )}
 
-            {!isStudent() && orgLocationsForFilter.length > 0 && (
+            {!isStudent() && (
               <select
-                value={calendarLocationId}
-                onChange={(e) => setCalendarLocationId(e.target.value)}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:min-w-[160px]"
-                aria-label="Schedule location"
+                value={selectedCalendarLocationId}
+                onChange={(e) => setSelectedCalendarLocationId(e.target.value)}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:flex-shrink-0 sm:min-w-[160px]"
+                aria-label="Filter calendar by location"
               >
-                {orgLocationsForFilter.map((loc) => (
-                  <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
-                ))}
+                <option value="">All locations</option>
+                {locationsList
+                  .filter((loc) => loc.id != null && String(loc.id) !== '' && !String(loc.id).startsWith('new:'))
+                  .map((loc) => (
+                    <option key={loc.id} value={String(loc.id)}>
+                      {loc.name}
+                    </option>
+                  ))}
               </select>
             )}
 
+            {/* Week / Day / Custom view toggle */}
+            <div className="flex items-center gap-0.5 rounded-lg border border-gray-300 p-0.5 bg-gray-50 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('week')}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'week' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Week
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('day')}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'day' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Day
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarViewMode('custom')}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'custom' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Custom
+              </button>
+            </div>
+
+            {/* Custom date range inputs (visible when Custom view) */}
+            {calendarViewMode === 'custom' && (
+              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">From</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+                />
+                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">To</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+                />
+              </div>
+            )}
+
+            {/* Date Navigation (hidden for Custom view) */}
             <div className="flex items-center gap-1 sm:gap-2 justify-between sm:justify-start flex-1 min-w-0">
-              <button
-                type="button"
-                onClick={() => navigateDay(-1)}
-                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                aria-label="Previous day"
-              >
-                <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
-              </button>
-              <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
-                {getDateRangeLabel()}
-              </span>
-              <button
-                type="button"
-                onClick={() => navigateDay(1)}
-                className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                aria-label="Next day"
-              >
-                <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
-              </button>
+              {calendarViewMode !== 'custom' && (
+                <>
+                  <button
+                    onClick={() => calendarViewMode === 'day' ? navigateDay(-1) : navigateWeek(-1)}
+                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                    aria-label={calendarViewMode === 'day' ? 'Previous day' : 'Previous week'}
+                  >
+                    <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                  </button>
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
+                    {getDateRangeLabel()}
+                  </span>
+                  <button
+                    onClick={() => calendarViewMode === 'day' ? navigateDay(1) : navigateWeek(1)}
+                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+                    aria-label={calendarViewMode === 'day' ? 'Next day' : 'Next week'}
+                  >
+                    <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
+                  </button>
+                </>
+              )}
+              {calendarViewMode === 'custom' && (
+                <span className="text-xs sm:text-sm font-medium text-gray-700 px-1 sm:px-2 truncate">
+                  {getDateRangeLabel()}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1433,19 +1522,23 @@ const Calendar = () => {
           }}
         >
           <table className="border-collapse" style={{ 
-            minWidth: isMobile ? '600px' : '800px',
-            width: isMobile ? '600px' : '800px',
+            minWidth: calendarViewMode === 'day'
+              ? (isMobile ? '600px' : '800px')
+              : (calendarViewMode === 'custom' ? Math.min(getDisplayDates().length * (isMobile ? 70 : 90), 2000) : (isMobile ? '400px' : '600px')),
+            width: calendarViewMode === 'day' ? (isMobile ? '600px' : '800px') : 'auto',
             display: 'table',
             margin: 0,
             tableLayout: 'auto',
             boxSizing: 'border-box'
           }}>
+              {calendarViewMode === 'day' ? (
+                <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
                     <tr className="border-b border-gray-200">
                       <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
                       {timeSlots.map((slot, idx) => (
                         <th key={idx} className="text-center px-0.5 sm:px-1 md:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px' }}>
-                          {slot.shortLabel}
+                          {slot.label}
                         </th>
                       ))}
                     </tr>
@@ -1457,8 +1550,22 @@ const Calendar = () => {
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.name)}</span></td>
-                        {buildDayTimelineCells(aircraft, true)}
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span></td>
+                        {timeSlots.map((slot, idx) => {
+                          const dayStr = formatDateStr(currentDate);
+                          const event = getEventForCellHour(aircraft, slot.hour, dayStr);
+                          const span = event ? getEventSpanHours(event, dayStr) : 1;
+                          const isFirstCell = event && firstVisibleHourOnDay(event, dayStr) === slot.hour;
+                          return (
+                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
+                              {isFirstCell && (
+                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }}>
+                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{formatEventTimeForDisplay(event.start_time)}</div>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                     {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
@@ -1470,10 +1577,93 @@ const Calendar = () => {
                     {filteredUserSchedule.map((user) => (
                       <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
                         <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
-                        {buildDayTimelineCells(user, true)}
+                        {timeSlots.map((slot, idx) => {
+                          const dayStr = formatDateStr(currentDate);
+                          const event = getEventForCellHour(user, slot.hour, dayStr);
+                          const span = event ? getEventSpanHours(event, dayStr) : 1;
+                          const isFirstCell = event && firstVisibleHourOnDay(event, dayStr) === slot.hour;
+                          return (
+                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
+                              {isFirstCell && (
+                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
+                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{formatEventTimeForDisplay(event.start_time)}</div>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
+                </>
+              ) : (
+                <>
+                  <thead className="sticky top-0 z-20 bg-gray-50">
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
+                      {getDisplayDates().map((day, idx) => (
+                        <th key={idx} className="text-center px-1 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px' }}>
+                          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]} {day.getDate()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-gray-200 bg-purple-50">
+                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3></td>
+                      {getDisplayDates().map((_, idx) => <td key={idx} className="text-center border-r border-gray-200 text-gray-400" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '24px' : '32px' }}>–</td>)}
+                    </tr>
+                    {filteredAircraftSchedule.map((aircraft) => (
+                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span></td>
+                        {getDisplayDates().map((day, idx) => {
+                          const dateStr = formatDateStr(day);
+                          const dayEvents = getEventsForDay(aircraft, dateStr);
+                          return (
+                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
+                              {dayEvents.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {dayEvents.slice(0, 3).map((ev, i) => (
+                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`}>{formatEventTimeForDisplay(ev.start_time)}</div>
+                                  ))}
+                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
+                                </div>
+                              ) : '–'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
+                      <tr className="border-b border-dashed border-gray-300 bg-purple-50">
+                        <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></td>
+                        {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-purple-50" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '4px' : '5px', borderTop: '1px dashed #d1d5db', borderBottom: '1px dashed #d1d5db' }}></td>)}
+                      </tr>
+                    )}
+                    {filteredUserSchedule.map((user) => (
+                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
+                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
+                        {getDisplayDates().map((day, idx) => {
+                          const dateStr = formatDateStr(day);
+                          const dayEvents = getEventsForDay(user, dateStr);
+                          return (
+                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
+                              {dayEvents.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {dayEvents.slice(0, 3).map((ev, i) => (
+                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{formatEventTimeForDisplay(ev.start_time)}</div>
+                                  ))}
+                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
+                                </div>
+                              ) : '–'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </>
+              )}
           </table>
         </div>
       </div>
@@ -1518,7 +1708,7 @@ const Calendar = () => {
               </div>
             )}
             <div>
-              {formatTimeForDisplay(hoveredEvent.start_time)} – {formatTimeForDisplay(hoveredEvent.end_time)}
+              {formatEventTimeForDisplay(hoveredEvent.start_time)} - {formatEventTimeForDisplay(hoveredEvent.end_time)}
             </div>
           </div>
         </div>
@@ -1554,6 +1744,19 @@ const Calendar = () => {
                     >
                       <option value="12h">12 Hour (AM/PM)</option>
                       <option value="24h">24 Hour</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Default calendar view</label>
+                    <select
+                      value={calendarSettings.default_view === 'month' ? 'week' : (calendarSettings.default_view || 'day')}
+                      onChange={(e) => setCalendarSettings({ ...calendarSettings, default_view: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="day">Day</option>
+                      <option value="week">Week</option>
+                      <option value="month">Month (shown as week grid)</option>
                     </select>
                   </div>
 
@@ -1757,33 +1960,45 @@ const Calendar = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 p-6 border-t border-gray-200">
+                <div className="flex justify-between gap-2 p-6 border-t border-gray-200">
                   <button
                     onClick={() => {
                       setShowReservationDetailModal(false);
                       setSelectedReservation(null);
+                      if (selectedReservation?.id) {
+                        navigate(`/reservations/${selectedReservation.id}`);
+                      }
                     }}
-                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition border border-indigo-200 text-sm font-medium"
                   >
-                    Close
+                    Open Full Detail →
                   </button>
-                  {/* Hide Edit button for students */}
-                  {!isStudent() && (
+                  <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        // Close detail modal
                         setShowReservationDetailModal(false);
-                        // Set edit mode and open edit form
-                        if (selectedReservation?.id) {
-                          setSearchParams({ edit: selectedReservation.id });
-                        }
                         setSelectedReservation(null);
                       }}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
                     >
-                      Edit
+                      Close
                     </button>
-                  )}
+                    {/* Hide Edit button for students */}
+                    {!isStudent() && (
+                      <button
+                        onClick={() => {
+                          setShowReservationDetailModal(false);
+                          if (selectedReservation?.id) {
+                            setSearchParams({ edit: selectedReservation.id });
+                          }
+                          setSelectedReservation(null);
+                        }}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
               </>
             ) : null}
@@ -2082,8 +2297,7 @@ const Calendar = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
                     <input
                       type="time"
-                      step={60}
-                      value={normalizeToHi(reservationForm.lesson_time)}
+                      value={reservationForm.lesson_time}
                       onChange={(e) => {
                         setReservationForm({ ...reservationForm, lesson_time: e.target.value });
                         // Clear availability status when time changes
@@ -2096,7 +2310,8 @@ const Calendar = () => {
                         setAvailabilityMessage('');
                       }}
                       className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        availabilityStatus.student === false 
+                        // Only show red if student is confirmed unavailable AND a student is actually selected
+                        availabilityStatus.student === false && reservationForm.student_id
                           ? 'border-red-300 bg-red-50' 
                           : 'border-gray-300'
                       }`}

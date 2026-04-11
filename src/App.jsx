@@ -36,6 +36,7 @@ import LessonTasks from "./pages/StudentFE/MyLessons/LessonTasks";
 import InstructorProfile from "./pages/StudentFE/Instructors/InstructorProfile";
 import InstructorLessons from "./pages/InstructorFE/Lessons";
 import Logbook from "./pages/InstructorFE/Logbook";
+import ReservationDetail from "./pages/ReservationDetail";
 import UserPolicy from "./pages/UserPolicy";
 
 const App = () => {
@@ -107,6 +108,7 @@ const App = () => {
           <Route path="/users/profile/:id" element={<UserProfile />} />
           <Route path="/air-craft-profile/aircraft/:id" element={<AirCraftDetail />} />
           <Route path="/my-lessons/:id" element={<LessonDetails />} />
+          <Route path="/reservations/:id" element={<ReservationDetail />} />
           <Route path="/instructors/instructorprofile/:id" element={<InstructorProfile />} />
         </Route>
     </Routes>

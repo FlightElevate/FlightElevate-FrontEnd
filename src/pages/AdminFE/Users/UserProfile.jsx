@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiMoreVertical } from "react-icons/fi";
+import { FiSearch, FiMoreVertical, FiMapPin } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
 import profileImg from "../../../assets/img/profile.jpg";
@@ -7,6 +7,7 @@ import { userService } from "../../../api/services/userService";
 import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
 import { settingsService } from "../../../api/services/settingsService";
+import { locationService } from "../../../api/services/locationService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast, showBlockUserConfirm } from "../../../utils/notifications";
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { getImageUrl } from "../../../utils/imageUtils";
@@ -36,11 +37,20 @@ const UserProfile = () => {
   const [updatingDoc, setUpdatingDoc] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
 
+  // Location settings state
+  const [locationOptions, setLocationOptions] = useState([]);
+  const [locationForm, setLocationForm] = useState({
+    default_location_id: '',
+    calendar_location_ids: [],
+  });
+  const [locationSaving, setLocationSaving] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchUser();
       fetchDocuments();
       fetchFlightLogs();
+      fetchLocations();
     }
   }, [id]);
 
@@ -51,31 +61,63 @@ const UserProfile = () => {
       if (response.success) {
         const userData = response.data;
         setUser(userData);
-        
-        // Debug: Log user data to see what fields are available
-        console.log('User data:', userData);
-        console.log('Avatar fields:', {
-          avatar: userData?.avatar,
-          profile_image: userData?.profile_image,
-          avatar_url: userData?.avatar_url,
+        // Populate location form from user data
+        setLocationForm({
+          default_location_id: userData?.default_location_id ? String(userData.default_location_id) : '',
+          calendar_location_ids: Array.isArray(userData?.calendar_location_ids)
+            ? userData.calendar_location_ids.map(String)
+            : [],
         });
-        
-        // Try to get profile image from user object, fallback to organization logo
         const avatarUrl = userData?.avatar || userData?.profile_image || userData?.avatar_url || userData?.organization?.logo;
-        if (avatarUrl) {
-          const fullImageUrl = getImageUrl(avatarUrl);
-          console.log('Profile image URL:', fullImageUrl);
-          setProfileImage(avatarUrl);
-        } else {
-          console.log('No profile image found in user object');
-          setProfileImage(null);
-        }
+        setProfileImage(avatarUrl || null);
       }
     } catch (error) {
       console.error('Error fetching user:', error);
     } finally {
       setLoadingUser(false);
     }
+  };
+
+  const fetchLocations = async () => {
+    try {
+      const res = await locationService.getLocations();
+      if (res.success && Array.isArray(res.data)) {
+        setLocationOptions(res.data.filter((l) => l.id != null));
+      }
+    } catch (e) {
+      console.error('Error fetching locations:', e);
+    }
+  };
+
+  const handleSaveLocationSettings = async () => {
+    setLocationSaving(true);
+    try {
+      const payload = {
+        default_location_id: locationForm.default_location_id ? parseInt(locationForm.default_location_id, 10) : null,
+        calendar_location_ids: locationForm.calendar_location_ids.map(Number),
+      };
+      const response = await userService.updateUser(id, payload);
+      if (response.success) {
+        showSuccessToast('Location settings saved successfully');
+        setUser(prev => ({ ...prev, ...payload }));
+      } else {
+        showErrorToast(response.message || 'Failed to save location settings');
+      }
+    } catch (err) {
+      showErrorToast('Failed to save location settings');
+    } finally {
+      setLocationSaving(false);
+    }
+  };
+
+  const toggleCalendarLocation = (locId) => {
+    const idStr = String(locId);
+    setLocationForm(prev => ({
+      ...prev,
+      calendar_location_ids: prev.calendar_location_ids.includes(idStr)
+        ? prev.calendar_location_ids.filter(id => id !== idStr)
+        : [...prev.calendar_location_ids, idStr],
+    }));
   };
 
   const fetchDocuments = async () => {
@@ -380,6 +422,65 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Created</p><p className="text-sm font-medium text-gray-900">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Last Flight</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
+            </div>
+
+            {/* Calendar & Location Settings */}
+            <div className="border-t border-gray-200 pt-6 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FiMapPin className="text-blue-600" size={18} />
+                <h3 className="text-lg font-semibold text-gray-900">Calendar & Location Settings</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
+                  <p className="text-xs text-gray-500 mb-2">This user's primary location (affects their calendar default view).</p>
+                  <select
+                    value={locationForm.default_location_id}
+                    onChange={(e) => setLocationForm(prev => ({ ...prev, default_location_id: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">— No default location —</option>
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Calendar Accessible Locations</label>
+                  <p className="text-xs text-gray-500 mb-2">Locations this user can view on the calendar.</p>
+                  <div className="border border-gray-200 rounded-lg p-3 max-h-36 overflow-y-auto space-y-2 bg-gray-50">
+                    {locationOptions.length === 0 ? (
+                      <p className="text-xs text-gray-400">No locations available</p>
+                    ) : (
+                      locationOptions.map((loc) => (
+                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={locationForm.calendar_location_ids.includes(String(loc.id))}
+                            onChange={() => toggleCalendarLocation(loc.id)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">{loc.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={handleSaveLocationSettings}
+                  disabled={locationSaving}
+                  className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {locationSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Saving…
+                    </>
+                  ) : 'Save Location Settings'}
+                </button>
+              </div>
             </div>
 
             <div className="border-t border-gray-200 pt-6">
