@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { HiDotsVertical } from "react-icons/hi";
-import { FiSearch, FiEdit2, FiTrash2, FiX, FiPlus, FiDownload, FiFilter } from "react-icons/fi";
+import { FiSearch, FiEdit2, FiTrash2, FiX, FiPlus, FiDownload, FiFilter, FiEye } from "react-icons/fi";
 import Pagination from "../../components/Pagination";
 import { useAuth } from "../../context/AuthContext";
 import { useRole } from "../../hooks/useRole";
