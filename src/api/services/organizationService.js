@@ -23,6 +23,15 @@ export const organizationService = {
     }
   },
 
+  async joinOrganization(id) {
+    try {
+      return await api.post(ENDPOINTS.ORGANIZATIONS.JOIN(id));
+    } catch (error) {
+      console.error('Error joining organization:', error);
+      throw error;
+    }
+  },
+
   
   async updateOrganization(id, data) {
     try {

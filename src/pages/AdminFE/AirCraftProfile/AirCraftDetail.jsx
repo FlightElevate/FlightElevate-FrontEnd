@@ -359,7 +359,7 @@ const AirCraftDetail = () => {
               <FiArrowLeft size={20} className="text-gray-600" />
             </button>
             <div>
-              <h2 className="text-2xl font-semibold text-gray-800">{aircraft.name}</h2>
+              <h2 className="text-2xl font-semibold text-gray-800">{aircraft.serial_number || aircraft.name}</h2>
               {aircraft.model && (
                 <p className="text-sm text-gray-500 mt-1">{aircraft.model}</p>
               )}
@@ -419,7 +419,7 @@ const AirCraftDetail = () => {
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h3 className="text-xl font-semibold text-gray-800">Find a Time</h3>
-                <p className="text-sm text-gray-600 mt-1">Available time slots for {aircraft.name}</p>
+                <p className="text-sm text-gray-600 mt-1">Available time slots for {aircraft.serial_number || aircraft.name}</p>
               </div>
               <button
                 onClick={() => {

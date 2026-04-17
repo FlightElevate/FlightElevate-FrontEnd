@@ -16,6 +16,7 @@ export const ENDPOINTS = {
     REFRESH: '/auth/refresh',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
+    SWITCH_ORGANIZATION: '/auth/switch-organization',
   },
 
   
@@ -104,6 +105,10 @@ export const ENDPOINTS = {
     INVOICE: (id) => `/reservations/${id}/invoice`,
     INVOICE_CHARGE: (id) => `/reservations/${id}/invoice/charge`,
     INVOICE_REFUND: (id) => `/reservations/${id}/invoice/refund`,
+  },
+
+  WEATHER: {
+    METAR: '/weather/metar',
   },
 
   
@@ -206,6 +211,7 @@ export const ENDPOINTS = {
     CREATE: '/organizations',
     UPDATE: (id) => `/organizations/${id}`,
     DELETE: (id) => `/organizations/${id}`,
+    JOIN: (id) => `/organizations/${id}/join`,
   },
 
 

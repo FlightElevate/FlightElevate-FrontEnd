@@ -61,6 +61,10 @@ const Setting = () => {
   const [organizationLogoPreview, setOrganizationLogoPreview] = useState(null);
   const [uploadingOrgLogo, setUploadingOrgLogo] = useState(false);
   const [loadingOrganization, setLoadingOrganization] = useState(false);
+  const [allOrganizations, setAllOrganizations] = useState([]);
+  const [fetchingAllOrgs, setFetchingAllOrgs] = useState(false);
+  const [joinOrgSearch, setJoinOrgSearch] = useState('');
+  const [joiningOrgId, setJoiningOrgId] = useState(null);
 
   
   const [profileData, setProfileData] = useState({
@@ -169,6 +173,51 @@ const Setting = () => {
       }
     }
   }, [activeTab, user?.organization_id, user?.organization?.id, organization?.id, organizationName, organization]);
+
+  const fetchAllOrganizations = async () => {
+    setFetchingAllOrgs(true);
+    try {
+      const response = await organizationService.getOrganizations({
+        search: joinOrgSearch
+      });
+      if (response.success) {
+        setAllOrganizations(response.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching organizations:', err);
+    } finally {
+      setFetchingAllOrgs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'join-organization') {
+      fetchAllOrganizations();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'join-organization') {
+      const timer = setTimeout(fetchAllOrganizations, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [joinOrgSearch]);
+
+  const handleJoinOrg = async (orgId) => {
+    setJoiningOrgId(orgId);
+    try {
+      const response = await organizationService.joinOrganization(orgId);
+      if (response.success) {
+        showSuccessToast(response.message || 'Join request submitted successfully');
+        // Refresh to show pending status if we had one
+        fetchAllOrganizations();
+      }
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Failed to submit join request');
+    } finally {
+      setJoiningOrgId(null);
+    }
+  };
 
   
   useEffect(() => {
@@ -817,6 +866,7 @@ const Setting = () => {
     { id: 'password', label: 'Password' },
     ...(!isSuperAdmin() ? [{ id: 'documents', label: 'Documents' }] : []),
     { id: 'payment', label: 'Payment' },
+    { id: 'join-organization', label: 'Join Organization' },
     ...(isAdmin() ? [{ id: 'organization', label: 'Organization' }] : []),
   ];
 
@@ -1629,7 +1679,79 @@ const Setting = () => {
             </div>
           )}
 
-          {}
+          {activeTab === 'join-organization' && (
+            <div className="bg-white rounded-lg">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h3 className="text-lg font-semibold text-gray-800">Discover Organizations</h3>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg min-h-[44px] w-full sm:w-auto sm:min-w-[250px]">
+                    <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search organizations..."
+                      value={joinOrgSearch}
+                      onChange={(e) => setJoinOrgSearch(e.target.value)}
+                      className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full min-w-0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {fetchingAllOrgs ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              ) : allOrganizations.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {allOrganizations.map((org) => {
+                    const isMember = user?.organization_id === org.id || 
+                                    user?.organization_memberships?.some(m => m.org_id === org.id && m.status === 'active');
+                    const isPending = user?.organization_memberships?.some(m => m.org_id === org.id && m.status === 'pending');
+                    
+                    return (
+                      <div key={org.id} className="border border-gray-200 rounded-xl p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow">
+                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4 overflow-hidden border border-gray-100 flex-shrink-0 text-white font-bold text-xl">
+                          {org.logo ? (
+                            <img src={org.logo} alt={org.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="bg-blue-600 w-full h-full flex items-center justify-center">{org.name.charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <h4 className="font-semibold text-gray-800 mb-1 truncate w-full">{org.name}</h4>
+                        <p className="text-xs text-gray-500 mb-4 truncate w-full">{org.address || 'No address provided'}</p>
+                        
+                        <button
+                          onClick={() => handleJoinOrg(org.id)}
+                          disabled={isMember || isPending || joiningOrgId === org.id}
+                          className={`w-full py-2 rounded-lg text-sm font-medium transition-colors min-h-[40px] flex items-center justify-center ${
+                            isMember 
+                              ? 'bg-green-50 text-green-700 cursor-default' 
+                              : isPending
+                                ? 'bg-orange-50 text-orange-700 cursor-default'
+                                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+                          }`}
+                        >
+                          {joiningOrgId === org.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : isMember ? (
+                            'Member'
+                          ) : isPending ? (
+                            'Pending Approval'
+                          ) : (
+                            'Join Organization'
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No organizations found matching "{joinOrgSearch}"</p>
+                </div>
+              )}
+            </div>
+          )}
           {activeTab === 'organization' && isAdmin() && (
             <div className="bg-white rounded-lg">
               {loadingOrganization ? (

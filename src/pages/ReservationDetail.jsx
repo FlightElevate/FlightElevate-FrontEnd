@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   FiArrowLeft, FiTrash2, FiAlertTriangle, FiCheckCircle,
   FiClock, FiMapPin, FiUser, FiTool, FiFileText, FiDollarSign,
-  FiBook, FiSend, FiRefreshCw, FiLoader, FiPrinter
+  FiBook, FiSend, FiRefreshCw, FiLoader, FiPrinter, FiCalendar,
 } from 'react-icons/fi';
 import { reservationService } from '../api/services/reservationService';
 import { useAuth } from '../context/AuthContext';
@@ -88,6 +88,8 @@ const TABS = [
   { id: 'checkin', label: 'Check-In', icon: FiCheckCircle },
   { id: 'invoice', label: 'Invoice', icon: FiDollarSign },
   { id: 'logsession', label: 'Log Session', icon: FiBook },
+  { id: 'delete', label: 'Delete', icon: FiTrash2 },
+  { id: 'calendar', label: 'Calendar Sync', icon: FiCalendar },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,7 +108,12 @@ const ReservationDetail = () => {
   const [actionError, setActionError] = useState(null);
   const [actionSuccess, setActionSuccess] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [invoice, setInvoice] = useState(null);
+  const [metarStation, setMetarStation] = useState('KMQJ');
+  const [metarLoading, setMetarLoading] = useState(false);
+  const [metarDisplay, setMetarDisplay] = useState('');
+  const [stripePaymentMethodId, setStripePaymentMethodId] = useState('');
 
   const isAdmin = user?.roles?.some(r => ['Admin', 'Super Admin'].includes(r.name ?? r));
   const isInstructor = user?.roles?.some(r => (r.name ?? r) === 'Instructor');
@@ -130,6 +137,49 @@ const ReservationDetail = () => {
 
   useEffect(() => { loadDetail(); }, [loadDetail]);
 
+  useEffect(() => {
+    if (activeTab !== 'dispatch' || reservation?.dispatched_at) return;
+    let cancelled = false;
+    (async () => {
+      setMetarLoading(true);
+      try {
+        const res = await reservationService.fetchMetar(metarStation);
+        const d = res?.data?.data ?? res?.data ?? res;
+        if (!cancelled) {
+          const raw = d?.raw;
+          if (raw) {
+            setMetarDisplay(raw);
+            setDispatchForm((f) => (f.dispatch_weather_briefing ? f : { ...f, dispatch_weather_briefing: raw }));
+          } else {
+            setMetarDisplay('No METAR returned for this station.');
+          }
+        }
+      } catch {
+        if (!cancelled) setMetarDisplay('Unable to load METAR. Enter briefing manually.');
+      } finally {
+        if (!cancelled) setMetarLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab, metarStation, reservation?.dispatched_at]);
+
+  useEffect(() => {
+    if (!reservation?.aircraft || reservation.dispatched_at) return;
+    setDispatchForm((f) => {
+      if (f.hobbs_out || f.tach_out) return f;
+      const h = reservation.aircraft.current_hobbs;
+      const t = reservation.aircraft.current_tach;
+      const t2 = reservation.aircraft.current_tach_2;
+      if (h == null && t == null && t2 == null) return f;
+      return {
+        ...f,
+        hobbs_out: h != null ? String(h) : f.hobbs_out,
+        tach_out: t != null ? String(t) : f.tach_out,
+        tach_2_out: t2 != null ? String(t2) : f.tach_2_out,
+      };
+    });
+  }, [reservation?.id, reservation?.dispatched_at, reservation?.aircraft?.current_hobbs, reservation?.aircraft?.current_tach]);
+
   // ── Load invoice separately when tab opened ──
   useEffect(() => {
     if (activeTab === 'invoice' && reservation && !invoice) {
@@ -147,6 +197,7 @@ const ReservationDetail = () => {
   // ─────────────────────────────────────────────────────────────────────────
   const handleDelete = async () => {
     setConfirmDelete(false);
+    setDeleteConfirmText('');
     setActionLoading(true);
     try {
       await reservationService.deleteReservation(id);
@@ -161,7 +212,16 @@ const ReservationDetail = () => {
   // ─────────────────────────────────────────────────────────────────────────
   // DISPATCH
   // ─────────────────────────────────────────────────────────────────────────
-  const [dispatchForm, setDispatchForm] = useState({ hobbs_out: '', tach_out: '', dispatch_weather_briefing: '', dispatch_notes: '', aircraft_rate_per_hour: '', instructor_rate_per_hour: '' });
+  const [dispatchForm, setDispatchForm] = useState({
+    hobbs_out: '',
+    tach_out: '',
+    tach_2_out: '',
+    dispatch_weather_briefing: '',
+    dispatch_weather_acknowledged: false,
+    dispatch_notes: '',
+    aircraft_rate_per_hour: '',
+    instructor_rate_per_hour: '',
+  });
 
   const handleDispatch = async (e) => {
     e.preventDefault();
@@ -171,7 +231,9 @@ const ReservationDetail = () => {
       const res = await reservationService.dispatchReservation(id, {
         hobbs_out: parseFloat(dispatchForm.hobbs_out),
         tach_out: parseFloat(dispatchForm.tach_out),
+        tach_2_out: dispatchForm.tach_2_out ? parseFloat(dispatchForm.tach_2_out) : null,
         dispatch_weather_briefing: dispatchForm.dispatch_weather_briefing || null,
+        dispatch_weather_acknowledged: !!dispatchForm.dispatch_weather_acknowledged,
         dispatch_notes: dispatchForm.dispatch_notes || null,
         aircraft_rate_per_hour: dispatchForm.aircraft_rate_per_hour ? parseFloat(dispatchForm.aircraft_rate_per_hour) : null,
         instructor_rate_per_hour: dispatchForm.instructor_rate_per_hour ? parseFloat(dispatchForm.instructor_rate_per_hour) : null,
@@ -190,20 +252,47 @@ const ReservationDetail = () => {
   // ─────────────────────────────────────────────────────────────────────────
   // CHECK-IN
   // ─────────────────────────────────────────────────────────────────────────
-  const [checkinForm, setCheckinForm] = useState({ hobbs_in: '', tach_in: '', instruction_dual_hours: '', instruction_ground_hours: '', instruction_multi_engine_hours: '', checkin_notes: '' });
+  const [checkinForm, setCheckinForm] = useState({
+    hobbs_in: '',
+    tach_in: '',
+    tach_2_in: '',
+    instruction_dual_hours: '',
+    instruction_ground_hours: '',
+    instruction_multi_engine_hours: '',
+    instruction_solo_hours: '',
+    instruction_xc_hours: '',
+    instruction_night_hours: '',
+    instruction_instrument_hours: '',
+    instruction_cirrus_flight_tyq_hours: '',
+    instruction_cirrus_ground_tyq_hours: '',
+    checkin_notes: '',
+    squawks_text: '',
+  });
 
   const handleCheckin = async (e) => {
     e.preventDefault();
     setActionLoading(true);
     setActionError(null);
     try {
+      const squawks = (checkinForm.squawks_text || '')
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean);
       const res = await reservationService.checkinReservation(id, {
         hobbs_in: parseFloat(checkinForm.hobbs_in),
         tach_in: parseFloat(checkinForm.tach_in),
+        tach_2_in: checkinForm.tach_2_in ? parseFloat(checkinForm.tach_2_in) : null,
         instruction_dual_hours: checkinForm.instruction_dual_hours ? parseFloat(checkinForm.instruction_dual_hours) : null,
         instruction_ground_hours: checkinForm.instruction_ground_hours ? parseFloat(checkinForm.instruction_ground_hours) : null,
         instruction_multi_engine_hours: checkinForm.instruction_multi_engine_hours ? parseFloat(checkinForm.instruction_multi_engine_hours) : null,
+        instruction_solo_hours: checkinForm.instruction_solo_hours ? parseFloat(checkinForm.instruction_solo_hours) : null,
+        instruction_xc_hours: checkinForm.instruction_xc_hours ? parseFloat(checkinForm.instruction_xc_hours) : null,
+        instruction_night_hours: checkinForm.instruction_night_hours ? parseFloat(checkinForm.instruction_night_hours) : null,
+        instruction_instrument_hours: checkinForm.instruction_instrument_hours ? parseFloat(checkinForm.instruction_instrument_hours) : null,
+        instruction_cirrus_flight_tyq_hours: checkinForm.instruction_cirrus_flight_tyq_hours ? parseFloat(checkinForm.instruction_cirrus_flight_tyq_hours) : null,
+        instruction_cirrus_ground_tyq_hours: checkinForm.instruction_cirrus_ground_tyq_hours ? parseFloat(checkinForm.instruction_cirrus_ground_tyq_hours) : null,
         checkin_notes: checkinForm.checkin_notes || null,
+        squawks: squawks.length ? squawks : undefined,
       });
       const data = res?.data?.data ?? res?.data ?? res;
       setReservation(data);
@@ -266,7 +355,11 @@ const ReservationDetail = () => {
     setShowChargeDialog(false);
     setActionLoading(true);
     try {
-      const res = await reservationService.chargeInvoice(id, { charge_method: chargeMethod });
+      const payload = { charge_method: chargeMethod };
+      if (chargeMethod === 'card' && stripePaymentMethodId.trim()) {
+        payload.stripe_payment_method_id = stripePaymentMethodId.trim();
+      }
+      const res = await reservationService.chargeInvoice(id, payload);
       const data = res?.data?.data ?? res?.data ?? res;
       setInvoice(data);
       showSuccess(`Payment charged via ${chargeMethod}!`);
@@ -332,9 +425,9 @@ const ReservationDetail = () => {
       {confirmDelete && (
         <ConfirmDialog
           title="Delete Reservation"
-          message={`Are you sure you want to permanently delete reservation #${reservation.reservation_no}? This cannot be undone.`}
+          message={`Permanently delete reservation #${reservation.reservation_no}? This cannot be undone.`}
           onConfirm={handleDelete}
-          onCancel={() => setConfirmDelete(false)}
+          onCancel={() => { setConfirmDelete(false); setDeleteConfirmText(''); }}
           danger
         />
       )}
@@ -370,16 +463,6 @@ const ReservationDetail = () => {
           </div>
           <div className="flex items-center gap-3">
             <StatusBadge status={status} />
-            {isAdmin && (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                disabled={actionLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-sm font-medium border border-red-200 transition-colors"
-              >
-                <FiTrash2 size={14} />
-                Delete
-              </button>
-            )}
           </div>
         </div>
 
@@ -402,7 +485,7 @@ const ReservationDetail = () => {
         {/* Tabs */}
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex gap-0 overflow-x-auto">
-            {TABS.map(tab => {
+            {TABS.filter((tab) => tab.id !== 'delete' || isAdmin).map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -524,8 +607,10 @@ const ReservationDetail = () => {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Field label="Hobbs Out" value={reservation.hobbs_out} />
-                  <Field label="Tach Out" value={reservation.tach_out} />
+                  <Field label="Engine 1 Tach Out" value={reservation.tach_out} />
+                  {reservation.tach_2_out != null && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
                   <Field label="Weather Briefing" value={reservation.dispatch_weather_briefing} />
+                  <Field label="Weather Acknowledged" value={reservation.dispatch_weather_acknowledged ? 'Yes' : 'No'} />
                   <Field label="Aircraft Rate/hr" value={reservation.aircraft_rate_per_hour ? `$${reservation.aircraft_rate_per_hour}` : null} />
                   <Field label="Instructor Rate/hr" value={reservation.instructor_rate_per_hour ? `$${reservation.instructor_rate_per_hour}` : null} />
                 </div>
@@ -538,11 +623,70 @@ const ReservationDetail = () => {
                 <form onSubmit={handleDispatch} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input label="Hobbs Out" type="number" step="0.1" min="0" value={dispatchForm.hobbs_out} onChange={e => setDispatchForm(f => ({ ...f, hobbs_out: e.target.value }))} required placeholder="e.g. 1234.5" />
-                    <Input label="Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_out} onChange={e => setDispatchForm(f => ({ ...f, tach_out: e.target.value }))} required placeholder="e.g. 1234.5" />
+                    <Input label="Engine 1 Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_out} onChange={e => setDispatchForm(f => ({ ...f, tach_out: e.target.value }))} required placeholder="e.g. 1234.5" />
+                    <Input label="Engine 2 Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_2_out} onChange={e => setDispatchForm(f => ({ ...f, tach_2_out: e.target.value }))} placeholder="e.g. 1234.5 (Optional)" />
                     <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={dispatchForm.aircraft_rate_per_hour} onChange={e => setDispatchForm(f => ({ ...f, aircraft_rate_per_hour: e.target.value }))} placeholder="e.g. 120.00" />
                     <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={dispatchForm.instructor_rate_per_hour} onChange={e => setDispatchForm(f => ({ ...f, instructor_rate_per_hour: e.target.value }))} placeholder="e.g. 45.00" />
-                    <Input label="Weather Briefing Source" value={dispatchForm.dispatch_weather_briefing} onChange={e => setDispatchForm(f => ({ ...f, dispatch_weather_briefing: e.target.value }))} placeholder="e.g. 1800wxbrief, ForeFlight" />
                   </div>
+
+                  <div className="border border-gray-200 rounded-lg p-4 bg-slate-50 space-y-2">
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                        <label className="text-xs font-medium text-gray-600 uppercase">METAR station</label>
+                        <input
+                          type="text"
+                          value={metarStation}
+                          onChange={(e) => setMetarStation(e.target.value.toUpperCase())}
+                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase"
+                          maxLength={8}
+                        />
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-600 font-mono whitespace-pre-wrap break-words min-h-[2.5rem]">
+                      {metarLoading ? 'Loading METAR…' : (metarDisplay || '—')}
+                    </div>
+                    <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Weather briefing (editable)</label>
+                    <textarea
+                      rows={3}
+                      value={dispatchForm.dispatch_weather_briefing}
+                      onChange={(e) => setDispatchForm((f) => ({ ...f, dispatch_weather_briefing: e.target.value }))}
+                      placeholder="METAR text or other briefing notes"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <label className="flex items-start gap-2 text-sm text-gray-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!dispatchForm.dispatch_weather_acknowledged}
+                        onChange={(e) => setDispatchForm((f) => ({ ...f, dispatch_weather_acknowledged: e.target.checked }))}
+                        className="mt-1 rounded border-gray-300"
+                      />
+                      <span>I have reviewed the weather briefing <span className="text-red-500">*</span></span>
+                    </label>
+                  </div>
+
+                  {reservation.aircraft?.maintenance_reminders?.length > 0 && (
+                    <div className="border border-amber-200 rounded-lg p-4 bg-amber-50">
+                      <p className="text-xs font-semibold text-amber-900 uppercase mb-2">Maintenance reminders</p>
+                      <ul className="space-y-2 text-sm text-amber-900">
+                        {reservation.aircraft.maintenance_reminders.map((m) => (
+                          <li key={m.id} className="border-b border-amber-100 pb-2 last:border-0">
+                            <span className="font-medium">{m.template_name || 'Maintenance'}</span>
+                            {m.status && <span className="text-amber-700"> — {m.status}</span>}
+                            {m.hours_remaining != null && <span className="block text-xs text-amber-800">Hours remaining: {m.hours_remaining}</span>}
+                            {m.days_remaining != null && <span className="block text-xs text-amber-800">Days remaining: {m.days_remaining}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="border border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 text-center">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Weight &amp; Balance</p>
+                    <button type="button" disabled className="text-sm text-gray-400 cursor-not-allowed px-4 py-2 rounded-lg bg-gray-200">
+                      Coming soon
+                    </button>
+                  </div>
+
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Dispatch Notes</label>
                     <textarea
@@ -585,12 +729,20 @@ const ReservationDetail = () => {
                   <Field label="Hobbs Out" value={reservation.hobbs_out} />
                   <Field label="Hobbs In" value={reservation.hobbs_in} />
                   <Field label="Hobbs Block Time" value={reservation.hobbs_block_time ? `${reservation.hobbs_block_time} hrs` : null} />
-                  <Field label="Tach Out" value={reservation.tach_out} />
-                  <Field label="Tach In" value={reservation.tach_in} />
-                  <Field label="Tach Block Time" value={reservation.tach_block_time ? `${reservation.tach_block_time} hrs` : null} />
+                  <Field label="Engine 1 Tach Out" value={reservation.tach_out} />
+                  <Field label="Engine 1 Tach In" value={reservation.tach_in} />
+                  <Field label="Engine 1 Tach Time" value={reservation.tach_block_time ? `${reservation.tach_block_time} hrs` : null} />
+                  {reservation.tach_2_out != null && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
+                  {reservation.tach_2_in != null && <Field label="Engine 2 Tach In" value={reservation.tach_2_in} />}
                   <Field label="Dual Instruction Hours" value={reservation.instruction_dual_hours ? `${reservation.instruction_dual_hours} hrs` : null} />
                   <Field label="Ground Instruction Hours" value={reservation.instruction_ground_hours ? `${reservation.instruction_ground_hours} hrs` : null} />
                   <Field label="Multi-Engine Hours" value={reservation.instruction_multi_engine_hours ? `${reservation.instruction_multi_engine_hours} hrs` : null} />
+                  <Field label="Solo" value={reservation.instruction_solo_hours ? `${reservation.instruction_solo_hours} hrs` : null} />
+                  <Field label="Cross Country" value={reservation.instruction_xc_hours ? `${reservation.instruction_xc_hours} hrs` : null} />
+                  <Field label="Night" value={reservation.instruction_night_hours ? `${reservation.instruction_night_hours} hrs` : null} />
+                  <Field label="Instrument" value={reservation.instruction_instrument_hours ? `${reservation.instruction_instrument_hours} hrs` : null} />
+                  <Field label="Cirrus Flight TYQ" value={reservation.instruction_cirrus_flight_tyq_hours ? `${reservation.instruction_cirrus_flight_tyq_hours} hrs` : null} />
+                  <Field label="Cirrus Ground TYQ" value={reservation.instruction_cirrus_ground_tyq_hours ? `${reservation.instruction_cirrus_ground_tyq_hours} hrs` : null} />
                 </div>
                 {reservation.checkin_notes && <p className="text-sm text-gray-600 mt-3 bg-gray-50 rounded-lg p-3">{reservation.checkin_notes}</p>}
                 <div className="mt-4 flex items-center gap-2 text-blue-600 text-sm bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
@@ -602,18 +754,28 @@ const ReservationDetail = () => {
               <Section title="Check-In After Flight" icon={FiCheckCircle}>
                 <p className="text-sm text-gray-500 mb-4">Record post-flight readings. Logbook and invoice will be auto-generated.</p>
                 {reservation.hobbs_out && (
-                  <div className="grid grid-cols-2 gap-3 mb-4 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 bg-blue-50 border border-blue-100 rounded-lg p-3">
                     <div><span className="text-xs text-blue-600 font-medium">Hobbs Out: </span><span className="text-sm font-bold">{reservation.hobbs_out}</span></div>
-                    <div><span className="text-xs text-blue-600 font-medium">Tach Out: </span><span className="text-sm font-bold">{reservation.tach_out}</span></div>
+                    <div><span className="text-xs text-blue-600 font-medium">Engine 1 Tach Out: </span><span className="text-sm font-bold">{reservation.tach_out}</span></div>
+                    {reservation.tach_2_out != null && <div><span className="text-xs text-blue-600 font-medium">Engine 2 Tach Out: </span><span className="text-sm font-bold">{reservation.tach_2_out}</span></div>}
                   </div>
                 )}
                 <form onSubmit={handleCheckin} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input label="Hobbs In" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
-                    <Input label="Tach In" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
+                    <Input label="Engine 1 Tach In" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
+                    {reservation.tach_2_out != null && (
+                      <Input label="Engine 2 Tach In" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
+                    )}
                     <Input label="Dual Instruction Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_dual_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} placeholder="e.g. 1.5" />
                     <Input label="Ground Instruction Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_ground_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} placeholder="e.g. 0.5" />
                     <Input label="Multi-Engine Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_multi_engine_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_multi_engine_hours: e.target.value }))} placeholder="e.g. 0.0" />
+                    <Input label="Solo Flight" type="number" step="0.1" min="0" value={checkinForm.instruction_solo_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_solo_hours: e.target.value }))} placeholder="0" />
+                    <Input label="Cross Country" type="number" step="0.1" min="0" value={checkinForm.instruction_xc_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_xc_hours: e.target.value }))} placeholder="0" />
+                    <Input label="Night" type="number" step="0.1" min="0" value={checkinForm.instruction_night_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_night_hours: e.target.value }))} placeholder="0" />
+                    <Input label="Instrument" type="number" step="0.1" min="0" value={checkinForm.instruction_instrument_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_instrument_hours: e.target.value }))} placeholder="0" />
+                    <Input label="Cirrus Flight TYQ" type="number" step="0.1" min="0" value={checkinForm.instruction_cirrus_flight_tyq_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_cirrus_flight_tyq_hours: e.target.value }))} placeholder="0" />
+                    <Input label="Cirrus Ground TYQ" type="number" step="0.1" min="0" value={checkinForm.instruction_cirrus_ground_tyq_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_cirrus_ground_tyq_hours: e.target.value }))} placeholder="0" />
                   </div>
                   {/* Live block time preview */}
                   {checkinForm.hobbs_in && reservation.hobbs_out && (
@@ -624,6 +786,32 @@ const ReservationDetail = () => {
                       </span>
                     </div>
                   )}
+                  {checkinForm.tach_in && reservation.tach_out != null && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                      <span className="text-gray-500">Engine 1 Tach Block Time: </span>
+                      <span className="font-bold text-gray-900">
+                        {Math.max(0, parseFloat(checkinForm.tach_in) - parseFloat(reservation.tach_out)).toFixed(1)} hrs
+                      </span>
+                    </div>
+                  )}
+                  {checkinForm.tach_2_in && reservation.tach_2_out != null && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                      <span className="text-gray-500">Engine 2 Tach Block Time: </span>
+                      <span className="font-bold text-gray-900">
+                        {Math.max(0, parseFloat(checkinForm.tach_2_in) - parseFloat(reservation.tach_2_out)).toFixed(1)} hrs
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Squawks (one per line)</label>
+                    <textarea
+                      rows={3}
+                      value={checkinForm.squawks_text}
+                      onChange={(e) => setCheckinForm((f) => ({ ...f, squawks_text: e.target.value }))}
+                      placeholder="Describe any aircraft squawks…"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Check-In Notes</label>
                     <textarea
@@ -658,13 +846,18 @@ const ReservationDetail = () => {
         {/* ── INVOICE TAB ── */}
         {activeTab === 'invoice' && (
           <div>
-            {!isCompleted && !invoice ? (
+            {!isCompleted ? (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
                 <FiDollarSign size={32} className="text-yellow-400 mx-auto mb-2" />
                 <p className="text-gray-600 text-sm">Invoice becomes available after the reservation is checked in and completed.</p>
               </div>
             ) : (
               <div>
+                {!invoice && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                    <FiLoader size={14} className="animate-spin text-blue-500" /> Loading invoice…
+                  </div>
+                )}
                 {/* Invoice summary card */}
                 {invoice && (
                   <Section title="Invoice Summary" icon={FiDollarSign}>
@@ -688,8 +881,12 @@ const ReservationDetail = () => {
                         <span className="font-semibold">${(+invoice.aircraft_charge || 0).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Instruction ({(+(invoice.instruction_dual_hours ?? 0) + +(invoice.instruction_ground_hours ?? 0)).toFixed(1)} hrs × ${invoice.instructor_rate ?? '0'})</span>
-                        <span className="font-semibold">${(+invoice.instructor_charge || 0).toFixed(2)}</span>
+                        <span className="text-gray-600">Flight Instruction ({invoice.instruction_dual_hours ?? '0'} hrs × ${invoice.instructor_rate ?? '0'})</span>
+                        <span className="font-semibold">${(+invoice.flight_instruction_charge || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm py-2 border-b border-gray-100">
+                        <span className="text-gray-600">Ground Instruction ({invoice.instruction_ground_hours ?? '0'} hrs × ${invoice.instructor_rate ?? '0'})</span>
+                        <span className="font-semibold">${(+invoice.ground_instruction_charge || 0).toFixed(2)}</span>
                       </div>
                       {invoice.tax_percent > 0 && (
                         <div className="flex justify-between text-sm py-2 border-b border-gray-100">
@@ -703,12 +900,33 @@ const ReservationDetail = () => {
                       </div>
                     </div>
 
+                    {reservation.students?.[0] && (
+                      <p className="text-xs text-gray-600 mb-2">
+                        Primary student account balance:{' '}
+                        <span className="font-semibold">${Number(reservation.students[0].account_balance ?? 0).toFixed(2)}</span>
+                      </p>
+                    )}
+
+                    {invoice.transactions?.length > 0 && (
+                      <div className="mt-4 border-t border-gray-100 pt-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Transactions</p>
+                        <ul className="space-y-1.5 text-sm">
+                          {invoice.transactions.map((tx) => (
+                            <li key={tx.id} className="flex justify-between gap-2 text-gray-700">
+                              <span>{tx.type} — {tx.processed_by || 'System'}{tx.description ? `: ${tx.description}` : ''}</span>
+                              <span className="font-medium whitespace-nowrap">${Number(tx.amount).toFixed(2)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {invoice.paid_at && <p className="text-xs text-green-600">Paid on {new Date(invoice.paid_at).toLocaleString()} via {invoice.charge_method}</p>}
                     {invoice.is_refunded && <p className="text-xs text-red-600">Refunded ${invoice.refund_amount} — {invoice.refund_reason}</p>}
 
                     {/* Actions */}
                     {isAdmin && invoice.status !== 'paid' && invoice.status !== 'refunded' && (
-                      <div className="flex gap-3 mt-4">
+                      <div className="flex flex-col gap-3 mt-4">
                         <div className="flex items-center gap-2 flex-1">
                           <label className="text-xs text-gray-500 whitespace-nowrap">Payment method:</label>
                           <select
@@ -716,16 +934,28 @@ const ReservationDetail = () => {
                             onChange={e => setChargeMethod(e.target.value)}
                             className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="card">Card</option>
-                            <option value="account">Account</option>
+                            <option value="card">Card (Stripe)</option>
+                            <option value="account">Account credit</option>
                             <option value="cash">Cash</option>
                             <option value="check">Check</option>
                           </select>
                         </div>
+                        {chargeMethod === 'card' && (
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-gray-500">Stripe PaymentMethod ID (from Stripe.js / test e.g. pm_card_visa)</label>
+                            <input
+                              type="text"
+                              value={stripePaymentMethodId}
+                              onChange={(e) => setStripePaymentMethodId(e.target.value)}
+                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                              placeholder="pm_..."
+                            />
+                          </div>
+                        )}
                         <button
                           onClick={() => setShowChargeDialog(true)}
                           disabled={actionLoading}
-                          className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                          className="self-end flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                         >
                           <FiDollarSign size={13} /> Charge
                         </button>
@@ -849,6 +1079,46 @@ const ReservationDetail = () => {
               </Section>
             )}
           </div>
+        )}
+
+        {activeTab === 'delete' && isAdmin && (
+          <Section title="Delete reservation" icon={FiTrash2}>
+            <p className="text-sm text-gray-600 mb-4">
+              To confirm, type <span className="font-mono font-bold">DELETE</span> below, then confirm in the dialog.
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 font-mono"
+              placeholder="DELETE"
+            />
+            <button
+              type="button"
+              disabled={deleteConfirmText !== 'DELETE' || actionLoading}
+              onClick={() => setConfirmDelete(true)}
+              className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Delete reservation…
+            </button>
+          </Section>
+        )}
+
+        {activeTab === 'calendar' && (
+          <Section title="Calendar sync" icon={FiCalendar}>
+            <p className="text-sm text-gray-600 mb-3">
+              Sync this reservation to Google Calendar, Outlook, or Apple Calendar. Integration is configured under{' '}
+              <span className="font-medium">Settings → Integrations</span>.
+            </p>
+            <p className="text-xs text-gray-500 mb-4">Last synced: not tracked yet.</p>
+            <button
+              type="button"
+              disabled
+              className="px-4 py-2 rounded-lg bg-gray-200 text-gray-500 text-sm cursor-not-allowed"
+            >
+              Sync now (configure integration first)
+            </button>
+          </Section>
         )}
 
       </div>

@@ -229,7 +229,7 @@ const FindTimeModal = ({
                   <option value="">Select Aircraft</option>
                   {aircraft.map((ac) => (
                     <option key={ac.id} value={ac.id}>
-                      {ac.name} {ac.model ? `(${ac.model})` : ''}
+                      {ac.registration || ac.serial_number || ac.name} {ac.model ? `(${ac.model})` : ''}
                     </option>
                   ))}
                 </select>

@@ -530,6 +530,15 @@ const Logbook = () => {
             <FiDownload className="mr-2" />
             Export
           </button>
+          {!isAdminView && (
+            <button 
+              onClick={handleAddNew}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition"
+            >
+              <FiPlus className="mr-2" />
+              Add Entry
+            </button>
+          )}
         </div>
       </div>
 
@@ -751,12 +760,8 @@ const Logbook = () => {
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
-                  {isAdminView && (
-                    <>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Pilot</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Instructor</th>
-                    </>
-                  )}
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Pilot</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Instructor</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft model</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Make</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aircraft Ident</th>
@@ -792,9 +797,7 @@ const Logbook = () => {
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Landings (D)</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Landings (N)</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Remarks</th>
-                  {!isAdminView && (
-                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
-                  )}
+                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -806,16 +809,12 @@ const Logbook = () => {
                     <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
                       {new Date(logbook.flight_date).toLocaleDateString()}
                     </td>
-                    {isAdminView && (
-                      <>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
-                          {safeDisplay(logbook.student) || '--'}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
-                          {safeDisplay(logbook.instructor) || '--'}
-                        </td>
-                      </>
-                    )}
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
+                      {safeDisplay(logbook.student) || '--'}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
+                      {safeDisplay(logbook.instructor) || '--'}
+                    </td>
                     <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                       {safeDisplay(logbook.aircraft_model) || safeDisplay(logbook.aircraft) || '--'}
                     </td>
@@ -871,33 +870,32 @@ const Logbook = () => {
                         {logbook.notes || logbook.summary || '--'}
                       </span>
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-right text-sm relative">
-                      {!isAdminView && (
-                        <>
+                    <td className="px-3 py-3 whitespace-nowrap text-right text-sm">
+                      <div className="flex items-center justify-end gap-2">
+                        {isAdminView ? (
                           <button
-                            onClick={() => setOpenMenuId(openMenuId === logbook.id ? null : logbook.id)}
-                            className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100"
+                            onClick={() => handleEdit(logbook)}
+                            className="text-gray-600 hover:text-gray-900 p-1 flex items-center font-medium"
                           >
-                            <HiDotsVertical />
+                            <FiEye className="mr-1" /> View
                           </button>
-                          {openMenuId === logbook.id && (
-                            <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
-                              <button
-                                onClick={() => handleEdit(logbook)}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                              >
-                                <FiEdit2 className="mr-2" /> Edit
-                              </button>
-                              <button
-                                onClick={() => handleDelete(logbook.id)}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
-                              >
-                                <FiTrash2 className="mr-2" /> Delete
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleEdit(logbook)}
+                              className="text-blue-600 hover:text-blue-800 p-1 flex items-center font-medium"
+                            >
+                              <FiEdit2 className="mr-1" /> Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(logbook.id)}
+                              className="text-red-500 hover:text-red-700 p-1 flex items-center"
+                            >
+                              <FiTrash2 className="mr-1" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   );
@@ -925,7 +923,7 @@ const Logbook = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingLogbook ? 'Edit Logbook Entry' : 'Add Logbook Entry'}
+                {isAdminView ? 'View Logbook Entry' : (editingLogbook ? 'Edit Logbook Entry' : 'Add Logbook Entry')}
               </h2>
               <button
                 onClick={() => setShowEditModal(false)}
@@ -936,6 +934,7 @@ const Logbook = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <fieldset disabled={isAdminView} className="space-y-6">
 
               {/* ── Section 1: Aircraft (Figma cols 2-4) ── */}
               <div>
@@ -1234,17 +1233,20 @@ const Logbook = () => {
                   placeholder="Flight notes, maneuvers, remarks…"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
+              </fieldset>
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button type="button" onClick={() => setShowEditModal(false)}
                   className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
-                  Cancel
+                  {isAdminView ? 'Close' : 'Cancel'}
                 </button>
-                <button type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  {editingLogbook ? 'Update Entry' : 'Create Entry'}
-                </button>
+                {!isAdminView && (
+                  <button type="submit" disabled={loading}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                    {loading ? 'Saving...' : (editingLogbook ? 'Update Entry' : 'Create Entry')}
+                  </button>
+                )}
               </div>
             </form>
           </div>

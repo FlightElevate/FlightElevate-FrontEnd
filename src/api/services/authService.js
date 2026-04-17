@@ -100,5 +100,13 @@ export const authService = {
       password_confirmation: passwordConfirmation,
     });
   },
+
+  async switchOrganization(orgId) {
+    const response = await api.post(ENDPOINTS.AUTH.SWITCH_ORGANIZATION, { org_id: orgId });
+    if (response.success && response.data.user) {
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response;
+  },
 };
 

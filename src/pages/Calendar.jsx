@@ -869,7 +869,9 @@ const Calendar = () => {
 
   const getEventsForDay = (item, dateStr) => {
     if (!item.events || item.events.length === 0) return [];
-    return item.events.filter((e) => eventOverlapsCalendarDay(e, dateStr));
+    return item.events
+      .filter((e) => eventOverlapsCalendarDay(e, dateStr))
+      .sort((a, b) => eventStartEndMs(a).startMs - eventStartEndMs(b).startMs);
   };
 
   const getEventColor = (color) => {
@@ -1551,19 +1553,40 @@ const Calendar = () => {
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
                         <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span></td>
-                        {timeSlots.map((slot, idx) => {
-                          const dayStr = formatDateStr(currentDate);
-                          const event = getEventForCellHour(aircraft, slot.hour, dayStr);
-                          const span = event ? getEventSpanHours(event, dayStr) : 1;
-                          const isFirstCell = event && firstVisibleHourOnDay(event, dayStr) === slot.hour;
+                        {timeSlots.map((slot, idx) => (
+                          <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}></td>
+                        ))}
+                        {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
+                          const p = portionOnDayMs(event, formatDateStr(currentDate));
+                          if (!p) return null;
+                          const dStart = new Date(p.segStart);
+                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                          const durationHours = (p.segEnd - p.segStart) / 3600000;
+                          const cellWidth = isMobile ? 30 : 40;
+                          const labelWidth = isMobile ? 60 : 80;
+                          const leftPx = labelWidth + startHour * cellWidth;
+                          const widthPx = durationHours * cellWidth;
                           return (
-                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
-                              {isFirstCell && (
-                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }}>
-                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{formatEventTimeForDisplay(event.start_time)}</div>
-                                </div>
-                              )}
-                            </td>
+                            <div key={idx} className={`absolute top-1 bottom-1 rounded text-white px-1 py-0.5 cursor-pointer z-10 hidden sm:flex items-center flex-col justify-center sm:flex-row sm:justify-start shadow-sm overflow-hidden ${getEventColor(event.color)} hover:opacity-90`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 10)}px` }}>
+                              <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-center sm:text-left leading-tight w-full">{formatEventTimeForDisplay(event.start_time)}</div>
+                            </div>
+                          );
+                        })}
+                        {/* Mobile events (rendered outside the flex to prevent overcrowding if narrow) */}
+                        {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
+                          const p = portionOnDayMs(event, formatDateStr(currentDate));
+                          if (!p) return null;
+                          const dStart = new Date(p.segStart);
+                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                          const durationHours = (p.segEnd - p.segStart) / 3600000;
+                          const cellWidth = isMobile ? 30 : 40;
+                          const labelWidth = isMobile ? 60 : 80;
+                          const leftPx = labelWidth + startHour * cellWidth;
+                          const widthPx = durationHours * cellWidth;
+                          return (
+                            <div key={`mob-${idx}`} className={`absolute top-0.5 bottom-0.5 rounded text-white px-0.5 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)}`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 15)}px` }}>
+                              <div className="font-medium truncate text-[7px] w-full text-center flex items-center justify-center">{formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}</div>
+                            </div>
                           );
                         })}
                       </tr>
@@ -1577,19 +1600,40 @@ const Calendar = () => {
                     {filteredUserSchedule.map((user) => (
                       <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
                         <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
-                        {timeSlots.map((slot, idx) => {
-                          const dayStr = formatDateStr(currentDate);
-                          const event = getEventForCellHour(user, slot.hour, dayStr);
-                          const span = event ? getEventSpanHours(event, dayStr) : 1;
-                          const isFirstCell = event && firstVisibleHourOnDay(event, dayStr) === slot.hour;
+                        {timeSlots.map((slot, idx) => (
+                          <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}></td>
+                        ))}
+                        {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
+                          const p = portionOnDayMs(event, formatDateStr(currentDate));
+                          if (!p) return null;
+                          const dStart = new Date(p.segStart);
+                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                          const durationHours = (p.segEnd - p.segStart) / 3600000;
+                          const cellWidth = isMobile ? 30 : 40;
+                          const labelWidth = isMobile ? 60 : 80;
+                          const leftPx = labelWidth + startHour * cellWidth;
+                          const widthPx = durationHours * cellWidth;
                           return (
-                            <td key={idx} className="relative border-r border-gray-200 p-0" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }} colSpan={isFirstCell ? span : undefined}>
-                              {isFirstCell && (
-                                <div className={`absolute left-0 right-0 top-0.5 bottom-0.5 rounded text-white px-0.5 sm:px-1 py-0.5 cursor-pointer z-0 flex items-center ${getEventColor(event.color)}`} style={{ width: '95%' }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
-                                  <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs">{formatEventTimeForDisplay(event.start_time)}</div>
-                                </div>
-                              )}
-                            </td>
+                            <div key={idx} className={`absolute top-1 bottom-1 rounded text-white px-1 py-0.5 cursor-pointer z-10 hidden sm:flex items-center flex-col justify-center sm:flex-row sm:justify-start shadow-sm overflow-hidden ${getEventColor(event.color)} hover:opacity-90`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 10)}px` }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
+                              <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-center sm:text-left leading-tight w-full">{formatEventTimeForDisplay(event.start_time)}</div>
+                            </div>
+                          );
+                        })}
+                        {/* Mobile events */}
+                        {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
+                          const p = portionOnDayMs(event, formatDateStr(currentDate));
+                          if (!p) return null;
+                          const dStart = new Date(p.segStart);
+                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                          const durationHours = (p.segEnd - p.segStart) / 3600000;
+                          const cellWidth = isMobile ? 30 : 40;
+                          const labelWidth = isMobile ? 60 : 80;
+                          const leftPx = labelWidth + startHour * cellWidth;
+                          const widthPx = durationHours * cellWidth;
+                          return (
+                            <div key={`mob-${idx}`} className={`absolute top-0.5 bottom-0.5 rounded text-white px-0.5 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)}`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 15)}px` }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
+                              <div className="font-medium truncate text-[7px] w-full text-center flex items-center justify-center">{formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}</div>
+                            </div>
                           );
                         })}
                       </tr>
@@ -2187,7 +2231,7 @@ const Calendar = () => {
                       <option value="">Select Aircraft (Optional)</option>
                       {aircraft.length > 0 ? (
                         aircraft.map((ac) => (
-                          <option key={ac.id} value={String(ac.id)}>{ac.name} {ac.model ? `(${ac.model})` : ''}</option>
+                          <option key={ac.id} value={String(ac.id)}>{ac.registration || ac.serial_number || ac.name} {ac.model ? `(${ac.model})` : ''}</option>
                         ))
                       ) : (
                         <option value="" disabled>No aircraft available</option>

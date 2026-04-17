@@ -421,7 +421,7 @@ const AirCraftProfile = () => {
                       </div>
                       <div className="p-4 flex items-center justify-between border-t border-gray-100">
                         <h3 className="text-base font-medium text-gray-800 truncate flex-1">
-                          {aircraft.name}
+                          {aircraft.serial_number || aircraft.name}
                         </h3>
                         <span className={`text-xs font-medium px-2.5 py-1 rounded ml-2 whitespace-nowrap ${getStatusColor(aircraft.status)}`}>
                           {statusDisplay}

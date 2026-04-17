@@ -3,7 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getNavigationItemsByRole } from "../config/navigation";
 import { settingsService } from "../api/services/settingsService";
+import { authService } from "../api/services/authService";
 import { getImageUrl } from "../utils/imageUtils";
+import { HiChevronDown } from "react-icons/hi";
 import logo from "../assets/SVG/logo.svg";
 
 
@@ -13,6 +15,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [organizationName, setOrganizationName] = useState(null);
   const [organizationLogo, setOrganizationLogo] = useState(null);
   const [logoError, setLogoError] = useState(false);
+  const [showOrgSwitcher, setShowOrgSwitcher] = useState(false);
+  const [switchingOrg, setSwitchingOrg] = useState(null);
 
   
   const navLinks = useMemo(() => {
@@ -68,9 +72,33 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     if (user?.id) {
       fetchOrganizationData();
     }
-  }, [user?.id]); // Use user?.id instead of user object to prevent infinite loops
+  }, [user?.id, user?.organization_id]); // Refresh when user's active org changes
 
-  
+  const handleOrgSwitch = async (orgId) => {
+    if (orgId === user.organization_id) {
+      setShowOrgSwitcher(false);
+      return;
+    }
+    
+    setSwitchingOrg(orgId);
+    try {
+      const response = await authService.switchOrganization(orgId);
+      if (response.success) {
+        // Full page reload to reset all states and context for the new organization
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Failed to switch organization:', err);
+    } finally {
+      setSwitchingOrg(null);
+      setShowOrgSwitcher(false);
+    }
+  };
+
+  const activeMemberships = useMemo(() => {
+    return user?.organization_memberships || [];
+  }, [user?.organization_memberships]);
+
   const displayName = organizationName || "FlightElevate";
 
   return (
@@ -91,52 +119,88 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           md:translate-x-0 md:static md:h-auto md:w-3/14`}
       >
         {}
-        <div className="ps-5 p-4 border-b border-blue-600">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-              {/* Default logo - always present, shown when no org logo */}
-              <img 
-                src={logo} 
-                alt="Logo" 
-                className={`w-full h-full object-cover p-1.5 sm:p-2 default-logo absolute inset-0 ${getImageUrl(organizationLogo) ? 'hidden' : 'block'}`}
-              />
-              {/* Organization logo - shown if available */}
-              {getImageUrl(organizationLogo) && (
+        <div className="border-b border-blue-600 relative">
+          <button 
+            onClick={() => activeMemberships.length > 1 && setShowOrgSwitcher(!showOrgSwitcher)}
+            className={`w-full ps-5 p-4 text-left transition-colors ${activeMemberships.length > 1 ? 'hover:bg-blue-600 cursor-pointer' : 'cursor-default'}`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                {/* Default logo - always present, shown when no org logo */}
                 <img 
-                  src={getImageUrl(organizationLogo)} 
-                  alt={displayName} 
-                  className="w-full h-full object-cover absolute inset-0"
-                  onError={(e) => {
-                    // Hide organization image on error and show default logo
-                    e.target.style.display = 'none';
-                    const parent = e.target.parentElement;
-                    if (parent) {
-                      const defaultLogo = parent.querySelector('.default-logo');
-                      if (defaultLogo) {
-                        defaultLogo.classList.remove('hidden');
-                        defaultLogo.classList.add('block');
-                      }
-                    }
-                  }}
-                  onLoad={(e) => {
-                    // Hide default logo when organization logo loads successfully
-                    const parent = e.target.parentElement;
-                    if (parent) {
-                      const defaultLogo = parent.querySelector('.default-logo');
-                      if (defaultLogo) {
-                        defaultLogo.classList.add('hidden');
-                        defaultLogo.classList.remove('block');
-                      }
-                    }
-                  }}
+                  src={logo} 
+                  alt="Logo" 
+                  className={`w-full h-full object-cover p-1.5 sm:p-2 default-logo absolute inset-0 ${getImageUrl(organizationLogo) ? 'hidden' : 'block'}`}
                 />
-              )}
+                {/* Organization logo - shown if available */}
+                {getImageUrl(organizationLogo) && (
+                  <img 
+                    src={getImageUrl(organizationLogo)} 
+                    alt={displayName} 
+                    className="w-full h-full object-cover absolute inset-0"
+                    onError={(e) => {
+                      // Hide organization image on error and show default logo
+                      e.target.style.display = 'none';
+                      const parent = e.target.parentElement;
+                      if (parent) {
+                        const defaultLogo = parent.querySelector('.default-logo');
+                        if (defaultLogo) {
+                          defaultLogo.classList.remove('hidden');
+                          defaultLogo.classList.add('block');
+                        }
+                      }
+                    }}
+                    onLoad={(e) => {
+                      // Hide default logo when organization logo loads successfully
+                      const parent = e.target.parentElement;
+                      if (parent) {
+                        const defaultLogo = parent.querySelector('.default-logo');
+                        if (defaultLogo) {
+                          defaultLogo.classList.add('hidden');
+                          defaultLogo.classList.remove('block');
+                        }
+                      }
+                    }}
+                  />
+                )}
+              </div>
+              <div className="text-white flex-1 min-w-0">
+                <div className="text-lg font-bold truncate flex items-center gap-2">
+                  {displayName}
+                  {activeMemberships.length > 1 && (
+                    <HiChevronDown size={16} className={`transition-transform flex-shrink-0 ${showOrgSwitcher ? 'rotate-180' : ''}`} />
+                  )}
+                </div>
+                <div className="text-sm text-blue-200">FlightElevate</div>
+              </div>
             </div>
-            <div className="text-white">
-              <div className="text-lg font-bold">{displayName}</div>
-              <div className="text-sm text-blue-200">FlightElevate</div>
+          </button>
+
+          {/* Org Switcher Dropdown */}
+          {showOrgSwitcher && activeMemberships.length > 1 && (
+            <div className="absolute top-full left-0 right-0 bg-blue-800 border-b border-blue-700 shadow-xl z-50">
+              <div className="py-1">
+                {activeMemberships.map((membership) => (
+                  <button
+                    key={membership.org_id}
+                    onClick={() => handleOrgSwitch(membership.org_id)}
+                    disabled={switchingOrg === membership.org_id}
+                    className={`w-full text-left px-5 py-3 text-sm transition-colors flex items-center justify-between hover:bg-blue-700 ${
+                      user.organization_id === membership.org_id ? 'bg-blue-600 font-bold' : ''
+                    }`}
+                  >
+                    <span className="truncate">{membership.org_name}</span>
+                    {switchingOrg === membership.org_id && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    )}
+                    {user.organization_id === membership.org_id && !switchingOrg && (
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {}

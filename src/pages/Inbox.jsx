@@ -159,10 +159,17 @@ const Inbox = () => {
       return;
     }
 
-    const type = attachment ? "attachment" : "text";
-    const data = attachment ? [attachment] : [];
-
-    const payload = { message: input, type, data };
+    let payload;
+    if (attachment && attachment.type === 'image' && attachment.file) {
+      payload = new FormData();
+      if (input.trim()) payload.append("message", input);
+      payload.append("type", "image");
+      payload.append("image", attachment.file);
+    } else {
+      const type = attachment ? "attachment" : "text";
+      const data = attachment ? [attachment] : [];
+      payload = { message: input, type, data };
+    }
 
     try {
       const response = await messageService.sendMessage(selectedChat.conversation_id, payload);
@@ -212,7 +219,7 @@ const Inbox = () => {
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setAttachment({ name: file.name, url: reader.result, type });
+      setAttachment({ name: file.name, url: reader.result, type, file });
       setAttachmentPreview({ url: reader.result, type, name: file.name });
       setShowAttachmentPopup(true);
     };
@@ -499,6 +506,12 @@ const Inbox = () => {
                           <span className="font-medium break-words flex-1">
                             {msg.body}
                           </span>
+                        )}
+
+                        {msg.type === "image" && (
+                          <div className="flex-1 min-w-0">
+                            <img src={msg.image_url || (msg.data?.[0]?.url)} className="w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-lg mb-1 max-w-full" alt="Attachment" />
+                          </div>
                         )}
 
                         {msg.type === "attachment" && msg.data?.map((item, idx) => (

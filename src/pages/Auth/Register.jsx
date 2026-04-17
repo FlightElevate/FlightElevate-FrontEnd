@@ -11,8 +11,6 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    organizationName: '',
-    role: 'Student',
     agreeToTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -116,8 +114,6 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
         password_confirmation: formData.confirmPassword, // Required for Laravel password.confirmed validation
-        organization_name: formData.organizationName || null,
-        role: formData.role || 'Student',
       });
       
       if (result.success) {
@@ -257,40 +253,7 @@ const Register = () => {
                 />
               </div>
 
-              {/* Organization Name */}
-              <div>
-                <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Organization Name (Optional)
-                </label>
-                <input
-                  id="organizationName"
-                  name="organizationName"
-                  type="text"
-                  value={formData.organizationName}
-                  onChange={handleChange}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-700 focus:border-indigo-700 sm:text-sm transition-colors"
-                  placeholder="Your Flight School"
-                />
-              </div>
-
-              {/* Role Selection */}
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                  I am a
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-700 focus:border-indigo-700 sm:text-sm transition-colors"
-                >
-                  <option value="Student">Student</option>
-                  <option value="Instructor">Instructor</option>
-                  <option value="Admin">Admin</option>
-                </select>
-              </div>
-              
+              {/* Organization and Role handled by backend as default Pilot */}
               {/* Password */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
