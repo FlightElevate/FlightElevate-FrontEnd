@@ -90,7 +90,8 @@ const Calendar = () => {
   const editLessonId = searchParams.get('edit');
   const modalOnly = searchParams.get('modal') === 'true'; // If true, only show modal, hide calendar
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingLesson, setEditingLesson] = useState(null);
   const [aircraftSchedule, setAircraftSchedule] = useState([]);
@@ -649,7 +650,9 @@ const Calendar = () => {
   // Track window size for responsive design
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 640);
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
     };
     window.addEventListener('resize', handleResize);
     handleResize(); // Initial check
@@ -1502,59 +1505,61 @@ const Calendar = () => {
 
         {/* Schedule Grid - Horizontal scrollbar at bottom */}
         <div 
-          className="calendar-scroll-container" 
+          className="calendar-scroll-container custom-scrollbar" 
           style={{ 
-            maxHeight: isMobile ? 'calc(100vh - 160px)' : 'calc(100vh - 180px)',
-            minHeight: isMobile ? '200px' : '250px',
-            overflowX: 'scroll',
+            maxHeight: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 220px)',
+            minHeight: '300px',
+            overflowX: 'auto',
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             position: 'relative',
-            display: 'block',
             width: '100%',
             maxWidth: '100%',
-            touchAction: 'pan-x pan-y',
-            msOverflowStyle: 'scrollbar',
-            scrollbarWidth: 'thin',
-            /* Break out of flex constraints */
-            minWidth: 0,
-            flexShrink: 0,
-            /* Ensure it can scroll */
-            isolation: 'isolate'
+            backgroundColor: '#ffffff',
+            borderRadius: '0 0 8px 8px',
+            border: '1px solid #e5e7eb',
+            borderTop: 'none',
+            boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)'
           }}
         >
-          <table className="border-collapse" style={{ 
-            minWidth: calendarViewMode === 'day'
-              ? (isMobile ? '600px' : '800px')
-              : (calendarViewMode === 'custom' ? Math.min(getDisplayDates().length * (isMobile ? 70 : 90), 2000) : (isMobile ? '400px' : '600px')),
-            width: calendarViewMode === 'day' ? (isMobile ? '600px' : '800px') : 'auto',
-            display: 'table',
-            margin: 0,
-            tableLayout: 'auto',
-            boxSizing: 'border-box'
+          <table className="calendar-table min-w-full" style={{ 
+            minWidth: calendarViewMode === 'day' 
+              ? (isMobile ? '800px' : '1200px') 
+              : (calendarViewMode === 'custom' ? Math.max(getDisplayDates().length * (isMobile ? 120 : 180), 1000) : (isMobile ? '800px' : '1000px')),
+            width: '100%',
+            tableLayout: 'fixed',
+            borderSpacing: 0
           }}>
               {calendarViewMode === 'day' ? (
                 <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
+                    <tr className="border-b border-gray-200 shadow-sm">
+                      <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        Resource
+                      </th>
                       {timeSlots.map((slot, idx) => (
-                        <th key={idx} className="text-center px-0.5 sm:px-1 md:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px' }}>
+                        <th key={idx} className="text-center px-1 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-r border-gray-200 bg-gray-50" style={{ width: '4.16%' }}>
                           {slot.label}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-gray-200 bg-purple-50">
-                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3></td>
-                      {timeSlots.map((_, idx) => <td key={idx} className="text-center border-r border-gray-200 text-gray-400" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '24px' : '32px' }}>–</td>)}
+                    <tr className="bg-blue-50/50">
+                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-blue-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide">Aircraft</h3>
+                      </td>
+                      {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-blue-50/20" style={{ height: '36px' }}></td>)}
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
-                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span></td>
+                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group relative">
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                          <span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span>
+                        </td>
                         {timeSlots.map((slot, idx) => (
-                          <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}></td>
+                          <td key={idx} className="border-r border-gray-200 relative group-hover:border-gray-300 transition-colors" style={{ height: '48px' }}>
+                            {/* Grid lines or hover highlights could go here */}
+                          </td>
                         ))}
                         {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
                           const p = portionOnDayMs(event, formatDateStr(currentDate));
@@ -1562,13 +1567,22 @@ const Calendar = () => {
                           const dStart = new Date(p.segStart);
                           const startHour = dStart.getHours() + dStart.getMinutes() / 60;
                           const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          const cellWidth = isMobile ? 30 : 40;
-                          const labelWidth = isMobile ? 60 : 80;
-                          const leftPx = labelWidth + startHour * cellWidth;
-                          const widthPx = durationHours * cellWidth;
+                          
+                          const labelWidth = isMobile ? 100 : 150;
+                          const leftPct = (startHour / 24) * 100;
+                          const widthPct = (durationHours / 24) * 100;
+                          
                           return (
-                            <div key={idx} className={`absolute top-1 bottom-1 rounded text-white px-1 py-0.5 cursor-pointer z-10 hidden sm:flex items-center flex-col justify-center sm:flex-row sm:justify-start shadow-sm overflow-hidden ${getEventColor(event.color)} hover:opacity-90`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 10)}px` }}>
-                              <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-center sm:text-left leading-tight w-full">{formatEventTimeForDisplay(event.start_time)}</div>
+                            <div key={idx} className={`absolute top-2 bottom-2 rounded-md text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color)} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all`} 
+                              style={{ 
+                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
+                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))`,
+                                marginLeft: '1px'
+                              }}
+                            >
+                              <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm">
+                                {formatEventTimeForDisplay(event.start_time)}
+                              </div>
                             </div>
                           );
                         })}
@@ -1579,29 +1593,39 @@ const Calendar = () => {
                           const dStart = new Date(p.segStart);
                           const startHour = dStart.getHours() + dStart.getMinutes() / 60;
                           const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          const cellWidth = isMobile ? 30 : 40;
-                          const labelWidth = isMobile ? 60 : 80;
-                          const leftPx = labelWidth + startHour * cellWidth;
-                          const widthPx = durationHours * cellWidth;
+                          
+                          const labelWidth = isMobile ? 100 : 150;
+                          const leftPct = (startHour / 24) * 100;
+                          const widthPct = (durationHours / 24) * 100;
+                          
                           return (
-                            <div key={`mob-${idx}`} className={`absolute top-0.5 bottom-0.5 rounded text-white px-0.5 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)}`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 15)}px` }}>
-                              <div className="font-medium truncate text-[7px] w-full text-center flex items-center justify-center">{formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}</div>
+                            <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 rounded text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)} border border-white/10`} 
+                              style={{ 
+                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
+                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))` 
+                              }}
+                            >
+                              <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
+                                {formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}
+                              </div>
                             </div>
                           );
                         })}
                       </tr>
                     ))}
-                    {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
-                      <tr className="border-b border-dashed border-gray-300 bg-purple-50">
-                        <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></td>
-                        {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-purple-50" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '4px' : '5px', borderTop: '1px dashed #d1d5db', borderBottom: '1px dashed #d1d5db' }}></td>)}
-                      </tr>
-                    )}
+                    <tr className="bg-green-50/50">
+                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-green-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <h3 className="text-xs font-bold text-green-800 uppercase tracking-wide">Instructors</h3>
+                      </td>
+                      {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-green-50/20" style={{ height: '36px' }}></td>)}
+                    </tr>
                     {filteredUserSchedule.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
+                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group relative">
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                          <span className="truncate block">{safeDisplay(user.name)}</span>
+                        </td>
                         {timeSlots.map((slot, idx) => (
-                          <td key={idx} className="border-r border-gray-200" style={{ minWidth: isMobile ? '30px' : '40px', width: isMobile ? '30px' : '40px', height: isMobile ? '32px' : '40px' }}></td>
+                          <td key={idx} className="border-r border-gray-200" style={{ height: '48px' }}></td>
                         ))}
                         {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
                           const p = portionOnDayMs(event, formatDateStr(currentDate));
@@ -1609,13 +1633,23 @@ const Calendar = () => {
                           const dStart = new Date(p.segStart);
                           const startHour = dStart.getHours() + dStart.getMinutes() / 60;
                           const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          const cellWidth = isMobile ? 30 : 40;
-                          const labelWidth = isMobile ? 60 : 80;
-                          const leftPx = labelWidth + startHour * cellWidth;
-                          const widthPx = durationHours * cellWidth;
+                          
+                          const labelWidth = isMobile ? 100 : 150;
+                          const leftPct = (startHour / 24) * 100;
+                          const widthPct = (durationHours / 24) * 100;
+                          
                           return (
-                            <div key={idx} className={`absolute top-1 bottom-1 rounded text-white px-1 py-0.5 cursor-pointer z-10 hidden sm:flex items-center flex-col justify-center sm:flex-row sm:justify-start shadow-sm overflow-hidden ${getEventColor(event.color)} hover:opacity-90`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 10)}px` }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
-                              <div className="font-medium truncate text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-center sm:text-left leading-tight w-full">{formatEventTimeForDisplay(event.start_time)}</div>
+                            <div key={idx} className={`absolute top-2 bottom-2 rounded-md text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color)} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all`} 
+                              style={{ 
+                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
+                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))`,
+                                marginLeft: '1px'
+                              }}
+                              onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                            >
+                              <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm">
+                                {formatEventTimeForDisplay(event.start_time)}
+                              </div>
                             </div>
                           );
                         })}
@@ -1626,13 +1660,22 @@ const Calendar = () => {
                           const dStart = new Date(p.segStart);
                           const startHour = dStart.getHours() + dStart.getMinutes() / 60;
                           const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          const cellWidth = isMobile ? 30 : 40;
-                          const labelWidth = isMobile ? 60 : 80;
-                          const leftPx = labelWidth + startHour * cellWidth;
-                          const widthPx = durationHours * cellWidth;
+                          
+                          const labelWidth = isMobile ? 100 : 150;
+                          const leftPct = (startHour / 24) * 100;
+                          const widthPct = (durationHours / 24) * 100;
+                          
                           return (
-                            <div key={`mob-${idx}`} className={`absolute top-0.5 bottom-0.5 rounded text-white px-0.5 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)}`} style={{ left: `${leftPx}px`, width: `${Math.max(widthPx, 15)}px` }} onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}>
-                              <div className="font-medium truncate text-[7px] w-full text-center flex items-center justify-center">{formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}</div>
+                            <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 rounded text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)} border border-white/10`} 
+                              style={{ 
+                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
+                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))` 
+                              }}
+                              onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                            >
+                              <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
+                                {formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}
+                              </div>
                             </div>
                           );
                         })}
@@ -1643,63 +1686,86 @@ const Calendar = () => {
               ) : (
                 <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 font-medium text-[10px] sm:text-xs md:text-sm text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></th>
+                    <tr className="border-b border-gray-200 shadow-sm">
+                      <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        Resource
+                      </th>
                       {getDisplayDates().map((day, idx) => (
-                        <th key={idx} className="text-center px-1 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs text-gray-600 font-medium border-r border-gray-200 whitespace-nowrap" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px' }}>
-                          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]} {day.getDate()}
+                        <th key={idx} className="text-center px-1 py-3 bg-gray-50 border-r border-gray-200" style={{ width: `${90 / getDisplayDates().length}%` }}>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider leading-none mb-1">
+                              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]}
+                            </span>
+                            <span className="text-sm font-bold text-gray-800 leading-none">
+                              {day.getDate()}
+                            </span>
+                          </div>
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-gray-200 bg-purple-50">
-                      <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><h3 className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-semibold text-gray-800 leading-tight">Aircraft Schedule</h3></td>
-                      {getDisplayDates().map((_, idx) => <td key={idx} className="text-center border-r border-gray-200 text-gray-400" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '24px' : '32px' }}>–</td>)}
+                    <tr className="bg-blue-50/50">
+                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-blue-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide">Aircraft</h3>
+                      </td>
+                      {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-blue-50/20" style={{ height: '36px' }}></td>)}
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
-                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span></td>
+                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                          <span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span>
+                        </td>
                         {getDisplayDates().map((day, idx) => {
                           const dateStr = formatDateStr(day);
                           const dayEvents = getEventsForDay(aircraft, dateStr);
                           return (
-                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
+                            <td key={idx} className="border-r border-gray-200 p-1 lg:p-1.5 align-top group-hover:bg-gray-50/30 transition-colors" style={{ minHeight: '60px' }}>
                               {dayEvents.length > 0 ? (
-                                <div className="space-y-0.5">
-                                  {dayEvents.slice(0, 3).map((ev, i) => (
-                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`}>{formatEventTimeForDisplay(ev.start_time)}</div>
+                                <div className="flex flex-col gap-1">
+                                  {dayEvents.map((ev, i) => (
+                                    <div key={i} className={`rounded p-1 text-[10px] font-bold truncate ${getEventColor(ev.color)} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`}>
+                                      {formatEventTimeForDisplay(ev.start_time).replace(':00', '')}
+                                    </div>
                                   ))}
-                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
                                 </div>
-                              ) : '–'}
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-20">
+                                  <span className="text-[10px] font-bold text-gray-400">+</span>
+                                </div>
+                              )}
                             </td>
                           );
                         })}
                       </tr>
                     ))}
-                    {filteredAircraftSchedule.length > 0 && filteredUserSchedule.length > 0 && (
-                      <tr className="border-b border-dashed border-gray-300 bg-purple-50">
-                        <td className="px-1 sm:px-2 md:px-3 py-2 sm:py-2.5 border-r border-gray-200 sticky left-0 bg-purple-50 z-30" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}></td>
-                        {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-purple-50" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', height: isMobile ? '4px' : '5px', borderTop: '1px dashed #d1d5db', borderBottom: '1px dashed #d1d5db' }}></td>)}
-                      </tr>
-                    )}
+                    <tr className="bg-green-50/50">
+                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-green-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <h3 className="text-xs font-bold text-green-800 uppercase tracking-wide">Instructors</h3>
+                      </td>
+                      {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-green-50/20" style={{ height: '36px' }}></td>)}
+                    </tr>
                     {filteredUserSchedule.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50 relative">
-                        <td className="px-1 sm:px-2 md:px-3 py-1.5 sm:py-2 border-r border-gray-200 text-[10px] sm:text-xs md:text-sm text-gray-700 sticky left-0 bg-white z-30 font-medium" style={{ minWidth: isMobile ? '60px' : '80px', width: isMobile ? '60px' : '80px' }}><span className="truncate block">{safeDisplay(user.name)}</span></td>
+                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                          <span className="truncate block">{safeDisplay(user.name)}</span>
+                        </td>
                         {getDisplayDates().map((day, idx) => {
                           const dateStr = formatDateStr(day);
                           const dayEvents = getEventsForDay(user, dateStr);
                           return (
-                            <td key={idx} className="border-r border-gray-200 p-0.5 sm:p-1 align-top" style={{ minWidth: isMobile ? '70px' : '90px', width: isMobile ? '70px' : '90px', minHeight: isMobile ? '40px' : '48px' }}>
+                            <td key={idx} className="border-r border-gray-200 p-1 lg:p-1.5 align-top group-hover:bg-gray-50/30 transition-colors" style={{ minHeight: '60px' }}>
                               {dayEvents.length > 0 ? (
-                                <div className="space-y-0.5">
-                                  {dayEvents.slice(0, 3).map((ev, i) => (
-                                    <div key={i} className={`rounded px-0.5 py-0.5 text-[8px] sm:text-[9px] truncate cursor-pointer ${getEventColor(ev.color)} text-white`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>{formatEventTimeForDisplay(ev.start_time)}</div>
+                                <div className="flex flex-col gap-1">
+                                  {dayEvents.map((ev, i) => (
+                                    <div key={i} className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev.color)} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>
+                                      {formatEventTimeForDisplay(ev.start_time).replace(':00', '')}
+                                    </div>
                                   ))}
-                                  {dayEvents.length > 3 && <span className="text-[8px] text-gray-500">+{dayEvents.length - 3}</span>}
                                 </div>
-                              ) : '–'}
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-20 text-gray-400 font-bold text-[10px]">+</div>
+                              )}
                             </td>
                           );
                         })}
