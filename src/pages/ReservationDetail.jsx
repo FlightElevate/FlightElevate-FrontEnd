@@ -115,6 +115,11 @@ const ReservationDetail = () => {
   const [metarDisplay, setMetarDisplay] = useState('');
   const [stripePaymentMethodId, setStripePaymentMethodId] = useState('');
 
+  // Editing states
+  const [isEditingDispatch, setIsEditingDispatch] = useState(false);
+  const [isEditingCheckin, setIsEditingCheckin] = useState(false);
+  const [isEditingInvoice, setIsEditingInvoice] = useState(false);
+
   const isAdmin = user?.roles?.some(r => ['Admin', 'Super Admin'].includes(r.name ?? r));
   const isInstructor = user?.roles?.some(r => (r.name ?? r) === 'Instructor');
   const canManage = isAdmin || isInstructor;
@@ -599,11 +604,33 @@ const ReservationDetail = () => {
         {/* ── DISPATCH TAB ── */}
         {activeTab === 'dispatch' && (
           <div>
-            {reservation.dispatched_at ? (
+            {(reservation.dispatched_at && !isEditingDispatch) ? (
               // Already dispatched – show readonly summary
               <Section title="Dispatch Info" icon={FiSend}>
-                <div className="flex items-center gap-2 mb-4 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
-                  <FiCheckCircle size={14} /> Dispatched at {new Date(reservation.dispatched_at).toLocaleString()}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm w-full md:w-auto">
+                    <FiCheckCircle size={14} /> Dispatched at {new Date(reservation.dispatched_at).toLocaleString()}
+                  </div>
+                  {canManage && (
+                    <button
+                      onClick={() => {
+                        setDispatchForm({
+                          hobbs_out: reservation.hobbs_out != null ? String(reservation.hobbs_out) : '',
+                          tach_out: reservation.tach_out != null ? String(reservation.tach_out) : '',
+                          tach_2_out: reservation.tach_2_out != null ? String(reservation.tach_2_out) : '',
+                          dispatch_weather_briefing: reservation.dispatch_weather_briefing || '',
+                          dispatch_weather_acknowledged: !!reservation.dispatch_weather_acknowledged,
+                          dispatch_notes: reservation.dispatch_notes || '',
+                          aircraft_rate_per_hour: reservation.aircraft_rate_per_hour != null ? String(reservation.aircraft_rate_per_hour) : '',
+                          instructor_rate_per_hour: reservation.instructor_rate_per_hour != null ? String(reservation.instructor_rate_per_hour) : '',
+                        });
+                        setIsEditingDispatch(true);
+                      }}
+                      className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                    >
+                      Edit Dispatch
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Field label="Hobbs Out" value={reservation.hobbs_out} />
@@ -616,11 +643,14 @@ const ReservationDetail = () => {
                 </div>
                 {reservation.dispatch_notes && <p className="text-sm text-gray-600 mt-3 bg-gray-50 rounded-lg p-3">{reservation.dispatch_notes}</p>}
               </Section>
-            ) : canDispatch ? (
+            ) : canDispatch || isEditingDispatch ? (
               // Dispatch form
-              <Section title="Dispatch Aircraft" icon={FiSend}>
-                <p className="text-sm text-gray-500 mb-4">Record pre-flight readings before the student departs.</p>
-                <form onSubmit={handleDispatch} className="space-y-4">
+              <Section title={isEditingDispatch ? "Edit Dispatch Info" : "Dispatch Aircraft"} icon={FiSend}>
+                <p className="text-sm text-gray-500 mb-4">{isEditingDispatch ? "Correct pre-flight readings below." : "Record pre-flight readings before the student departs."}</p>
+                <form onSubmit={async (e) => {
+                  await handleDispatch(e);
+                  setIsEditingDispatch(false);
+                }} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input label="Hobbs Out" type="number" step="0.1" min="0" value={dispatchForm.hobbs_out} onChange={e => setDispatchForm(f => ({ ...f, hobbs_out: e.target.value }))} required placeholder="e.g. 1234.5" />
                     <Input label="Engine 1 Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_out} onChange={e => setDispatchForm(f => ({ ...f, tach_out: e.target.value }))} required placeholder="e.g. 1234.5" />
@@ -697,10 +727,19 @@ const ReservationDetail = () => {
                       className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-3">
+                    {isEditingDispatch && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingDispatch(false)}
+                        className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                    )}
                     <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
                       {actionLoading ? <FiLoader size={14} className="animate-spin" /> : <FiSend size={14} />}
-                      Dispatch
+                      {isEditingDispatch ? 'Update Dispatch' : 'Dispatch'}
                     </button>
                   </div>
                 </form>
@@ -719,11 +758,39 @@ const ReservationDetail = () => {
         {/* ── CHECK-IN TAB ── */}
         {activeTab === 'checkin' && (
           <div>
-            {reservation.checked_in_at ? (
+            {(reservation.checked_in_at && !isEditingCheckin) ? (
               // Already checked in
               <Section title="Check-In Info" icon={FiCheckCircle}>
-                <div className="flex items-center gap-2 mb-4 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
-                  <FiCheckCircle size={14} /> Checked in at {new Date(reservation.checked_in_at).toLocaleString()}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm w-full md:w-auto">
+                    <FiCheckCircle size={14} /> Checked in at {new Date(reservation.checked_in_at).toLocaleString()}
+                  </div>
+                  {canManage && (
+                    <button
+                      onClick={() => {
+                        setCheckinForm({
+                          hobbs_in: reservation.hobbs_in != null ? String(reservation.hobbs_in) : '',
+                          tach_in: reservation.tach_in != null ? String(reservation.tach_in) : '',
+                          tach_2_in: reservation.tach_2_in != null ? String(reservation.tach_2_in) : '',
+                          instruction_dual_hours: reservation.instruction_dual_hours != null ? String(reservation.instruction_dual_hours) : '',
+                          instruction_ground_hours: reservation.instruction_ground_hours != null ? String(reservation.instruction_ground_hours) : '',
+                          instruction_multi_engine_hours: reservation.instruction_multi_engine_hours != null ? String(reservation.instruction_multi_engine_hours) : '',
+                          instruction_solo_hours: reservation.instruction_solo_hours != null ? String(reservation.instruction_solo_hours) : '',
+                          instruction_xc_hours: reservation.instruction_xc_hours != null ? String(reservation.instruction_xc_hours) : '',
+                          instruction_night_hours: reservation.instruction_night_hours != null ? String(reservation.instruction_night_hours) : '',
+                          instruction_instrument_hours: reservation.instruction_instrument_hours != null ? String(reservation.instruction_instrument_hours) : '',
+                          instruction_cirrus_flight_tyq_hours: reservation.instruction_cirrus_flight_tyq_hours != null ? String(reservation.instruction_cirrus_flight_tyq_hours) : '',
+                          instruction_cirrus_ground_tyq_hours: reservation.instruction_cirrus_ground_tyq_hours != null ? String(reservation.instruction_cirrus_ground_tyq_hours) : '',
+                          checkin_notes: reservation.checkin_notes || '',
+                          squawks_text: reservation.squawks?.map(s => s.squawk ?? s).join('\n') || '',
+                        });
+                        setIsEditingCheckin(true);
+                      }}
+                      className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                    >
+                      Edit Check-in
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Field label="Hobbs Out" value={reservation.hobbs_out} />
@@ -749,10 +816,10 @@ const ReservationDetail = () => {
                   <FiBook size={14} /> Logbook entries auto-generated for student and instructor.
                 </div>
               </Section>
-            ) : canCheckin ? (
+            ) : canCheckin || isEditingCheckin ? (
               // Check-in form
-              <Section title="Check-In After Flight" icon={FiCheckCircle}>
-                <p className="text-sm text-gray-500 mb-4">Record post-flight readings. Logbook and invoice will be auto-generated.</p>
+              <Section title={isEditingCheckin ? "Edit Check-In Info" : "Check-In After Flight"} icon={FiCheckCircle}>
+                <p className="text-sm text-gray-500 mb-4">{isEditingCheckin ? "Correct post-flight readings below." : "Record post-flight readings. Logbook and invoice will be auto-generated."}</p>
                 {reservation.hobbs_out && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 bg-blue-50 border border-blue-100 rounded-lg p-3">
                     <div><span className="text-xs text-blue-600 font-medium">Hobbs Out: </span><span className="text-sm font-bold">{reservation.hobbs_out}</span></div>
@@ -760,7 +827,10 @@ const ReservationDetail = () => {
                     {reservation.tach_2_out != null && <div><span className="text-xs text-blue-600 font-medium">Engine 2 Tach Out: </span><span className="text-sm font-bold">{reservation.tach_2_out}</span></div>}
                   </div>
                 )}
-                <form onSubmit={handleCheckin} className="space-y-4">
+                <form onSubmit={async (e) => {
+                  await handleCheckin(e);
+                  setIsEditingCheckin(false);
+                }} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input label="Hobbs In" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
                     <Input label="Engine 1 Tach In" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
@@ -822,10 +892,19 @@ const ReservationDetail = () => {
                       className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-3">
+                    {isEditingCheckin && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingCheckin(false)}
+                        className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                    )}
                     <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
                       {actionLoading ? <FiLoader size={14} className="animate-spin" /> : <FiCheckCircle size={14} />}
-                      Complete Check-In
+                      {isEditingCheckin ? 'Update Check-In' : 'Complete Check-In'}
                     </button>
                   </div>
                 </form>
@@ -846,166 +925,141 @@ const ReservationDetail = () => {
         {/* ── INVOICE TAB ── */}
         {activeTab === 'invoice' && (
           <div>
-            {!isCompleted ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
-                <FiDollarSign size={32} className="text-yellow-400 mx-auto mb-2" />
-                <p className="text-gray-600 text-sm">Invoice becomes available after the reservation is checked in and completed.</p>
+            {!invoice ? (
+              <div className="bg-gray-100 border border-gray-200 rounded-xl p-12 text-center">
+                <FiDollarSign size={48} className="text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">No Invoice Found</h3>
+                <p className="text-gray-500 mb-6 max-w-sm mx-auto">This reservation doesn't have an invoice yet. Invoices are created after check-in.</p>
+                {canInvoice && (
+                  <button onClick={handleSaveInvoice} disabled={actionLoading} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+                    Create Invoice
+                  </button>
+                )}
               </div>
             ) : (
-              <div>
-                {!invoice && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                    <FiLoader size={14} className="animate-spin text-blue-500" /> Loading invoice…
-                  </div>
-                )}
-                {/* Invoice summary card */}
-                {invoice && (
-                  <Section title="Invoice Summary" icon={FiDollarSign}>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                        invoice.status === 'paid' ? 'bg-green-100 text-green-700 border-green-200' :
-                        invoice.status === 'refunded' ? 'bg-red-100 text-red-700 border-red-200' :
-                        'bg-gray-100 text-gray-600 border-gray-200'
-                      }`}>
-                        {invoice.status?.toUpperCase()}
-                      </span>
-                      <button onClick={() => window.print()} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700">
-                        <FiPrinter size={12} /> Print
-                      </button>
-                    </div>
-
-                    {/* Line items */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Aircraft ({invoice.hobbs_block_time ?? '—'} hrs × ${invoice.aircraft_rate ?? '0'})</span>
-                        <span className="font-semibold">${(+invoice.aircraft_charge || 0).toFixed(2)}</span>
+              <div className="space-y-4">
+                {/* --- PAID SUMMARY --- */}
+                {(invoice.status === 'paid' && !isEditingInvoice) && (
+                  <Section title="Invoice Details" icon={FiDollarSign}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
+                        <FiCheckCircle size={14} /> Paid via {invoice.payment_method} on {new Date(invoice.updated_at).toLocaleString()}
                       </div>
-                      <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Flight Instruction ({invoice.instruction_dual_hours ?? '0'} hrs × ${invoice.instructor_rate ?? '0'})</span>
-                        <span className="font-semibold">${(+invoice.flight_instruction_charge || 0).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Ground Instruction ({invoice.instruction_ground_hours ?? '0'} hrs × ${invoice.instructor_rate ?? '0'})</span>
-                        <span className="font-semibold">${(+invoice.ground_instruction_charge || 0).toFixed(2)}</span>
-                      </div>
-                      {invoice.tax_percent > 0 && (
-                        <div className="flex justify-between text-sm py-2 border-b border-gray-100">
-                          <span className="text-gray-600">Tax ({invoice.tax_percent}%)</span>
-                          <span className="font-semibold">${(+invoice.tax_amount || 0).toFixed(2)}</span>
-                        </div>
+                      {isAdmin && (
+                        <button
+                          onClick={() => setIsEditingInvoice(true)}
+                          className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                        >
+                          Edit Invoice
+                        </button>
                       )}
-                      <div className="flex justify-between text-base font-bold py-2">
-                        <span>Total</span>
-                        <span className="text-blue-600">${(+invoice.total || 0).toFixed(2)}</span>
-                      </div>
                     </div>
-
-                    {reservation.students?.[0] && (
-                      <p className="text-xs text-gray-600 mb-2">
-                        Primary student account balance:{' '}
-                        <span className="font-semibold">${Number(reservation.students[0].account_balance ?? 0).toFixed(2)}</span>
-                      </p>
-                    )}
-
-                    {invoice.transactions?.length > 0 && (
-                      <div className="mt-4 border-t border-gray-100 pt-3">
-                        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Transactions</p>
-                        <ul className="space-y-1.5 text-sm">
-                          {invoice.transactions.map((tx) => (
-                            <li key={tx.id} className="flex justify-between gap-2 text-gray-700">
-                              <span>{tx.type} — {tx.processed_by || 'System'}{tx.description ? `: ${tx.description}` : ''}</span>
-                              <span className="font-medium whitespace-nowrap">${Number(tx.amount).toFixed(2)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {invoice.paid_at && <p className="text-xs text-green-600">Paid on {new Date(invoice.paid_at).toLocaleString()} via {invoice.charge_method}</p>}
-                    {invoice.is_refunded && <p className="text-xs text-red-600">Refunded ${invoice.refund_amount} — {invoice.refund_reason}</p>}
-
-                    {/* Actions */}
-                    {isAdmin && invoice.status !== 'paid' && invoice.status !== 'refunded' && (
-                      <div className="flex flex-col gap-3 mt-4">
-                        <div className="flex items-center gap-2 flex-1">
-                          <label className="text-xs text-gray-500 whitespace-nowrap">Payment method:</label>
-                          <select
-                            value={chargeMethod}
-                            onChange={e => setChargeMethod(e.target.value)}
-                            className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="card">Card (Stripe)</option>
-                            <option value="account">Account credit</option>
-                            <option value="cash">Cash</option>
-                            <option value="check">Check</option>
-                          </select>
-                        </div>
-                        {chargeMethod === 'card' && (
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-gray-500">Stripe PaymentMethod ID (from Stripe.js / test e.g. pm_card_visa)</label>
-                            <input
-                              type="text"
-                              value={stripePaymentMethodId}
-                              onChange={(e) => setStripePaymentMethodId(e.target.value)}
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
-                              placeholder="pm_..."
-                            />
-                          </div>
-                        )}
-                        <button
-                          onClick={() => setShowChargeDialog(true)}
-                          disabled={actionLoading}
-                          className="self-end flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          <FiDollarSign size={13} /> Charge
-                        </button>
-                      </div>
-                    )}
-                    {isAdmin && invoice.status === 'paid' && !invoice.is_refunded && (
-                      <div className="mt-4 space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input label="Refund Amount ($)" type="number" step="0.01" min="0" value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
-                          <Input label="Reason" value={refundForm.refund_reason} onChange={e => setRefundForm(f => ({ ...f, refund_reason: e.target.value }))} />
-                        </div>
-                        <button
-                          onClick={() => setShowRefundDialog(true)}
-                          disabled={actionLoading || !refundForm.refund_amount}
-                          className="flex items-center gap-1.5 px-4 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 disabled:opacity-50"
-                        >
-                          <FiRefreshCw size={13} /> Issue Refund
-                        </button>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-gray-100">
+                      <Field label="Aircraft Rate" value={`$${invoice.aircraft_rate}`} />
+                      <Field label="Dual Instruction" value={`${invoice.instruction_dual_hours} hrs`} />
+                      <Field label="Ground Instruction" value={`${invoice.instruction_ground_hours} hrs`} />
+                      <Field label="Instructor Rate" value={`$${invoice.instructor_rate}`} />
+                      <Field label="Tax" value={`${invoice.tax_percent}%`} />
+                    </div>
+                    <div className="pt-4 flex flex-col items-end gap-1">
+                      <div className="text-sm text-gray-500">Total Charged</div>
+                      <div className="text-2xl font-bold text-gray-900">${invoice.total?.toFixed(2)}</div>
+                    </div>
+                    {invoice.notes && <p className="text-sm text-gray-600 mt-4 bg-gray-50 rounded-lg p-3">{invoice.notes}</p>}
+                    
+                    {invoice.is_refunded && (
+                      <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+                        <p className="text-xs font-bold text-red-600 uppercase mb-1">Refund Issued</p>
+                        <p className="text-sm text-red-700">Amount: ${Number(invoice.refund_amount).toFixed(2)} — Reason: {invoice.refund_reason || 'N/A'}</p>
                       </div>
                     )}
                   </Section>
                 )}
 
-                {/* Edit invoice form (admin only, not yet paid) */}
-                {isAdmin && (!invoice || invoice.status === 'draft') && (
-                  <Section title="Edit Invoice" icon={FiDollarSign}>
-                    <form onSubmit={handleSaveInvoice} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* --- EDIT / DRAFT FORM --- */}
+                {(invoice.status !== 'paid' || isEditingInvoice) && (
+                  <Section title={isEditingInvoice ? "Edit Invoice Details" : "Invoice Draft"} icon={FiDollarSign}>
+                    <p className="text-sm text-gray-500 mb-4">Adjust rates and hours as needed. The total will be recalculated.</p>
+                    <form onSubmit={async (e) => {
+                      await handleSaveInvoice(e);
+                      setIsEditingInvoice(false);
+                    }} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.aircraft_rate} onChange={e => setInvoiceForm(f => ({ ...f, aircraft_rate: e.target.value }))} />
-                        <Input label="Dual Instruction Hours" type="number" step="0.1" min="0" value={invoiceForm.instruction_dual_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} />
-                        <Input label="Ground Instruction Hours" type="number" step="0.1" min="0" value={invoiceForm.instruction_ground_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} />
+                        <Input label="Dual Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_dual_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} />
+                        <Input label="Ground Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_ground_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} />
                         <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.instructor_rate} onChange={e => setInvoiceForm(f => ({ ...f, instructor_rate: e.target.value }))} />
                         <Input label="Tax %" type="number" step="0.01" min="0" max="100" value={invoiceForm.tax_percent} onChange={e => setInvoiceForm(f => ({ ...f, tax_percent: e.target.value }))} />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Notes</label>
-                        <textarea
-                          rows={2}
-                          value={invoiceForm.notes}
-                          onChange={e => setInvoiceForm(f => ({ ...f, notes: e.target.value }))}
-                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Invoice Notes</label>
+                        <textarea rows={2} value={invoiceForm.notes} onChange={e => setInvoiceForm(f => ({ ...f, notes: e.target.value }))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Internal notes or customer visible comments..." />
                       </div>
-                      <div className="flex justify-end">
-                        <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
-                          {actionLoading ? <FiLoader size={14} className="animate-spin" /> : <FiDollarSign size={14} />}
-                          Save Invoice
-                        </button>
+                      <div className="flex justify-between items-center bg-blue-50 rounded-lg p-4 border border-blue-100">
+                        <div>
+                          <div className="text-xs text-blue-600 font-medium uppercase">Estimated Total</div>
+                          <div className="text-xl font-bold text-blue-900">${((parseFloat(invoiceForm.aircraft_rate || 0) * (reservation.hobbs_block_time || 0)) + (parseFloat(invoiceForm.instruction_dual_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0)) + (parseFloat(invoiceForm.instruction_ground_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0))).toFixed(2)}</div>
+                        </div>
+                        <div className="flex gap-3">
+                          {(isEditingInvoice || invoice.status === 'draft') && invoice.id && (
+                            <button type="button" onClick={() => setIsEditingInvoice(false)} className="px-5 py-2 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">Cancel</button>
+                          )}
+                          <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50">
+                            {actionLoading ? <FiLoader className="animate-spin" /> : <FiDollarSign size={14} />}
+                            {isEditingInvoice ? 'Update Invoice' : 'Save Invoice Draft'}
+                          </button>
+                        </div>
                       </div>
                     </form>
+                  </Section>
+                )}
+                
+                {/* --- PAYMENT OPTIONS (only if not paid) --- */}
+                {invoice.status !== 'paid' && !isEditingInvoice && (
+                  <Section title="Issue Payment" icon={FiDollarSign}>
+                    <div className="flex flex-col md:flex-row gap-6">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-sm font-semibold text-gray-700">Method:</label>
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            {['card', 'cash', 'check', 'account'].map(m => (
+                              <button key={m} onClick={() => setChargeMethod(m)} className={`px-4 py-2 rounded-lg border text-sm font-medium capitalize transition-all ${chargeMethod === m ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
+                                {m}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {chargeMethod === 'card' && (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Stripe Payment Method ID</label>
+                            <input type="text" value={stripePaymentMethodId} onChange={e => setStripePaymentMethodId(e.target.value)} placeholder="pm_..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="md:w-64 bg-gray-900 rounded-xl p-6 text-white text-center flex flex-col justify-center shadow-lg border border-gray-800">
+                        <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Total to Charge</div>
+                        <div className="text-3xl font-bold mb-4">${invoice.total?.toFixed(2)}</div>
+                        <button onClick={() => setShowChargeDialog(true)} disabled={actionLoading} className="w-full py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-lg font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50">
+                          {actionLoading ? <FiLoader className="animate-spin mx-auto" /> : 'Charge Customer'}
+                        </button>
+                      </div>
+                    </div>
+                  </Section>
+                )}
+
+                {/* --- REFUND (Admin only, already paid) --- */}
+                {isAdmin && invoice.status === 'paid' && !invoice.is_refunded && !isEditingInvoice && (
+                  <Section title="Issue Refund" icon={FiRefreshCw}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <Input label="Refund Amount ($)" type="number" step="0.01" min="0" max={invoice.total} value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
+                      <Input label="Reason for Refund" value={refundForm.refund_reason} onChange={e => setRefundForm(f => ({ ...f, refund_reason: e.target.value }))} placeholder="e.g., Error in hours, Customer request" />
+                    </div>
+                    <div className="flex justify-end">
+                      <button onClick={() => setShowRefundDialog(true)} disabled={actionLoading || !refundForm.refund_amount} className="flex items-center gap-2 px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50">
+                        <FiRefreshCw size={14} className={actionLoading ? 'animate-spin' : ''} />
+                        Process Refund
+                      </button>
+                    </div>
                   </Section>
                 )}
               </div>

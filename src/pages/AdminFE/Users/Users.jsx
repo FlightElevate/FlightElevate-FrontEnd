@@ -4,6 +4,8 @@ import { MdFilterList } from "react-icons/md";
 import { HiDotsVertical, HiChevronDown } from "react-icons/hi";
 import { Link, useNavigate } from "react-router-dom";
 import { userService } from "../../../api/services/userService";
+import { organizationService } from "../../../api/services/organizationService";
+import { useAuth } from "../../../context/AuthContext";
 import Pagination from "../../../components/Pagination";
 import AddUserModal from "../../../components/User/AddUserModal";
 import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../../utils/notifications";
@@ -11,6 +13,7 @@ import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../../ut
 
 const Users = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   
   
   const [selected, setSelected] = useState("Instructor");
@@ -39,21 +42,29 @@ const Users = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
-  const roleFilters = ["Instructor", "Student", "Custom Roles Users"];
+  const roleFilters = ["Instructor", "Student", "Custom Roles Users", "Join Requests"];
 
   
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await userService.getUsers({
+      const isJoinRequests = selected === "Join Requests";
+      const params = {
         page: currentPage,
         per_page: itemsPerPage,
-        role: selected,
         search: searchTerm,
         sort: sortField,
         order: sortOrder
-      });
+      };
+
+      if (isJoinRequests) {
+        params.status = 'pending';
+      } else {
+        params.role = selected;
+      }
+
+      const response = await userService.getUsers(params);
       if (response.success) {
         setUsers(response.data);
         setTotalItems(response.meta?.total || 0);
@@ -165,8 +176,53 @@ const Users = () => {
 
   
   const handleRowClick = useCallback((userId) => {
+    if (selected === "Join Requests") return; // Prevent navigation for pending users
     navigate(`/users/profile/${userId}`);
-  }, [navigate]);
+  }, [navigate, selected]);
+
+  const handleApprove = useCallback(async (userId, userName) => {
+    const confirmed = await showDeleteConfirm(
+      `Approve ${userName}`,
+      `Are you sure you want to approve this join request?`,
+      `Yes, approve`
+    );
+    if (!confirmed) return;
+
+    setActionLoading(userId);
+    try {
+      const response = await organizationService.approveJoinRequest(currentUser.organization_id, userId);
+      if (response.success) {
+        showSuccessToast('Request approved successfully');
+        fetchUsers();
+      }
+    } catch (err) {
+      showErrorToast('Failed to approve request');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchUsers, currentUser?.organization_id]);
+
+  const handleReject = useCallback(async (userId, userName) => {
+    const confirmed = await showDeleteConfirm(
+      `Reject ${userName}`,
+      `Are you sure you want to reject this join request?`,
+      `Yes, reject`
+    );
+    if (!confirmed) return;
+
+    setActionLoading(userId);
+    try {
+      const response = await organizationService.rejectJoinRequest(currentUser.organization_id, userId);
+      if (response.success) {
+        showSuccessToast('Request rejected successfully');
+        fetchUsers();
+      }
+    } catch (err) {
+      showErrorToast('Failed to reject request');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchUsers, currentUser?.organization_id]);
 
   return (
     <div className="md:mt-5 mx-auto">
@@ -365,9 +421,12 @@ const Users = () => {
                           key={user.id}
                           user={user}
                           isSelected={selectedIds.includes(user.id)}
+                          isJoinRequest={selected === "Join Requests"}
                           onSelect={() => handleSelectOne(user.id)}
                           onRowClick={() => handleRowClick(user.id)}
                           onBlock={() => handleBlockUser(user.id, user.name, user.status)}
+                          onApprove={() => handleApprove(user.id, user.name)}
+                          onReject={() => handleReject(user.id, user.name)}
                           isActionLoading={actionLoading === user.id}
                           isDropdownOpen={openDropdownId === user.id}
                           onDropdownToggle={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
@@ -485,10 +544,29 @@ const Users = () => {
                             {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                           </span>
                         </div>
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${status.bg} ${status.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
-                          {user.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {selected === "Join Requests" ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleReject(user.id, user.name); }}
+                                className="px-3 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                              >
+                                Reject
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleApprove(user.id, user.name); }}
+                                className="px-3 py-1 bg-green-100 text-green-600 rounded text-xs font-medium hover:bg-green-200 transition-colors"
+                              >
+                                Approve
+                              </button>
+                            </div>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${status.bg} ${status.text}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
+                              {user.status}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -528,9 +606,12 @@ const Users = () => {
 const UserRow = React.memo(({
   user,
   isSelected,
+  isJoinRequest,
   onSelect,
   onRowClick,
   onBlock,
+  onApprove,
+  onReject,
   isActionLoading,
   isDropdownOpen,
   onDropdownToggle,
@@ -600,6 +681,21 @@ const UserRow = React.memo(({
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
           </div>
+        ) : isJoinRequest ? (
+          <div className="flex gap-2">
+            <button
+              onClick={onReject}
+              className="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg text-xs font-medium hover:bg-red-200 transition-colors"
+            >
+              Reject
+            </button>
+            <button
+              onClick={onApprove}
+              className="px-3 py-1.5 bg-green-100 text-green-600 rounded-lg text-xs font-medium hover:bg-green-200 transition-colors"
+            >
+              Approve
+            </button>
+          </div>
         ) : (
           <UserActionsDropdown
             userId={user.id}
@@ -608,7 +704,12 @@ const UserRow = React.memo(({
             isOpen={isDropdownOpen}
             onToggle={onDropdownToggle}
             onBlock={onBlock}
-            ref={dropdownRef}
+            ref={ref => {
+              if (ref && dropdownRef) {
+                if (typeof dropdownRef === 'function') dropdownRef(ref);
+                else dropdownRef.current = ref;
+              }
+            }}
           />
         )}
       </td>

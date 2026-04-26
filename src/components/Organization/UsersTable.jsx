@@ -10,6 +10,10 @@ export const UsersTable = memo(({
   itemsPerPage = 10,
   totalItems = 0,
   emptyMessage = 'No users found',
+  showActions = false,
+  onApprove,
+  onReject,
+  actionLoading = null,
 }) => {
   if (loading) {
     return (
@@ -59,6 +63,7 @@ export const UsersTable = memo(({
               <th className="px-6 py-3">Phone</th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3">Joined Date</th>
+              {showActions && <th className="px-6 py-3">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -78,6 +83,30 @@ export const UsersTable = memo(({
                 <td className="px-6 py-4 text-gray-600">
                   {formatDate(user.created_at)}
                 </td>
+                {showActions && (
+                  <td className="px-6 py-4">
+                    {actionLoading === user.id ? (
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => onReject(user.id, user.name)}
+                          className="px-3 py-1 bg-red-100 text-red-600 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => onApprove(user.id, user.name)}
+                          className="px-3 py-1 bg-green-100 text-green-600 rounded text-xs font-medium hover:bg-green-200 transition-colors"
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

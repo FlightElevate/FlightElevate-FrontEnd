@@ -87,5 +87,23 @@ export const organizationService = {
       throw error;
     }
   },
+  
+  async approveJoinRequest(orgId, userId) {
+    try {
+      return await api.post(ENDPOINTS.ORGANIZATIONS.APPROVE_USER(orgId, userId));
+    } catch (error) {
+      console.error('Error approving join request:', error);
+      throw error;
+    }
+  },
+
+  async rejectJoinRequest(orgId, userId) {
+    try {
+      return await api.post(ENDPOINTS.ORGANIZATIONS.REJECT_USER(orgId, userId));
+    } catch (error) {
+      console.error('Error rejecting join request:', error);
+      throw error;
+    }
+  },
 };
 

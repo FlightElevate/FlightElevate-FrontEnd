@@ -7,6 +7,7 @@ export const OrganizationTabs = ({ activeTab, onTabChange, tabCounts = {} }) => 
     { id: 'admins', label: 'Admins', icon: FiUsers, count: tabCounts.admins || 0 },
     { id: 'instructors', label: 'Instructors', icon: FiBookOpen, count: tabCounts.instructors || 0 },
     { id: 'students', label: 'Students', icon: FiUser, count: tabCounts.students || 0 },
+    { id: 'join-requests', label: 'Join Requests', icon: FiUser, count: tabCounts.joinRequests || 0 },
   ];
 
   return (

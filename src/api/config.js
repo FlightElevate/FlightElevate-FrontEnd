@@ -212,6 +212,8 @@ export const ENDPOINTS = {
     UPDATE: (id) => `/organizations/${id}`,
     DELETE: (id) => `/organizations/${id}`,
     JOIN: (id) => `/organizations/${id}/join`,
+    APPROVE_USER: (orgId, userId) => `/organizations/${orgId}/users/${userId}/approve`,
+    REJECT_USER: (orgId, userId) => `/organizations/${orgId}/users/${userId}/reject`,
   },
 
 

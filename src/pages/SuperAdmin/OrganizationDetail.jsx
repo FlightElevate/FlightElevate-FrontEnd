@@ -11,6 +11,8 @@ import {
   formatOrganizationInfo,
   getOrganizationTitle,
 } from '../../utils/organizationHelpers';
+import { organizationService } from '../../api/services/organizationService';
+import { showDeleteConfirm, showSuccessToast, showErrorToast } from '../../utils/notifications';
 
 
 const OrganizationDetail = () => {
@@ -21,6 +23,8 @@ const OrganizationDetail = () => {
   const [adminsPage, setAdminsPage] = useState(1);
   const [instructorsPage, setInstructorsPage] = useState(1);
   const [studentsPage, setStudentsPage] = useState(1);
+  const [joinRequestsPage, setJoinRequestsPage] = useState(1);
+  const [actionLoading, setActionLoading] = useState(null);
   const itemsPerPage = 10;
 
   
@@ -71,14 +75,28 @@ const OrganizationDetail = () => {
     itemsPerPage
   );
 
+  const {
+    users: joinRequests,
+    loading: loadingJoinRequests,
+    total: joinRequestsTotal,
+    refetch: refetchJoinRequests,
+  } = useOrganizationUsers(
+    organizationId,
+    null,
+    joinRequestsPage,
+    itemsPerPage,
+    'pending'
+  );
+
   
   const tabCounts = useMemo(
     () => ({
       admins: adminsTotal,
       instructors: instructorsTotal,
       students: studentsTotal,
+      joinRequests: joinRequestsTotal,
     }),
-    [adminsTotal, instructorsTotal, studentsTotal]
+    [adminsTotal, instructorsTotal, studentsTotal, joinRequestsTotal]
   );
 
   
@@ -110,6 +128,16 @@ const OrganizationDetail = () => {
           total: studentsTotal,
           setPage: setStudentsPage,
           emptyMessage: 'No students found in this organization',
+        };
+      case 'join-requests':
+        return {
+          users: joinRequests,
+          loading: loadingJoinRequests,
+          page: joinRequestsPage,
+          total: joinRequestsTotal,
+          setPage: setJoinRequestsPage,
+          emptyMessage: 'No pending join requests',
+          showActions: true,
         };
       default:
         return {
@@ -147,6 +175,51 @@ const OrganizationDetail = () => {
     () => formatOrganizationInfo(organization, adminDetails),
     [organization, adminDetails]
   );
+
+  
+  const handleApprove = async (userId, userName) => {
+    const confirmed = await showDeleteConfirm(
+      `Approve ${userName}`,
+      `Are you sure you want to approve this join request?`,
+      `Yes, approve`
+    );
+    if (!confirmed) return;
+
+    setActionLoading(userId);
+    try {
+      const response = await organizationService.approveJoinRequest(organizationId, userId);
+      if (response.success) {
+        showSuccessToast('Request approved successfully');
+        refetchJoinRequests();
+      }
+    } catch (err) {
+      showErrorToast('Failed to approve request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReject = async (userId, userName) => {
+    const confirmed = await showDeleteConfirm(
+      `Reject ${userName}`,
+      `Are you sure you want to reject this join request?`,
+      `Yes, reject`
+    );
+    if (!confirmed) return;
+
+    setActionLoading(userId);
+    try {
+      const response = await organizationService.rejectJoinRequest(organizationId, userId);
+      if (response.success) {
+        showSuccessToast('Request rejected successfully');
+        refetchJoinRequests();
+      }
+    } catch (err) {
+      showErrorToast('Failed to reject request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   
   const hasOrganization = organization && organization.id;
@@ -301,6 +374,10 @@ const OrganizationDetail = () => {
                 itemsPerPage={itemsPerPage}
                 totalItems={currentListData.total}
                 emptyMessage={currentListData.emptyMessage}
+                showActions={currentListData.showActions}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                actionLoading={actionLoading}
               />
             </div>
           </>

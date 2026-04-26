@@ -3,7 +3,7 @@ import { userService } from '../api/services/userService';
 import { showErrorToast } from '../utils/notifications';
 
 
-export const useOrganizationUsers = (organizationId, role, page = 1, itemsPerPage = 10) => {
+export const useOrganizationUsers = (organizationId, role, page = 1, itemsPerPage = 10, status = null) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -23,8 +23,9 @@ export const useOrganizationUsers = (organizationId, role, page = 1, itemsPerPag
       const response = await userService.getUsers({
         page,
         per_page: itemsPerPage,
-        role,
+        role: status ? null : role,
         organization_id: organizationId,
+        status: status,
       });
 
       if (response.success) {
@@ -42,7 +43,7 @@ export const useOrganizationUsers = (organizationId, role, page = 1, itemsPerPag
     } finally {
       setLoading(false);
     }
-  }, [organizationId, role, page, itemsPerPage]);
+  }, [organizationId, role, page, itemsPerPage, status]);
 
   useEffect(() => {
     fetchUsers();

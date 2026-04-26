@@ -26,15 +26,19 @@ const parseTimeParts = (t) => {
 
 const eventStartEndMs = (event) => {
   const [sh, sm] = parseTimeParts(event.start_time);
-  const [eh, em] = parseTimeParts(event.end_time);
   const startDate = (event.date || '').toString().slice(0, 10);
-  const endDate = (event.end_date || startDate).toString().slice(0, 10);
   const start = new Date(`${startDate}T${pad2(sh)}:${pad2(sm)}:00`);
-  let end = new Date(`${endDate}T${pad2(eh)}:${pad2(em)}:00`);
-  if (end.getTime() <= start.getTime()) {
-    end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-  }
-  return { start, end, startMs: start.getTime(), endMs: end.getTime() };
+  
+  // Use duration_minutes from backend if available, default to 60 mins
+  const duration = parseInt(event.duration_minutes || 60, 10);
+  const end = new Date(start.getTime() + duration * 60000);
+  
+  return { 
+    start, 
+    end, 
+    startMs: start.getTime(), 
+    endMs: end.getTime() 
+  };
 };
 
 const eventOverlapsCalendarDay = (event, dateStr) => {
@@ -47,7 +51,7 @@ const eventOverlapsCalendarDay = (event, dateStr) => {
 const portionOnDayMs = (event, dateStr) => {
   const { startMs, endMs } = eventStartEndMs(event);
   const dayStart = new Date(`${dateStr}T00:00:00`).getTime();
-  const dayEnd = new Date(`${dateStr}T23:59:59.999`).getTime();
+  const dayEnd = dayStart + 86400000; // Exactly 24 hours later
   const segStart = Math.max(startMs, dayStart);
   const segEnd = Math.min(endMs, dayEnd);
   if (segEnd <= segStart) return null;
@@ -877,16 +881,31 @@ const Calendar = () => {
       .sort((a, b) => eventStartEndMs(a).startMs - eventStartEndMs(b).startMs);
   };
 
-  const getEventColor = (color) => {
+  const getEventColor = (color, itemType = null) => {
+    // Priority 1: Special Status colors (regardless of resource)
+    if (color === 'red' || color === 'light-red') return 'bg-red-400 border-red-500';
+    if (color === 'yellow') return 'bg-yellow-400 border-yellow-500'; // Requested
+    if (color === 'orange') return 'bg-orange-400 border-orange-500';
+    if (color === 'gray') return 'bg-gray-400 border-gray-500';
+
+    // Priority 2: Resource-specific colors
+    if (itemType === 'aircraft') {
+      return 'bg-blue-500 border-blue-600 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
+    }
+    if (itemType === 'instructor') {
+      return 'bg-emerald-500 border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.3)]';
+    }
+
+    // Fallback
     const colorMap = {
-      blue: 'bg-blue-300', // Changed to light blue
-      red: 'bg-red-300',
-      'light-red': 'bg-red-200',
-      orange: 'bg-orange-300',
-      yellow: 'bg-yellow-400', // For requested status
-      gray: 'bg-gray-300',
+      blue: 'bg-blue-500 border-blue-600',
+      red: 'bg-red-400 border-red-500',
+      'light-red': 'bg-red-300 border-red-400',
+      orange: 'bg-orange-400 border-orange-500',
+      yellow: 'bg-yellow-400 border-yellow-500',
+      gray: 'bg-gray-400 border-gray-500',
     };
-    return colorMap[color] || 'bg-blue-300'; // Default to light blue
+    return colorMap[color] || 'bg-blue-500 border-blue-600';
   };
 
   const handleEventHover = (event, e) => {
@@ -1533,15 +1552,28 @@ const Calendar = () => {
               {calendarViewMode === 'day' ? (
                 <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
-                    <tr className="border-b border-gray-200 shadow-sm">
+                    <tr className="border-b border-gray-200 shadow-sm bg-gray-50">
                       <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
-                        Resource
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][currentDate.getDay()]}</span>
+                          <span className="text-gray-900">{currentDate.getDate()} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][currentDate.getMonth()]}</span>
+                        </div>
                       </th>
-                      {timeSlots.map((slot, idx) => (
-                        <th key={idx} className="text-center px-1 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-r border-gray-200 bg-gray-50" style={{ width: '4.16%' }}>
-                          {slot.label}
-                        </th>
-                      ))}
+                      {timeSlots.map((slot, idx) => {
+                        const isCurrentHour = formatDateStr(new Date()) === formatDateStr(currentDate) && new Date().getHours() === idx;
+                        return (
+                          <th key={idx} className="relative px-0 py-2 border-r border-gray-200" 
+                            style={{ width: `calc((100% - ${isMobile ? 100 : 150}px) / 24)` }}>
+                            <div className={`absolute left-0 -bottom-1 transform -translate-x-1/2 text-[9px] font-bold uppercase ${isCurrentHour ? 'text-red-600' : 'text-gray-400'}`}>
+                              {slot.label.replace(' ', '')}
+                            </div>
+                            {/* Visual marker for current time in header */}
+                            {isCurrentHour && formatDateStr(new Date()) === formatDateStr(currentDate) && (
+                              <div className="absolute top-0 bottom-0 w-px bg-red-500/20" style={{ left: `${(new Date().getMinutes() / 60) * 100}%` }}></div>
+                            )}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -1549,136 +1581,203 @@ const Calendar = () => {
                       <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-blue-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
                         <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide">Aircraft</h3>
                       </td>
-                      {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-blue-50/20" style={{ height: '36px' }}></td>)}
+                      <td colSpan={24} className="border-r border-gray-200 bg-blue-50/20" style={{ height: '36px' }}></td>
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
-                      <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group relative">
+                      <tr key={`aircraft-${aircraft.id}`} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
                         <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span>
                         </td>
-                        {timeSlots.map((slot, idx) => (
-                          <td key={idx} className="border-r border-gray-200 relative group-hover:border-gray-300 transition-colors" style={{ height: '48px' }}>
-                            {/* Grid lines or hover highlights could go here */}
-                          </td>
-                        ))}
-                        {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
-                          const p = portionOnDayMs(event, formatDateStr(currentDate));
-                          if (!p) return null;
-                          const dStart = new Date(p.segStart);
-                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
-                          const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          
-                          const labelWidth = isMobile ? 100 : 150;
-                          const leftPct = (startHour / 24) * 100;
-                          const widthPct = (durationHours / 24) * 100;
-                          
-                          return (
-                            <div key={idx} className={`absolute top-2 bottom-2 rounded-md text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color)} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all`} 
-                              style={{ 
-                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
-                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))`,
-                                marginLeft: '1px'
-                              }}
-                            >
-                              <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm">
-                                {formatEventTimeForDisplay(event.start_time)}
+                        <td colSpan={24} className="relative p-0" style={{ height: '48px' }}>
+                          {/* Background Grid Cells (Clickable) */}
+                          <div className="absolute inset-0 flex">
+                            {timeSlots.map((slot, idx) => (
+                              <div 
+                                key={idx} 
+                                className="border-r border-gray-200 h-full hover:bg-blue-50/40 cursor-pointer transition-colors group/slot" 
+                                style={{ width: 'calc(100% / 24)' }}
+                                onClick={() => handleAddReservation(formatDateStr(currentDate), aircraft.id, null, slot.time)}
+                              >
+                                <div className="opacity-0 group-hover/slot:opacity-100 absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <span className="text-[10px] text-blue-600 font-bold bg-white/80 px-1 rounded">+</span>
+                                </div>
                               </div>
+                            ))}
+                          </div>
+                          
+                          {/* Current Time Indicator Line */}
+                          {formatDateStr(new Date()) === formatDateStr(currentDate) && (
+                            <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-30 pointer-events-none opacity-60" 
+                              style={{ left: `${((new Date().getHours() + new Date().getMinutes() / 60) / 24) * 100}%` }}>
                             </div>
-                          );
-                        })}
-                        {/* Mobile events (rendered outside the flex to prevent overcrowding if narrow) */}
-                        {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
-                          const p = portionOnDayMs(event, formatDateStr(currentDate));
-                          if (!p) return null;
-                          const dStart = new Date(p.segStart);
-                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
-                          const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          
-                          const labelWidth = isMobile ? 100 : 150;
-                          const leftPct = (startHour / 24) * 100;
-                          const widthPct = (durationHours / 24) * 100;
-                          
-                          return (
-                            <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 rounded text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)} border border-white/10`} 
-                              style={{ 
-                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
-                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))` 
-                              }}
-                            >
-                              <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
-                                {formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}
+                          )}
+
+                          {/* Events */}
+                          {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
+                            const fullRange = eventStartEndMs(event);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            if (!p) return null;
+                            const dStart = new Date(p.segStart);
+                            const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                            const durationHours = (p.segEnd - p.segStart) / 3600000;
+                            
+                            const leftPct = (startHour / 24) * 100;
+                            const widthPct = (durationHours / 24) * 100;
+                            
+                            const isStartingToday = p.segStart === fullRange.startMs;
+                            const isEndingToday = p.segEnd === fullRange.endMs;
+                            
+                            return (
+                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                                ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
+                                ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
+                                style={{ 
+                                  left: `${leftPct}%`, 
+                                  width: `${widthPct}%`,
+                                  marginLeft: isStartingToday ? '1px' : '0px'
+                                }}
+                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                              >
+                                <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm flex items-center gap-1">
+                                  {!isStartingToday && <span className="opacity-70">…</span>}
+                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time) : `${dStart.getHours() % 12 || 12}:00 AM`}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                          {/* Mobile events */}
+                          {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
+                            const fullRange = eventStartEndMs(event);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            if (!p) return null;
+                            const dStart = new Date(p.segStart);
+                            const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                            const durationHours = (p.segEnd - p.segStart) / 3600000;
+                            
+                            const leftPct = (startHour / 24) * 100;
+                            const widthPct = (durationHours / 24) * 100;
+                            
+                            const isStartingToday = p.segStart === fullRange.startMs;
+                            const isEndingToday = p.segEnd === fullRange.endMs;
+
+                            return (
+                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color, 'aircraft')} border border-white/10
+                                ${isStartingToday ? 'rounded-l' : 'border-l-0'} 
+                                ${isEndingToday ? 'rounded-r' : 'border-r-0'}`} 
+                                style={{ 
+                                  left: `${leftPct}%`, 
+                                  width: `${widthPct}%` 
+                                }}
+                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                              >
+                                <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
+                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '') : `${dStart.getHours() % 12 || 12}`}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </td>
                       </tr>
                     ))}
                     <tr className="bg-green-50/50">
                       <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-green-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
                         <h3 className="text-xs font-bold text-green-800 uppercase tracking-wide">Instructors</h3>
                       </td>
-                      {timeSlots.map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-green-50/20" style={{ height: '36px' }}></td>)}
+                      <td colSpan={24} className="border-r border-gray-200 bg-green-50/20" style={{ height: '36px' }}></td>
                     </tr>
                     {filteredUserSchedule.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group relative">
+                      <tr key={`user-${user.id}`} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
                         <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(user.name)}</span>
                         </td>
-                        {timeSlots.map((slot, idx) => (
-                          <td key={idx} className="border-r border-gray-200" style={{ height: '48px' }}></td>
-                        ))}
-                        {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
-                          const p = portionOnDayMs(event, formatDateStr(currentDate));
-                          if (!p) return null;
-                          const dStart = new Date(p.segStart);
-                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
-                          const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          
-                          const labelWidth = isMobile ? 100 : 150;
-                          const leftPct = (startHour / 24) * 100;
-                          const widthPct = (durationHours / 24) * 100;
-                          
-                          return (
-                            <div key={idx} className={`absolute top-2 bottom-2 rounded-md text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color)} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all`} 
-                              style={{ 
-                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
-                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))`,
-                                marginLeft: '1px'
-                              }}
-                              onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
-                            >
-                              <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm">
-                                {formatEventTimeForDisplay(event.start_time)}
+                        <td colSpan={24} className="relative p-0" style={{ height: '48px' }}>
+                           {/* Background Grid Cells (Clickable) */}
+                           <div className="absolute inset-0 flex">
+                            {timeSlots.map((slot, idx) => (
+                              <div 
+                                key={idx} 
+                                className="border-r border-gray-200 h-full hover:bg-green-50/40 cursor-pointer transition-colors group/slot" 
+                                style={{ width: 'calc(100% / 24)' }}
+                                onClick={() => handleAddReservation(formatDateStr(currentDate), null, user.id, slot.time)}
+                              >
+                                <div className="opacity-0 group-hover/slot:opacity-100 absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <span className="text-[10px] text-green-600 font-bold bg-white/80 px-1 rounded">+</span>
+                                </div>
                               </div>
+                            ))}
+                          </div>
+
+                          {/* Current Time Indicator Line */}
+                          {formatDateStr(new Date()) === formatDateStr(currentDate) && (
+                            <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-30 pointer-events-none opacity-60" 
+                              style={{ left: `${((new Date().getHours() + new Date().getMinutes() / 60) / 24) * 100}%` }}>
                             </div>
-                          );
-                        })}
-                        {/* Mobile events */}
-                        {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
-                          const p = portionOnDayMs(event, formatDateStr(currentDate));
-                          if (!p) return null;
-                          const dStart = new Date(p.segStart);
-                          const startHour = dStart.getHours() + dStart.getMinutes() / 60;
-                          const durationHours = (p.segEnd - p.segStart) / 3600000;
-                          
-                          const labelWidth = isMobile ? 100 : 150;
-                          const leftPct = (startHour / 24) * 100;
-                          const widthPct = (durationHours / 24) * 100;
-                          
-                          return (
-                            <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 rounded text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color)} border border-white/10`} 
-                              style={{ 
-                                left: `calc(${labelWidth}px + ${leftPct / 100} * (100% - ${labelWidth}px))`, 
-                                width: `calc(${widthPct / 100} * (100% - ${labelWidth}px))` 
-                              }}
-                              onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
-                            >
-                              <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
-                                {formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '')}
+                          )}
+
+                          {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
+                            const fullRange = eventStartEndMs(event);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            if (!p) return null;
+                            const dStart = new Date(p.segStart);
+                            const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                            const durationHours = (p.segEnd - p.segStart) / 3600000;
+                            
+                            const leftPct = (startHour / 24) * 100;
+                            const widthPct = (durationHours / 24) * 100;
+                            
+                            const isStartingToday = p.segStart === fullRange.startMs;
+                            const isEndingToday = p.segEnd === fullRange.endMs;
+
+                            return (
+                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                                ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
+                                ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
+                                style={{ 
+                                  left: `${leftPct}%`, 
+                                  width: `${widthPct}%`,
+                                  marginLeft: isStartingToday ? '1px' : '0px'
+                                }}
+                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                              >
+                                <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm flex items-center gap-1">
+                                  {!isStartingToday && <span className="opacity-70">…</span>}
+                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time) : `${dStart.getHours() % 12 || 12}:00 AM`}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                          {/* Mobile events */}
+                          {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
+                            const fullRange = eventStartEndMs(event);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            if (!p) return null;
+                            const dStart = new Date(p.segStart);
+                            const startHour = dStart.getHours() + dStart.getMinutes() / 60;
+                            const durationHours = (p.segEnd - p.segStart) / 3600000;
+                            
+                            const leftPct = (startHour / 24) * 100;
+                            const widthPct = (durationHours / 24) * 100;
+                            
+                            const isStartingToday = p.segStart === fullRange.startMs;
+                            const isEndingToday = p.segEnd === fullRange.endMs;
+
+                            return (
+                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color, 'instructor')} border border-white/10
+                                ${isStartingToday ? 'rounded-l' : 'border-l-0'} 
+                                ${isEndingToday ? 'rounded-r' : 'border-r-0'}`} 
+                                style={{ 
+                                  left: `${leftPct}%`, 
+                                  width: `${widthPct}%` 
+                                }}
+                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                              >
+                                <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
+                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '') : `${dStart.getHours() % 12 || 12}`}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1723,11 +1822,27 @@ const Calendar = () => {
                             <td key={idx} className="border-r border-gray-200 p-1 lg:p-1.5 align-top group-hover:bg-gray-50/30 transition-colors" style={{ minHeight: '60px' }}>
                               {dayEvents.length > 0 ? (
                                 <div className="flex flex-col gap-1">
-                                  {dayEvents.map((ev, i) => (
-                                    <div key={i} className={`rounded p-1 text-[10px] font-bold truncate ${getEventColor(ev.color)} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`}>
-                                      {formatEventTimeForDisplay(ev.start_time).replace(':00', '')}
-                                    </div>
-                                  ))}
+                                  {dayEvents.map((ev, i) => {
+                                    const isStart = ev.date === dateStr;
+                                    const isEnd = ev.end_date === dateStr;
+                                    const displayTime = isStart 
+                                      ? formatEventTimeForDisplay(ev.start_time).replace(':00', '') 
+                                      : `Ends ${formatEventTimeForDisplay(ev.end_time).replace(':00', '')}`;
+                                    
+                                    return (
+                                      <div key={i} 
+                                        className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev.color, 'aircraft')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} 
+                                        title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`}
+                                        onMouseEnter={(e) => handleEventHover(ev, e)} 
+                                        onMouseLeave={handleEventLeave} 
+                                        onClick={() => handleEventClick(ev)}
+                                      >
+                                        {!isStart && <span className="opacity-70">←</span>}
+                                        <span className="truncate">{displayTime}</span>
+                                        {!isEnd && <span className="opacity-70">→</span>}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               ) : (
                                 <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-20">
@@ -1757,14 +1872,26 @@ const Calendar = () => {
                             <td key={idx} className="border-r border-gray-200 p-1 lg:p-1.5 align-top group-hover:bg-gray-50/30 transition-colors" style={{ minHeight: '60px' }}>
                               {dayEvents.length > 0 ? (
                                 <div className="flex flex-col gap-1">
-                                  {dayEvents.map((ev, i) => (
-                                    <div key={i} className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev.color)} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>
-                                      {formatEventTimeForDisplay(ev.start_time).replace(':00', '')}
-                                    </div>
-                                  ))}
+                                  {dayEvents.map((ev, i) => {
+                                    const isStart = ev.date === dateStr;
+                                    const isEnd = ev.end_date === dateStr;
+                                    const displayTime = isStart 
+                                      ? formatEventTimeForDisplay(ev.start_time).replace(':00', '') 
+                                      : `Ends ${formatEventTimeForDisplay(ev.end_time).replace(':00', '')}`;
+
+                                    return (
+                                      <div key={i} className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev.color, 'instructor')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>
+                                        {!isStart && <span className="opacity-70">←</span>}
+                                        <span className="truncate">{displayTime}</span>
+                                        {!isEnd && <span className="opacity-70">→</span>}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               ) : (
-                                <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-20 text-gray-400 font-bold text-[10px]">+</div>
+                                <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-20 text-gray-400 font-bold text-[10px] cursor-pointer" onClick={() => handleAddReservation(dateStr, null, user.id)}>
+                                  +
+                                </div>
                               )}
                             </td>
                           );
@@ -2336,6 +2463,21 @@ const Calendar = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Flight Type</label>
+                  <select
+                    value={reservationForm.flight_type}
+                    onChange={(e) => setReservationForm({ ...reservationForm, flight_type: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    required
+                  >
+                    <option value="">Select Flight Type</option>
+                    {flightTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Select Lesson (Optional)</label>
                   {loadingLessonTemplates ? (
                     <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500">
@@ -2374,21 +2516,6 @@ const Calendar = () => {
                     </select>
                   )}
                   <p className="text-xs text-gray-500 mt-1">Select a lesson template to attach to this reservation</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Flight Type</label>
-                  <select
-                    value={reservationForm.flight_type}
-                    onChange={(e) => setReservationForm({ ...reservationForm, flight_type: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    required
-                  >
-                    <option value="">Select Flight Type</option>
-                    {flightTypes.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
