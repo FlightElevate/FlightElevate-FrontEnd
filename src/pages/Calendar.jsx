@@ -138,7 +138,6 @@ const Calendar = () => {
     time_slot_interval: 60,
     custom_locations: [],
   });
-  const [newLocation, setNewLocation] = useState('');
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -1024,22 +1023,6 @@ const Calendar = () => {
     }
   };
 
-  const handleAddLocation = () => {
-    if (newLocation.trim() && !calendarSettings.custom_locations.includes(newLocation.trim())) {
-      setCalendarSettings({
-        ...calendarSettings,
-        custom_locations: [...calendarSettings.custom_locations, newLocation.trim()],
-      });
-      setNewLocation('');
-    }
-  };
-
-  const handleRemoveLocation = (location) => {
-    setCalendarSettings({
-      ...calendarSettings,
-      custom_locations: calendarSettings.custom_locations.filter(loc => loc !== location),
-    });
-  };
 
   // Check availability before submitting
   const checkAvailability = async () => {
@@ -2055,42 +2038,6 @@ const Calendar = () => {
                     </label>
                   </div>
 
-                  {/* Custom Locations */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Custom Locations</label>
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={newLocation}
-                        onChange={(e) => setNewLocation(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleAddLocation()}
-                        placeholder="Enter location name"
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button
-                        onClick={handleAddLocation}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                      >
-                        Add
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {calendarSettings.custom_locations.map((location, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-700">{location}</span>
-                          <button
-                            onClick={() => handleRemoveLocation(location)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                      {calendarSettings.custom_locations.length === 0 && (
-                        <p className="text-sm text-gray-500">No custom locations added</p>
-                      )}
-                    </div>
-                  </div>
                 </>
               )}
             </div>
