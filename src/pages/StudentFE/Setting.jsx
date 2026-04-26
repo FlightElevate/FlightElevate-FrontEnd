@@ -6,7 +6,8 @@ import { documentService } from '../../api/services/documentService';
 import { authService } from '../../api/services/authService';
 import { organizationService } from '../../api/services/organizationService';
 import { showSuccessToast, showErrorToast, showConfirmDialog } from '../../utils/notifications';
-import { FiSearch, FiEye, FiEyeOff, FiTrash2, FiCamera } from 'react-icons/fi';
+import { FiSearch, FiEye, FiEyeOff, FiTrash2, FiCamera, FiMapPin, FiPlus } from 'react-icons/fi';
+import { locationService } from '../../api/services/locationService';
 import { MdFilterList } from 'react-icons/md';
 import { HiDotsVertical } from 'react-icons/hi';
 
@@ -65,6 +66,68 @@ const Setting = () => {
   const [fetchingAllOrgs, setFetchingAllOrgs] = useState(false);
   const [joinOrgSearch, setJoinOrgSearch] = useState('');
   const [joiningOrgId, setJoiningOrgId] = useState(null);
+
+  // --- Locations state (admin only) ---
+  const [locationsList, setLocationsList] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [newLocationName, setNewLocationName] = useState('');
+  const [newLocationAddress, setNewLocationAddress] = useState('');
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [deletingLocationId, setDeletingLocationId] = useState(null);
+
+  const fetchLocations = async () => {
+    setLoadingLocations(true);
+    try {
+      const res = await locationService.getLocations();
+      if (res.success && Array.isArray(res.data)) {
+        setLocationsList(res.data);
+      }
+    } catch (e) {
+      console.error('Error fetching locations:', e);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const handleAddLocation = async () => {
+    if (!newLocationName.trim()) {
+      showErrorToast('Location name is required');
+      return;
+    }
+    setSavingLocation(true);
+    try {
+      const res = await locationService.createLocation({ name: newLocationName.trim(), address: newLocationAddress.trim() });
+      if (res.success) {
+        showSuccessToast('Location added successfully');
+        setNewLocationName('');
+        setNewLocationAddress('');
+        fetchLocations();
+      } else {
+        showErrorToast(res.message || 'Failed to add location');
+      }
+    } catch (e) {
+      showErrorToast(e.response?.data?.message || 'Failed to add location');
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
+  const handleDeleteLocation = async (locId, locName) => {
+    const confirmed = await showConfirmDialog('Delete Location', `Delete "${locName}"? This will affect students assigned to this location.`, 'Yes, delete');
+    if (!confirmed) return;
+    setDeletingLocationId(locId);
+    try {
+      const res = await locationService.deleteLocation(locId);
+      if (res.success) {
+        showSuccessToast('Location deleted');
+        fetchLocations();
+      }
+    } catch (e) {
+      showErrorToast('Failed to delete location');
+    } finally {
+      setDeletingLocationId(null);
+    }
+  };
 
   
   const [profileData, setProfileData] = useState({
@@ -193,6 +256,12 @@ const Setting = () => {
   useEffect(() => {
     if (activeTab === 'join-organization') {
       fetchAllOrganizations();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'locations' && isAdmin()) {
+      fetchLocations();
     }
   }, [activeTab]);
 
@@ -868,6 +937,7 @@ const Setting = () => {
     { id: 'payment', label: 'Payment' },
     { id: 'join-organization', label: 'Join Organization' },
     ...(isAdmin() ? [{ id: 'organization', label: 'Organization' }] : []),
+    ...(isAdmin() ? [{ id: 'locations', label: 'Locations' }] : []),
   ];
 
   return (
@@ -1861,6 +1931,86 @@ const Setting = () => {
               )}
             </div>
           )}
+          {/* === Locations Tab (Admin Only) === */}
+          {activeTab === 'locations' && isAdmin() && (
+              <div className="bg-white rounded-lg">
+                <div className="flex items-center gap-2 mb-6">
+                  <FiMapPin className="text-blue-600" size={20} />
+                  <h3 className="text-lg font-semibold text-gray-800">Manage Locations</h3>
+                </div>
+                <p className="text-sm text-gray-500 mb-6">
+                  Add and manage locations for your organization. These locations will appear when assigning a location to a student and when creating reservations.
+                </p>
+
+                {/* Add new location */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Add New Location</h4>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      value={newLocationName}
+                      onChange={(e) => setNewLocationName(e.target.value)}
+                      placeholder="Location name (e.g. Main Airport)*"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddLocation()}
+                    />
+                    <input
+                      type="text"
+                      value={newLocationAddress}
+                      onChange={(e) => setNewLocationAddress(e.target.value)}
+                      placeholder="Address (optional)"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddLocation()}
+                    />
+                    <button
+                      onClick={handleAddLocation}
+                      disabled={savingLocation || !newLocationName.trim()}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      <FiPlus size={16} />
+                      {savingLocation ? 'Adding...' : 'Add Location'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Locations list */}
+                {loadingLocations ? (
+                  <div className="flex justify-center items-center py-10">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : locationsList.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400">
+                    <FiMapPin size={32} className="mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">No locations added yet. Add your first location above.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {locationsList.map((loc) => (
+                      <div key={loc.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3 hover:bg-gray-50 transition">
+                        <div className="flex items-center gap-3">
+                          <FiMapPin className="text-blue-500 flex-shrink-0" size={16} />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
+                            {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteLocation(loc.id, loc.name)}
+                          disabled={deletingLocationId === loc.id}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                          title="Delete location"
+                        >
+                          {deletingLocationId === loc.id
+                            ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                            : <FiTrash2 size={16} />}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+          )}
+
         </div>
       </div>
     </div>

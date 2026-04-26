@@ -178,6 +178,7 @@ const Calendar = () => {
   const [instructors, setInstructors] = useState([]);
   const [aircraft, setAircraft] = useState([]);
   const [locationsList, setLocationsList] = useState([]);
+  const [allLocations, setAllLocations] = useState([]); // All org locations for the header filter
   const [loadingFormData, setLoadingFormData] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
@@ -227,6 +228,25 @@ const Calendar = () => {
   // Fetch organizations only once on mount
   useEffect(() => {
     fetchOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch all locations on mount for the header location filter dropdown
+  useEffect(() => {
+    const loadHeaderLocations = async () => {
+      try {
+        const res = await locationService.getLocations();
+        if (res.success && Array.isArray(res.data)) {
+          const locs = res.data.filter(l => l.id != null);
+          // Only pre-populate if not already loaded (fetchFormData may overwrite with more)
+          setAllLocations(locs);
+          setLocationsList(prev => (prev.length > 0 ? prev : locs));
+        }
+      } catch (e) {
+        console.error('Failed to load header locations:', e);
+      }
+    };
+    loadHeaderLocations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -798,6 +818,7 @@ const Calendar = () => {
       const customOnly = customLocationNames
         .filter(name => name && typeof name === 'string' && !seenNames.has(name.trim().toLowerCase()))
         .map(name => ({ id: `new:${name.trim()}`, name: name.trim(), address: '', isCustom: true }));
+      setAllLocations([...apiLocations].filter(l => l.id != null && !String(l.id).startsWith('new:')));
       setLocationsList([...apiLocations, ...customOnly]);
     } catch (err) {
       console.error('Error fetching form data:', err);
@@ -1435,7 +1456,7 @@ const Calendar = () => {
                 aria-label="Filter calendar by location"
               >
                 <option value="">All locations</option>
-                {locationsList
+                {allLocations
                   .filter((loc) => loc.id != null && String(loc.id) !== '' && !String(loc.id).startsWith('new:'))
                   .map((loc) => (
                     <option key={loc.id} value={String(loc.id)}>
@@ -1444,6 +1465,7 @@ const Calendar = () => {
                   ))}
               </select>
             )}
+
 
             {/* Week / Day / Custom view toggle */}
             <div className="flex items-center gap-0.5 rounded-lg border border-gray-300 p-0.5 bg-gray-50 flex-shrink-0">
@@ -2293,10 +2315,15 @@ const Calendar = () => {
                         const suggestedPIC = student?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(student.certificate_level)
                           ? sid
                           : reservationForm.instructor_id;
+                        // Auto-fill location from student's assigned location
+                        const studentLocationId = student?.default_location_id
+                          ? String(student.default_location_id)
+                          : reservationForm.location_id;
                         setReservationForm({
                           ...reservationForm,
                           student_id: sid,
                           acting_pic_user_id: suggestedPIC || reservationForm.acting_pic_user_id,
+                          location_id: studentLocationId,
                         });
                       }}
                       className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -2357,28 +2384,45 @@ const Calendar = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Location <span className="text-red-500">*</span>
+                    {(() => {
+                      const selStudent = students.find(s => String(s.id) === reservationForm.student_id);
+                      return selStudent?.default_location_id ? (
+                        <span className="ml-2 text-xs text-blue-600 font-normal">🔒 Auto-filled from student's profile</span>
+                      ) : null;
+                    })()}
+                  </label>
                   {loadingFormData ? (
                     <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500">Loading locations...</div>
-                  ) : (
-                    <select
-                      value={reservationForm.location_id || ''}
-                      onChange={(e) => setReservationForm({ ...reservationForm, location_id: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Location</option>
-                      {locationsList.length > 0 ? (
-                        locationsList.map((loc) => (
-                          <option key={loc.id} value={String(loc.id)}>
-                            {loc.name}{loc.address ? ` – ${loc.address}` : ''}{loc.isCustom ? ' (from settings)' : ''}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="" disabled>No locations. Admin can add locations for this organization.</option>
-                      )}
-                    </select>
-                  )}
+                  ) : (() => {
+                    const selStudent = students.find(s => String(s.id) === reservationForm.student_id);
+                    const isLocked = !!(selStudent?.default_location_id);
+                    // When locked, show only the student's location
+                    const visibleLocations = isLocked
+                      ? locationsList.filter(loc => String(loc.id) === String(selStudent.default_location_id))
+                      : locationsList;
+                    return (
+                      <select
+                        value={reservationForm.location_id || ''}
+                        onChange={(e) => !isLocked && setReservationForm({ ...reservationForm, location_id: e.target.value })}
+                        className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked ? 'bg-blue-50 cursor-not-allowed border-blue-200' : ''}`}
+                        required
+                        disabled={isLocked}
+                      >
+                        <option value="">Select Location</option>
+                        {visibleLocations.length > 0 ? (
+                          visibleLocations.map((loc) => (
+                            <option key={loc.id} value={String(loc.id)}>
+                              {loc.name}{loc.address ? ` – ${loc.address}` : ''}{loc.isCustom ? ' (from settings)' : ''}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No locations. Admin can add locations for this organization.</option>
+                        )}
+                      </select>
+                    );
+                  })()}
                 </div>
 
                 {reservationForm.student_id && reservationForm.instructor_id && (

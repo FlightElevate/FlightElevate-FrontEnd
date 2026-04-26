@@ -94,17 +94,16 @@ const UserProfile = () => {
     try {
       const payload = {
         default_location_id: locationForm.default_location_id ? parseInt(locationForm.default_location_id, 10) : null,
-        calendar_location_ids: locationForm.calendar_location_ids.map(Number),
       };
       const response = await userService.updateUser(id, payload);
       if (response.success) {
-        showSuccessToast('Location settings saved successfully');
+        showSuccessToast('Location saved successfully');
         setUser(prev => ({ ...prev, ...payload }));
       } else {
-        showErrorToast(response.message || 'Failed to save location settings');
+        showErrorToast(response.message || 'Failed to save location');
       }
     } catch (err) {
-      showErrorToast('Failed to save location settings');
+      showErrorToast('Failed to save location');
     } finally {
       setLocationSaving(false);
     }
@@ -424,50 +423,35 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
             </div>
 
-            {/* Calendar & Location Settings */}
+            {/* Assigned Location */}
             <div className="border-t border-gray-200 pt-6 mb-6">
               <div className="flex items-center gap-2 mb-4">
                 <FiMapPin className="text-blue-600" size={18} />
-                <h3 className="text-lg font-semibold text-gray-900">Calendar & Location Settings</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Assigned Location</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
-                  <p className="text-xs text-gray-500 mb-2">This user's primary location (affects their calendar default view).</p>
+              <p className="text-sm text-gray-500 mb-4">
+                Assign one location to this user. During reservation creation, only this location will be available for selection.
+              </p>
+              <div className="max-w-sm">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                {locationOptions.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">
+                    No locations available. An admin must first add locations in the Settings page.
+                  </p>
+                ) : (
                   <select
                     value={locationForm.default_location_id}
                     onChange={(e) => setLocationForm(prev => ({ ...prev, default_location_id: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">— No default location —</option>
+                    <option value="">— No location assigned —</option>
                     {locationOptions.map((loc) => (
-                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}{loc.address ? ` – ${loc.address}` : ''}</option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Calendar Accessible Locations</label>
-                  <p className="text-xs text-gray-500 mb-2">Locations this user can view on the calendar.</p>
-                  <div className="border border-gray-200 rounded-lg p-3 max-h-36 overflow-y-auto space-y-2 bg-gray-50">
-                    {locationOptions.length === 0 ? (
-                      <p className="text-xs text-gray-400">No locations available</p>
-                    ) : (
-                      locationOptions.map((loc) => (
-                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={locationForm.calendar_location_ids.includes(String(loc.id))}
-                            onChange={() => toggleCalendarLocation(loc.id)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">{loc.name}</span>
-                        </label>
-                      ))
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex justify-start">
                 <button
                   onClick={handleSaveLocationSettings}
                   disabled={locationSaving}
@@ -478,10 +462,11 @@ const UserProfile = () => {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       Saving…
                     </>
-                  ) : 'Save Location Settings'}
+                  ) : 'Save Location'}
                 </button>
               </div>
             </div>
+
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
