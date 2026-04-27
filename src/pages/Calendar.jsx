@@ -1548,8 +1548,8 @@ const Calendar = () => {
         >
           <table className="calendar-table min-w-full" style={{ 
             minWidth: calendarViewMode === 'day' 
-              ? (isMobile ? '800px' : '1200px') 
-              : (calendarViewMode === 'custom' ? Math.max(getDisplayDates().length * (isMobile ? 120 : 180), 1000) : (isMobile ? '800px' : '1000px')),
+              ? (isMobile ? '1400px' : '1800px') 
+              : (calendarViewMode === 'custom' ? Math.max(getDisplayDates().length * (isMobile ? 150 : 200), 1200) : (isMobile ? '1000px' : '1400px')),
             width: '100%',
             tableLayout: 'fixed',
             borderSpacing: 0
@@ -1558,7 +1558,7 @@ const Calendar = () => {
                 <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
                     <tr className="border-b border-gray-200 shadow-sm bg-gray-50">
-                      <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                      <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                         <div className="flex flex-col">
                           <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][currentDate.getDay()]}</span>
                           <span className="text-gray-900">{currentDate.getDate()} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][currentDate.getMonth()]}</span>
@@ -1567,15 +1567,11 @@ const Calendar = () => {
                       {timeSlots.map((slot, idx) => {
                         const isCurrentHour = formatDateStr(new Date()) === formatDateStr(currentDate) && new Date().getHours() === idx;
                         return (
-                          <th key={idx} className="relative px-0 py-2 border-r border-gray-200" 
-                            style={{ width: `calc((100% - ${isMobile ? 100 : 150}px) / 24)` }}>
-                            <div className={`absolute left-0 -bottom-1 transform -translate-x-1/2 text-[9px] font-bold uppercase ${isCurrentHour ? 'text-red-600' : 'text-gray-400'}`}>
-                              {slot.label.replace(' ', '')}
+                          <th key={idx} className="px-1 py-2 border-r border-gray-200 bg-gray-50/50" 
+                            style={{ width: `calc((100% - ${isMobile ? 120 : 150}px) / 24)` }}>
+                            <div className="text-[9px] sm:text-[10px] font-bold uppercase text-gray-400 truncate">
+                              {slot.label}
                             </div>
-                            {/* Visual marker for current time in header */}
-                            {isCurrentHour && formatDateStr(new Date()) === formatDateStr(currentDate) && (
-                              <div className="absolute top-0 bottom-0 w-px bg-red-500/20" style={{ left: `${(new Date().getMinutes() / 60) * 100}%` }}></div>
-                            )}
                           </th>
                         );
                       })}
@@ -1583,17 +1579,17 @@ const Calendar = () => {
                   </thead>
                   <tbody>
                     <tr className="bg-blue-50/50">
-                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-blue-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-blue-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                         <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wide">Aircraft</h3>
                       </td>
                       <td colSpan={24} className="border-r border-gray-200 bg-blue-50/20" style={{ height: '36px' }}></td>
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={`aircraft-${aircraft.id}`} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
-                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span>
                         </td>
-                        <td colSpan={24} className="relative p-0" style={{ height: '48px' }}>
+                        <td colSpan={24} className="relative p-0" style={{ height: isMobile ? '60px' : '54px' }}>
                           {/* Background Grid Cells (Clickable) */}
                           <div className="absolute inset-0 flex">
                             {timeSlots.map((slot, idx) => (
@@ -1610,12 +1606,6 @@ const Calendar = () => {
                             ))}
                           </div>
                           
-                          {/* Current Time Indicator Line */}
-                          {formatDateStr(new Date()) === formatDateStr(currentDate) && (
-                            <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-30 pointer-events-none opacity-60" 
-                              style={{ left: `${((new Date().getHours() + new Date().getMinutes() / 60) / 24) * 100}%` }}>
-                            </div>
-                          )}
 
                           {/* Events */}
                           {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
@@ -1645,7 +1635,7 @@ const Calendar = () => {
                               >
                                 <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm flex items-center gap-1">
                                   {!isStartingToday && <span className="opacity-70">…</span>}
-                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time) : `${dStart.getHours() % 12 || 12}:00 AM`}
+                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(':00 ', '') : `${dStart.getHours() % 12 || 12}:00 AM`}
                                 </div>
                               </div>
                             );
@@ -1675,7 +1665,7 @@ const Calendar = () => {
                                 }}
                                 onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
                               >
-                                <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
+                                <div className="font-bold truncate text-[9px] w-full text-center flex items-center justify-center">
                                   {isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '') : `${dStart.getHours() % 12 || 12}`}
                                 </div>
                               </div>
@@ -1685,17 +1675,17 @@ const Calendar = () => {
                       </tr>
                     ))}
                     <tr className="bg-green-50/50">
-                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-green-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-green-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                         <h3 className="text-xs font-bold text-green-800 uppercase tracking-wide">Instructors</h3>
                       </td>
                       <td colSpan={24} className="border-r border-gray-200 bg-green-50/20" style={{ height: '36px' }}></td>
                     </tr>
                     {filteredUserSchedule.map((user) => (
                       <tr key={`user-${user.id}`} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
-                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(user.name)}</span>
                         </td>
-                        <td colSpan={24} className="relative p-0" style={{ height: '48px' }}>
+                        <td colSpan={24} className="relative p-0" style={{ height: isMobile ? '60px' : '54px' }}>
                            {/* Background Grid Cells (Clickable) */}
                            <div className="absolute inset-0 flex">
                             {timeSlots.map((slot, idx) => (
@@ -1712,12 +1702,6 @@ const Calendar = () => {
                             ))}
                           </div>
 
-                          {/* Current Time Indicator Line */}
-                          {formatDateStr(new Date()) === formatDateStr(currentDate) && (
-                            <div className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-30 pointer-events-none opacity-60" 
-                              style={{ left: `${((new Date().getHours() + new Date().getMinutes() / 60) / 24) * 100}%` }}>
-                            </div>
-                          )}
 
                           {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
                             const fullRange = eventStartEndMs(event);
@@ -1791,7 +1775,7 @@ const Calendar = () => {
                 <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
                     <tr className="border-b border-gray-200 shadow-sm">
-                      <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                      <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                         Resource
                       </th>
                       {getDisplayDates().map((day, idx) => (
@@ -1817,7 +1801,7 @@ const Calendar = () => {
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={aircraft.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
-                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span>
                         </td>
                         {getDisplayDates().map((day, idx) => {
@@ -1860,14 +1844,14 @@ const Calendar = () => {
                       </tr>
                     ))}
                     <tr className="bg-green-50/50">
-                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-green-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                      <td className="px-3 py-2 border-r border-gray-200 sticky left-0 bg-green-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                         <h3 className="text-xs font-bold text-green-800 uppercase tracking-wide">Instructors</h3>
                       </td>
                       {getDisplayDates().map((_, idx) => <td key={idx} className="border-r border-gray-200 bg-green-50/20" style={{ height: '36px' }}></td>)}
                     </tr>
                     {filteredUserSchedule.map((user) => (
                       <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
-                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '100px' : '150px' }}>
+                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(user.name)}</span>
                         </td>
                         {getDisplayDates().map((day, idx) => {
