@@ -71,6 +71,15 @@ apiClient.interceptors.response.use(
         case 403:
           
           errorResponse.message = data?.message || 'Access denied';
+          
+          // Handle subscription required redirection
+          if (data?.subscription_required) {
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/subscription') {
+              window.location.href = '/subscription';
+            }
+          }
+          
           if (import.meta.env.DEV) {
             console.error('Access denied:', data);
           }
