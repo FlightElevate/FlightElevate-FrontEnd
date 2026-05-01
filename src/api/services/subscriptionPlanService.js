@@ -26,4 +26,8 @@ export const subscriptionPlanService = {
   async deleteSubscriptionPlan(id) {
     return await api.delete(ENDPOINTS.SUBSCRIPTION_PLANS.DELETE(id));
   },
+
+  async subscribe(planId) {
+    return await api.post('/subscription-plans/subscribe', { plan_id: planId });
+  },
 };

@@ -38,6 +38,7 @@ import InstructorLessons from "./pages/InstructorFE/Lessons";
 import Logbook from "./pages/InstructorFE/Logbook";
 import ReservationDetail from "./pages/ReservationDetail";
 import UserPolicy from "./pages/UserPolicy";
+import AdminSubscription from "./pages/AdminFE/Subscription/Subscription";
 
 const App = () => {
   return (
@@ -80,7 +81,8 @@ const App = () => {
           } />
           
           <Route path="/announcements" element={<Announcements />} />
-          <Route path="/subscriptions" element={<Subscriptions />} />
+          <Route path="/subscription-plans" element={<Subscriptions />} />
+          <Route path="/subscription" element={<AdminSubscription />} />
           <Route path="/support" element={<Support />} />
           <Route path="/users" element={<Users />} />
           <Route path="/air-craft-profile" element={<AirCraftProfile />} />
@@ -103,7 +105,7 @@ const App = () => {
           <Route path="/announcements/edit/:id" element={<Compose />} />
           <Route path="/user-management/profile/:id" element={<UserProfilePage />} />
           <Route path="/user-management/organization/:id" element={<OrganizationDetail />} />
-          <Route path="/subscriptions/plans/:id" element={<Plans />} />
+          <Route path="/subscription-plans/plans/:id" element={<Plans />} />
           <Route path="/support/chatsupport/:id?" element={<Chatsupport />} />
           <Route path="/users/profile/:id" element={<UserProfile />} />
           <Route path="/air-craft-profile/aircraft/:id" element={<AirCraftDetail />} />

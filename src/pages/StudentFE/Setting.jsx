@@ -30,7 +30,7 @@ const Setting = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    if (isSuperAdmin() && activeTab === 'documents') {
+    if (isSuperAdmin() && (activeTab === 'documents' || activeTab === 'payment')) {
       setActiveTab('profile');
     }
   }, [isSuperAdmin, activeTab]);
@@ -934,8 +934,8 @@ const Setting = () => {
     { id: 'profile', label: 'Profile' },
     { id: 'password', label: 'Password' },
     ...(!isSuperAdmin() ? [{ id: 'documents', label: 'Documents' }] : []),
-    { id: 'payment', label: 'Payment' },
-    { id: 'join-organization', label: 'Join Organization' },
+    ...(!isSuperAdmin() ? [{ id: 'payment', label: 'Payment' }] : []),
+    // { id: 'join-organization', label: 'Join Organization' },
     ...(isAdmin() ? [{ id: 'organization', label: 'Organization' }] : []),
     ...(isAdmin() ? [{ id: 'locations', label: 'Locations' }] : []),
   ];
@@ -1437,78 +1437,107 @@ const Setting = () => {
 
           {}
           {activeTab === 'documents' && (
-            <div className="bg-white rounded-lg">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-                <h3 className="text-lg font-semibold text-gray-800">Documents</h3>
+            <div className="bg-white rounded-xl">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Documents</h3>
+                  <p className="text-sm text-gray-500 mt-1">Manage your licenses, certifications, and other records.</p>
+                </div>
                 {!isSuperAdmin() && (
                   <button
                     onClick={() => setShowAddDocument(!showAddDocument)}
-                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[44px]"
+                    className={`w-full sm:w-auto px-5 py-2.5 rounded-xl transition-all duration-200 text-sm font-semibold flex items-center justify-center gap-2 shadow-sm ${
+                      showAddDocument 
+                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                        : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                    }`}
                   >
-                    {showAddDocument ? 'Cancel' : '+ Add New Document'}
+                    {showAddDocument ? (
+                      <>Cancel</>
+                    ) : (
+                      <>
+                        <FiPlus className="w-4 h-4" />
+                        Add New Document
+                      </>
+                    )}
                   </button>
                 )}
               </div>
 
-              {}
               {showAddDocument && (
-                <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h4 className="text-md font-semibold text-gray-700 mb-4">Add New Document</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-2">Document Title</label>
-                      <input
-                        type="text"
-                        name="title"
-                        value={newDocument.title}
-                        onChange={handleNewDocumentChange}
-                        placeholder="Enter document title..."
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                      />
+                <div className="mb-8 p-6 border border-blue-100 rounded-2xl bg-blue-50/30 animate-in fade-in slide-in-from-top-4 duration-300">
+                  <h4 className="text-lg font-bold text-gray-800 mb-5">Upload New Document</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Document Title</label>
+                        <input
+                          type="text"
+                          name="title"
+                          value={newDocument.title}
+                          onChange={handleNewDocumentChange}
+                          placeholder="e.g. Private Pilot License"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all shadow-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Date (Optional)</label>
+                        <input
+                          type="date"
+                          name="expiry_date"
+                          value={newDocument.expiry_date}
+                          onChange={handleNewDocumentChange}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all shadow-sm"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-2">Expiry Date (Optional)</label>
-                      <input
-                        type="date"
-                        name="expiry_date"
-                        value={newDocument.expiry_date}
-                        onChange={handleNewDocumentChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                      />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Details (Optional)</label>
+                        <textarea
+                          name="details"
+                          value={newDocument.details}
+                          onChange={handleNewDocumentChange}
+                          placeholder="Add any specific notes about this document..."
+                          rows="4"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all shadow-sm resize-none"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-2">Details (Optional)</label>
-                      <textarea
-                        name="details"
-                        value={newDocument.details}
-                        onChange={handleNewDocumentChange}
-                        placeholder="Enter document details..."
-                        rows="3"
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                      />
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">Upload File</label>
+                      <div className="relative border-2 border-dashed border-gray-200 rounded-2xl p-8 hover:border-blue-400 transition-colors bg-white group cursor-pointer text-center">
+                        <input
+                          type="file"
+                          name="file"
+                          onChange={handleNewDocumentChange}
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <FiCamera className="w-6 h-6" />
+                          </div>
+                          <p className="text-sm font-medium text-gray-700">
+                            {selectedFile ? selectedFile.name : "Click or drag to upload document"}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">PDF, PNG, JPG, or DOC (Max 5MB)</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-2">Upload File (Optional)</label>
-                      <input
-                        type="file"
-                        name="file"
-                        onChange={handleNewDocumentChange}
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      />
-                      {selectedFile && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex justify-end">
+                    <div className="md:col-span-2 flex justify-end gap-3 mt-2">
+                      <button
+                        onClick={() => setShowAddDocument(false)}
+                        className="px-6 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+                      >
+                        Cancel
+                      </button>
                       <button
                         onClick={handleAddDocument}
                         disabled={loading}
-                        className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm font-medium min-h-[44px]"
+                        className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold shadow-sm hover:shadow-md disabled:opacity-50"
                       >
-                        {loading ? 'Adding...' : 'Add Document'}
+                        {loading ? 'Adding...' : 'Save Document'}
                       </button>
                     </div>
                   </div>
@@ -1516,73 +1545,101 @@ const Setting = () => {
               )}
 
               {loadingDocs ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-12">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-48 bg-gray-50 animate-pulse rounded-2xl"></div>
+                  ))}
                 </div>
               ) : documents.length > 0 ? (
-                <div className="space-y-3">
-                  {documents.map((doc) => (
-                    <div 
-                      key={doc.id} 
-                      className={`border rounded-lg p-4 transition-colors ${
-                        selectedDocuments.includes(doc.id) 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedDocuments.includes(doc.id)}
-                          onChange={() => handleDocumentToggle(doc.id)}
-                          className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                        />
-                        <div 
-                          className="flex-1 cursor-pointer"
-                          onClick={() => handleDocumentToggle(doc.id)}
-                        >
-                          <h4 className="font-medium text-gray-800">{doc.title}</h4>
-                          {doc.expiry_date && (
-                            <p className="text-sm text-gray-500 mt-1">
-                              Expires: {new Date(doc.expiry_date).toLocaleDateString()}
-                            </p>
-                          )}
-                          {doc.details && (
-                            <p className="text-sm text-gray-600 mt-1">{doc.details}</p>
-                          )}
-                          {doc.file_path && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {documents.map((doc) => {
+                    const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                    const isExpiringSoon = doc.expiry_date && !isExpired && 
+                      new Date(doc.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+                    return (
+                      <div 
+                        key={doc.id} 
+                        className={`group relative border rounded-2xl p-5 transition-all duration-300 hover:shadow-xl hover:border-blue-200 bg-white flex flex-col h-full ${
+                          selectedDocuments.includes(doc.id) ? 'ring-2 ring-blue-500 border-blue-500' : 'border-gray-100 shadow-sm'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className={`p-3 rounded-xl ${isExpired ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'} group-hover:scale-110 transition-transform duration-300`}>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDocument(doc.id, doc.title);
+                              }}
+                              disabled={deletingDocId === doc.id}
+                              className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <FiTrash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900 line-clamp-1 mb-1">{doc.title}</h4>
+                          {doc.details && <p className="text-sm text-gray-500 line-clamp-2 mb-3 h-10">{doc.details}</p>}
+                          
+                          <div className="space-y-2 mt-auto pt-3 border-t border-gray-50">
+                            {doc.expiry_date && (
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${isExpired ? 'bg-red-500' : isExpiringSoon ? 'bg-orange-500' : 'bg-green-500'}`}></div>
+                                <span className={`text-xs font-semibold ${isExpired ? 'text-red-600' : isExpiringSoon ? 'text-orange-600' : 'text-gray-500'}`}>
+                                  {isExpired ? 'Expired: ' : isExpiringSoon ? 'Expiring soon: ' : 'Expires: '}
+                                  {new Date(doc.expiry_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 flex gap-3">
+                          {doc.file_path ? (
                             <a 
                               href={doc.file_path} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-800 mt-1 inline-block"
-                              onClick={(e) => e.stopPropagation()}
+                              className="flex-1 py-2 px-4 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 text-xs font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
                             >
-                              View Document
+                              <FiEye size={14} />
+                              View
                             </a>
-                          )}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteDocument(doc.id, doc.title);
-                          }}
-                          disabled={deletingDocId === doc.id}
-                          className="ml-2 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
-                          title="Delete document"
-                        >
-                          {deletingDocId === doc.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
                           ) : (
-                            <FiTrash2 size={18} />
+                            <div className="flex-1 py-2 px-4 bg-gray-50 text-gray-400 text-xs font-bold rounded-xl flex items-center justify-center italic">
+                              No file
+                            </div>
                           )}
-                        </button>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedDocuments.includes(doc.id)}
+                              onChange={() => handleDocumentToggle(doc.id)}
+                              className="h-5 w-5 text-blue-600 border-gray-300 rounded-lg focus:ring-blue-500 cursor-pointer shadow-sm"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No documents found</p>
+                <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
+                  <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">No documents yet</h3>
+                  <p className="text-gray-500 max-w-xs mx-auto">Upload your licenses and certifications to keep them organized.</p>
+                </div>
               )}
             </div>
           )}

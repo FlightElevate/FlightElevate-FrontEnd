@@ -107,6 +107,18 @@ export const navigationItems = [
     roles: ["super admin", "admin", "instructor", "student"], 
   },
   {
+    icon: FiDollarSign,
+    label: "Subscription Plans",
+    link: "/subscription-plans",
+    roles: ["super admin"],
+  },
+  {
+    icon: FiDollarSign,
+    label: "Subscription",
+    link: "/subscription",
+    roles: ["admin"],
+  },
+  {
     icon: FiSettings,
     label: "Settings",
     link: "/setting",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { FiChevronLeft, FiChevronRight, FiSettings, FiX } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSettings, FiX, FiCheck } from 'react-icons/fi';
 import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
 import { userService } from '../api/services/userService';
@@ -901,10 +901,47 @@ const Calendar = () => {
       .sort((a, b) => eventStartEndMs(a).startMs - eventStartEndMs(b).startMs);
   };
 
-  const getEventColor = (color, itemType = null) => {
+  const getEventColor = (event, itemType = null) => {
+    const activityType = event?.flight_type || event?.title;
+    
+    if (activityType && calendarSettings?.activity_colors) {
+      const matchedKey = Object.keys(calendarSettings.activity_colors).find(
+        key => key.trim().toLowerCase() === activityType.trim().toLowerCase()
+      );
+
+      if (matchedKey) {
+        const actColor = calendarSettings.activity_colors[matchedKey];
+        const customColorMap = {
+          slate: 'bg-slate-500 border-slate-600 shadow-[0_0_8px_rgba(100,116,139,0.3)]',
+          gray: 'bg-gray-500 border-gray-600 shadow-[0_0_8px_rgba(107,114,128,0.3)]',
+          zinc: 'bg-zinc-500 border-zinc-600 shadow-[0_0_8px_rgba(113,113,122,0.3)]',
+          red: 'bg-red-500 border-red-600 shadow-[0_0_8px_rgba(239,68,68,0.3)]',
+          orange: 'bg-orange-500 border-orange-600 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
+          amber: 'bg-amber-500 border-amber-600 shadow-[0_0_8px_rgba(245,158,11,0.3)] text-gray-900',
+          yellow: 'bg-yellow-400 border-yellow-500 shadow-[0_0_8px_rgba(250,204,21,0.3)] text-gray-900',
+          lime: 'bg-lime-500 border-lime-600 shadow-[0_0_8px_rgba(132,204,22,0.3)] text-gray-900',
+          green: 'bg-green-500 border-green-600 shadow-[0_0_8px_rgba(34,197,94,0.3)]',
+          emerald: 'bg-emerald-500 border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.3)]',
+          teal: 'bg-teal-500 border-teal-600 shadow-[0_0_8px_rgba(20,184,166,0.3)]',
+          cyan: 'bg-cyan-500 border-cyan-600 shadow-[0_0_8px_rgba(6,182,212,0.3)]',
+          sky: 'bg-sky-500 border-sky-600 shadow-[0_0_8px_rgba(14,165,233,0.3)]',
+          blue: 'bg-blue-500 border-blue-600 shadow-[0_0_8px_rgba(59,130,246,0.3)]',
+          indigo: 'bg-indigo-500 border-indigo-600 shadow-[0_0_8px_rgba(99,102,241,0.3)]',
+          violet: 'bg-violet-500 border-violet-600 shadow-[0_0_8px_rgba(139,92,246,0.3)]',
+          purple: 'bg-purple-500 border-purple-600 shadow-[0_0_8px_rgba(168,85,247,0.3)]',
+          fuchsia: 'bg-fuchsia-500 border-fuchsia-600 shadow-[0_0_8px_rgba(217,70,239,0.3)]',
+          pink: 'bg-pink-500 border-pink-600 shadow-[0_0_8px_rgba(236,72,153,0.3)]',
+          rose: 'bg-rose-500 border-rose-600 shadow-[0_0_8px_rgba(244,63,94,0.3)]',
+          black: 'bg-gray-900 border-black shadow-[0_0_8px_rgba(0,0,0,0.3)]',
+        };
+        if (customColorMap[actColor]) return customColorMap[actColor];
+      }
+    }
+
+    const color = event?.color || event;
     // Priority 1: Special Status colors (regardless of resource)
     if (color === 'red' || color === 'light-red') return 'bg-red-400 border-red-500';
-    if (color === 'yellow') return 'bg-yellow-400 border-yellow-500'; // Requested
+    if (color === 'yellow') return 'bg-yellow-400 border-yellow-500 text-gray-800'; // Requested
     if (color === 'orange') return 'bg-orange-400 border-orange-500';
     if (color === 'gray') return 'bg-gray-400 border-gray-500';
 
@@ -922,15 +959,15 @@ const Calendar = () => {
       red: 'bg-red-400 border-red-500',
       'light-red': 'bg-red-300 border-red-400',
       orange: 'bg-orange-400 border-orange-500',
-      yellow: 'bg-yellow-400 border-yellow-500',
+      yellow: 'bg-yellow-400 border-yellow-500 text-gray-800',
       gray: 'bg-gray-400 border-gray-500',
     };
     return colorMap[color] || 'bg-blue-500 border-blue-600';
   };
 
-  const handleEventHover = (event, e) => {
+  const handleEventHover = (event, e, context = null) => {
     if (event) {
-      setHoveredEvent(event);
+      setHoveredEvent({ ...event, hoverContext: context });
       setHoverPosition({ x: e.clientX, y: e.clientY });
     }
   };
@@ -1623,7 +1660,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
                             
                             return (
-                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
                                 style={{ 
@@ -1631,11 +1668,12 @@ const Calendar = () => {
                                   width: `${widthPct}%`,
                                   marginLeft: isStartingToday ? '1px' : '0px'
                                 }}
-                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                                onMouseEnter={(e) => handleEventHover(event, e, 'aircraft')} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
                               >
                                 <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm flex items-center gap-1">
                                   {!isStartingToday && <span className="opacity-70">…</span>}
                                   {isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(':00 ', '') : `${dStart.getHours() % 12 || 12}:00 AM`}
+                                  {event.student?.name && <span className="truncate"> - {event.student.name} ({new Date(event.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})})</span>}
                                 </div>
                               </div>
                             );
@@ -1656,17 +1694,18 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
 
                             return (
-                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color, 'aircraft')} border border-white/10
+                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/10
                                 ${isStartingToday ? 'rounded-l' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r' : 'border-r-0'}`} 
                                 style={{ 
                                   left: `${leftPct}%`, 
                                   width: `${widthPct}%` 
                                 }}
-                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                                onMouseEnter={(e) => handleEventHover(event, e, 'aircraft')} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
                               >
-                                <div className="font-bold truncate text-[9px] w-full text-center flex items-center justify-center">
-                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '') : `${dStart.getHours() % 12 || 12}`}
+                                <div className="font-bold truncate text-[9px] w-full text-center flex flex-col items-center justify-center leading-tight">
+                                  <span>{isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '') : `${dStart.getHours() % 12 || 12}`}</span>
+                                  {event.student?.name && <span className="truncate w-full px-1">{event.student.name} ({new Date(event.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})})</span>}
                                 </div>
                               </div>
                             );
@@ -1718,7 +1757,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
 
                             return (
-                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event.color, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
                                 style={{ 
@@ -1726,11 +1765,12 @@ const Calendar = () => {
                                   width: `${widthPct}%`,
                                   marginLeft: isStartingToday ? '1px' : '0px'
                                 }}
-                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                                onMouseEnter={(e) => handleEventHover(event, e, 'instructor')} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
                               >
                                 <div className="font-bold truncate text-[10px] md:text-xs leading-tight w-full drop-shadow-sm flex items-center gap-1">
                                   {!isStartingToday && <span className="opacity-70">…</span>}
                                   {isStartingToday ? formatEventTimeForDisplay(event.start_time) : `${dStart.getHours() % 12 || 12}:00 AM`}
+                                  {event.student?.name && <span className="truncate"> - {event.student.name} ({new Date(event.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})})</span>}
                                 </div>
                               </div>
                             );
@@ -1751,17 +1791,18 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
 
                             return (
-                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event.color, 'instructor')} border border-white/10
+                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event, 'instructor')} border border-white/10
                                 ${isStartingToday ? 'rounded-l' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r' : 'border-r-0'}`} 
                                 style={{ 
                                   left: `${leftPct}%`, 
                                   width: `${widthPct}%` 
                                 }}
-                                onMouseEnter={(e) => handleEventHover(event, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
+                                onMouseEnter={(e) => handleEventHover(event, e, 'instructor')} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(event)}
                               >
-                                <div className="font-bold truncate text-[8px] w-full text-center flex items-center justify-center">
-                                  {isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '') : `${dStart.getHours() % 12 || 12}`}
+                                <div className="font-bold truncate text-[8px] w-full text-center flex flex-col items-center justify-center leading-tight">
+                                  <span>{isStartingToday ? formatEventTimeForDisplay(event.start_time).replace(/AM|PM/i, '') : `${dStart.getHours() % 12 || 12}`}</span>
+                                  {event.student?.name && <span className="truncate w-full px-1">{event.student.name} ({new Date(event.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})})</span>}
                                 </div>
                               </div>
                             );
@@ -1820,14 +1861,14 @@ const Calendar = () => {
                                     
                                     return (
                                       <div key={i} 
-                                        className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev.color, 'aircraft')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} 
+                                        className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev, 'aircraft')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} 
                                         title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`}
-                                        onMouseEnter={(e) => handleEventHover(ev, e)} 
+                                        onMouseEnter={(e) => handleEventHover(ev, e, 'aircraft')} 
                                         onMouseLeave={handleEventLeave} 
                                         onClick={() => handleEventClick(ev)}
                                       >
                                         {!isStart && <span className="opacity-70">←</span>}
-                                        <span className="truncate">{displayTime}</span>
+                                        <span className="truncate">{displayTime}{ev.student?.name ? ` - ${ev.student.name}` : ''}</span>
                                         {!isEnd && <span className="opacity-70">→</span>}
                                       </div>
                                     );
@@ -1869,9 +1910,9 @@ const Calendar = () => {
                                       : `Ends ${formatEventTimeForDisplay(ev.end_time).replace(':00', '')}`;
 
                                     return (
-                                      <div key={i} className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev.color, 'instructor')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e)} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>
+                                      <div key={i} className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev, 'instructor')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e, 'instructor')} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>
                                         {!isStart && <span className="opacity-70">←</span>}
-                                        <span className="truncate">{displayTime}</span>
+                                        <span className="truncate">{displayTime}{ev.student?.name ? ` - ${ev.student.name}` : ''}</span>
                                         {!isEnd && <span className="opacity-70">→</span>}
                                       </div>
                                     );
@@ -1907,14 +1948,42 @@ const Calendar = () => {
           }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
-              {(safeDisplay(hoveredEvent.instructor, 'U').charAt(0) || 'U').toUpperCase()}
-            </div>
-            <div>
-              <div className="font-medium text-sm text-gray-800">
-                {safeDisplay(hoveredEvent.instructor, 'Unknown')}
-              </div>
-            </div>
+            {hoveredEvent.hoverContext === 'instructor' ? (
+              <>
+                {hoveredEvent.student?.name ? (
+                  <>
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
+                      {(hoveredEvent.student.name.charAt(0) || 'S').toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm text-gray-800">
+                        Student: {hoveredEvent.student.name}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="font-medium text-sm text-gray-800">
+                    No Student Assigned
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
+                  {(safeDisplay(hoveredEvent.instructor?.name || hoveredEvent.instructor, 'U').charAt(0) || 'U').toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-medium text-sm text-gray-800">
+                    Inst: {safeDisplay(hoveredEvent.instructor?.name || hoveredEvent.instructor, 'Unknown')}
+                  </div>
+                  {hoveredEvent.student?.name && (
+                    <div className="text-xs text-gray-600 mt-0.5">
+                      Student: {hoveredEvent.student.name}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           <p className="text-xs text-gray-600">{safeDisplay(hoveredEvent.description, 'No description')}</p>
           {(safeDisplay(hoveredEvent.location?.name, '') || safeDisplay(hoveredEvent.location_name, '')) ? (
@@ -2020,6 +2089,111 @@ const Calendar = () => {
                     <label htmlFor="show_weekends" className="text-sm font-medium text-gray-700">
                       Show Weekends
                     </label>
+                  </div>
+
+                  {/* Activity Type Colors */}
+                  <div className="pt-8 border-t border-gray-100 mt-8">
+                    <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-xl font-bold text-gray-900 tracking-tight">Activity Tags</h4>
+                        <p className="text-sm text-gray-500 mt-1">Assign distinct colors to flight types for quick visual identification.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 max-h-[60vh] overflow-y-auto pr-2 pb-4 custom-scrollbar">
+                      {flightTypes.map(type => {
+                        const currentSelection = calendarSettings.activity_colors?.[type] || 'blue';
+                        return (
+                          <div key={type} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] hover:border-blue-100 transition-all duration-300 group">
+                            <div className="flex justify-between items-center mb-5 border-b border-gray-50 pb-3">
+                              <span className="text-base font-bold text-gray-800">{type}</span>
+                              <div className={`w-4 h-4 rounded-full shadow-sm ring-4 ring-opacity-20 animate-pulse ${
+                                    currentSelection === 'slate' ? 'bg-slate-500 ring-slate-500' :
+                                    currentSelection === 'gray' ? 'bg-gray-500 ring-gray-500' :
+                                    currentSelection === 'zinc' ? 'bg-zinc-500 ring-zinc-500' :
+                                    currentSelection === 'red' ? 'bg-red-500 ring-red-500' :
+                                    currentSelection === 'orange' ? 'bg-orange-500 ring-orange-500' :
+                                    currentSelection === 'amber' ? 'bg-amber-500 ring-amber-500' :
+                                    currentSelection === 'yellow' ? 'bg-yellow-400 ring-yellow-400' :
+                                    currentSelection === 'lime' ? 'bg-lime-500 ring-lime-500' :
+                                    currentSelection === 'green' ? 'bg-green-500 ring-green-500' :
+                                    currentSelection === 'emerald' ? 'bg-emerald-500 ring-emerald-500' :
+                                    currentSelection === 'teal' ? 'bg-teal-500 ring-teal-500' :
+                                    currentSelection === 'cyan' ? 'bg-cyan-500 ring-cyan-500' :
+                                    currentSelection === 'sky' ? 'bg-sky-500 ring-sky-500' :
+                                    currentSelection === 'blue' ? 'bg-blue-500 ring-blue-500' :
+                                    currentSelection === 'indigo' ? 'bg-indigo-500 ring-indigo-500' :
+                                    currentSelection === 'violet' ? 'bg-violet-500 ring-violet-500' :
+                                    currentSelection === 'purple' ? 'bg-purple-500 ring-purple-500' :
+                                    currentSelection === 'fuchsia' ? 'bg-fuchsia-500 ring-fuchsia-500' :
+                                    currentSelection === 'pink' ? 'bg-pink-500 ring-pink-500' :
+                                    currentSelection === 'rose' ? 'bg-rose-500 ring-rose-500' :
+                                    currentSelection === 'black' ? 'bg-gray-900 ring-gray-900' :
+                                    'bg-blue-500 ring-blue-500'
+                              }`}></div>
+                            </div>
+                            
+                            <div className="grid grid-cols-7 gap-2">
+                              {[
+                                'slate', 'gray', 'zinc', 
+                                'red', 'orange', 'amber', 'yellow', 'lime', 
+                                'green', 'emerald', 'teal', 
+                                'cyan', 'sky', 'blue', 'indigo', 
+                                'violet', 'purple', 'fuchsia', 'pink', 'rose', 
+                                'black'
+                              ].map(c => {
+                                const isSelected = calendarSettings.activity_colors?.[type] === c;
+                                const checkColor = ['amber', 'yellow', 'lime'].includes(c) ? 'text-gray-900' : 'text-white';
+                                
+                                return (
+                                  <button
+                                    key={c}
+                                    onClick={() => setCalendarSettings({
+                                      ...calendarSettings,
+                                      activity_colors: {
+                                        ...(calendarSettings.activity_colors || {}),
+                                        [type]: c
+                                      }
+                                    })}
+                                    className={`relative aspect-square w-full rounded-xl flex items-center justify-center transition-all duration-300 ${
+                                      isSelected 
+                                        ? 'ring-2 ring-offset-2 ring-gray-900 scale-[1.15] z-10 shadow-md' 
+                                        : 'hover:scale-[1.15] hover:shadow-sm hover:z-10 opacity-70 hover:opacity-100 cursor-pointer'
+                                    } ${
+                                      c === 'slate' ? 'bg-slate-500' :
+                                      c === 'gray' ? 'bg-gray-500' :
+                                      c === 'zinc' ? 'bg-zinc-500' :
+                                      c === 'red' ? 'bg-red-500' :
+                                      c === 'orange' ? 'bg-orange-500' :
+                                      c === 'amber' ? 'bg-amber-500' :
+                                      c === 'yellow' ? 'bg-yellow-400' :
+                                      c === 'lime' ? 'bg-lime-500' :
+                                      c === 'green' ? 'bg-green-500' :
+                                      c === 'emerald' ? 'bg-emerald-500' :
+                                      c === 'teal' ? 'bg-teal-500' :
+                                      c === 'cyan' ? 'bg-cyan-500' :
+                                      c === 'sky' ? 'bg-sky-500' :
+                                      c === 'blue' ? 'bg-blue-500' :
+                                      c === 'indigo' ? 'bg-indigo-500' :
+                                      c === 'violet' ? 'bg-violet-500' :
+                                      c === 'purple' ? 'bg-purple-500' :
+                                      c === 'fuchsia' ? 'bg-fuchsia-500' :
+                                      c === 'pink' ? 'bg-pink-500' :
+                                      c === 'rose' ? 'bg-rose-500' :
+                                      c === 'black' ? 'bg-gray-900' :
+                                      'bg-gray-500'
+                                    }`}
+                                    title={c}
+                                  >
+                                    {isSelected && <FiCheck className={`${checkColor}`} size={16} strokeWidth={3} />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                 </>
@@ -2150,7 +2324,33 @@ const Calendar = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-between gap-2 p-6 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 p-6 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowReservationDetailModal(false);
+                      setSelectedReservation(null);
+                    }}
+                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition order-3 sm:order-1"
+                  >
+                    Close
+                  </button>
+                  
+                  {/* Hide Edit button for students */}
+                  {!isStudent() && (
+                    <button
+                      onClick={() => {
+                        setShowReservationDetailModal(false);
+                        if (selectedReservation?.id) {
+                          setSearchParams({ edit: selectedReservation.id });
+                        }
+                        setSelectedReservation(null);
+                      }}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition order-2"
+                    >
+                      Edit
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setShowReservationDetailModal(false);
@@ -2159,36 +2359,10 @@ const Calendar = () => {
                         navigate(`/reservations/${selectedReservation.id}`);
                       }
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition border border-indigo-200 text-sm font-medium"
+                    className="flex items-center justify-center gap-2 px-6 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition border border-indigo-200 font-medium order-1 sm:order-3"
                   >
                     Open Full Detail →
                   </button>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setShowReservationDetailModal(false);
-                        setSelectedReservation(null);
-                      }}
-                      className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-                    >
-                      Close
-                    </button>
-                    {/* Hide Edit button for students */}
-                    {!isStudent() && (
-                      <button
-                        onClick={() => {
-                          setShowReservationDetailModal(false);
-                          if (selectedReservation?.id) {
-                            setSearchParams({ edit: selectedReservation.id });
-                          }
-                          setSelectedReservation(null);
-                        }}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                      >
-                        Edit
-                      </button>
-                    )}
-                  </div>
                 </div>
               </>
             ) : null}
@@ -2495,7 +2669,7 @@ const Calendar = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
                     <input
                       type="date"
                       value={reservationForm.lesson_date}
@@ -2506,7 +2680,7 @@ const Calendar = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
                     <input
                       type="time"
                       value={reservationForm.lesson_time}
@@ -2544,17 +2718,84 @@ const Calendar = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
-                  <input
-                    type="number"
-                    value={reservationForm.duration_minutes}
-                    onChange={(e) => setReservationForm({ ...reservationForm, duration_minutes: parseInt(e.target.value) })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    min="15"
-                    max="480"
-                    required
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                    <input
+                      type="date"
+                      value={(() => {
+                        if (!reservationForm.lesson_date || !reservationForm.lesson_time) return '';
+                        const d = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
+                        if (isNaN(d.getTime())) return '';
+                        d.setMinutes(d.getMinutes() + (reservationForm.duration_minutes || 60));
+                        return d.toISOString().split('T')[0];
+                      })()}
+                      onChange={(e) => {
+                        const newEndDate = e.target.value;
+                        if (!reservationForm.lesson_date || !reservationForm.lesson_time) return;
+                        const start = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
+                        const oldEnd = new Date(start.getTime() + (reservationForm.duration_minutes || 60) * 60000);
+                        const hh = String(oldEnd.getHours()).padStart(2, '0');
+                        const mm = String(oldEnd.getMinutes()).padStart(2, '0');
+                        const newEnd = new Date(`${newEndDate}T${hh}:${mm}`);
+                        if (!isNaN(newEnd.getTime())) {
+                          const diff = Math.round((newEnd.getTime() - start.getTime()) / 60000);
+                          setReservationForm({ ...reservationForm, duration_minutes: diff > 0 ? diff : 15 });
+                        }
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                    <input
+                      type="time"
+                      value={(() => {
+                        if (!reservationForm.lesson_date || !reservationForm.lesson_time) return '';
+                        const d = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
+                        if (isNaN(d.getTime())) return '';
+                        d.setMinutes(d.getMinutes() + (reservationForm.duration_minutes || 60));
+                        const hh = String(d.getHours()).padStart(2, '0');
+                        const mm = String(d.getMinutes()).padStart(2, '0');
+                        return `${hh}:${mm}`;
+                      })()}
+                      onChange={(e) => {
+                        const newEndTime = e.target.value;
+                        if (!reservationForm.lesson_date || !reservationForm.lesson_time) return;
+                        const start = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
+                        const oldEnd = new Date(start.getTime() + (reservationForm.duration_minutes || 60) * 60000);
+                        const oldEndDate = oldEnd.toISOString().split('T')[0];
+                        const newEnd = new Date(`${oldEndDate}T${newEndTime}`);
+                        if (!isNaN(newEnd.getTime())) {
+                          let diff = Math.round((newEnd.getTime() - start.getTime()) / 60000);
+                          if (diff <= 0) {
+                             newEnd.setDate(newEnd.getDate() + 1);
+                             diff = Math.round((newEnd.getTime() - start.getTime()) / 60000);
+                          }
+                          setReservationForm({ ...reservationForm, duration_minutes: diff > 0 ? diff : 15 });
+                        }
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                    <input
+                      type="number"
+                      value={reservationForm.duration_minutes}
+                      onChange={(e) => setReservationForm({ ...reservationForm, duration_minutes: parseInt(e.target.value) || 0 })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-600"
+                      min="15"
+                      max="1440"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>

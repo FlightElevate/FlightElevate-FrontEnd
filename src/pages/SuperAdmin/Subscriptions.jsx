@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiPlus } from "react-icons/fi";
+import { FiSearch, FiPlus, FiDollarSign, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { CgAdd } from "react-icons/cg";
 import Pagination from "../../components/Pagination";
 import { subscriptionPlanService } from "../../api/services/subscriptionPlanService";
@@ -41,7 +40,8 @@ const Subscription = () => {
         search: searchTerm || undefined,
       });
       if (response.success) {
-        const plansList = Array.isArray(response.data) ? response.data : [];
+        // Correctly handle both paginated and direct array responses
+        const plansList = response.data?.data || (Array.isArray(response.data) ? response.data : []);
         setPlans(plansList);
         setExpandedPlans(plansList.map((_, idx) => idx));
       }
@@ -78,15 +78,14 @@ const Subscription = () => {
   };
 
   const handleAddPlan = () => {
-    navigate('/subscriptions/plans/new');
+    navigate('/subscription-plans/plans/new');
   };
 
   const buttons = ["Subscribers", "Subscription Plans"];
 
-  
   const subscribersData = [];
   const currentUsers = selected === "Subscription Plans" ? plans : subscribersData;
-  const isAllSelected = selectedIds.length === currentUsers.length && currentUsers.length > 0;
+  const isAllSelected = selectedIds.length > 0 && currentUsers.length > 0 && selectedIds.length === currentUsers.length;
 
   const handleSelectAll = () => {
     if (isAllSelected) {
@@ -123,13 +122,8 @@ const Subscription = () => {
                 type="text"
                 placeholder="Search"
                 value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  if (selected === "Subscription Plans") {
-                    
-                    setTimeout(() => fetchPlans(), 500);
-                  }
-                }}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchPlans()}
                 className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
               />
               <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded">
@@ -307,24 +301,11 @@ const Subscription = () => {
                     </div>
 
                     {expandedPlans.includes(index) && (
-                      <div className="border-t border-[#E6E6E6] p-4 animate-fadeIn">
-                        <div className="flex items-center gap-2 pb-4 text-sm text-gray-600">
-                          <span className="text-lg">
-                            <CgAdd className="inline-block text-[#000000]" />
-                            <span className="text-sm font-inter text-[#0A090B] pl-1">
-                              One-time Setup Fee <br />
-                              <span className="text-xs font-inter text-gray-500 pl-6">
-                                {plan.para || 'N/A'}
-                                <span className="font-semibold font-inter text-[#000000]">
-                                  ${parseFloat(plan.setup_fee || 0).toFixed(2)}
-                                </span>
-                              </span>
-                            </span>
-                          </span>
-                        </div>
+                      <div className="border-t border-[#E6E6E6] p-4 animate-fadeIn text-sm text-gray-600">
+                        <p className="mb-4">{plan.para || 'No additional notes provided for this plan.'}</p>
                         <div className="flex gap-3 px-4">
                           <Link
-                            to={`/subscriptions/plans/${plan.id}`}
+                            to={`/subscription-plans/plans/${plan.id}`}
                             state={{ plan }}
                             className="px-5 py-2 bg-[#F6F6F6] rounded-lg text-sm text-[#505050] font-medium hover:bg-gray-100 transition"
                           >
