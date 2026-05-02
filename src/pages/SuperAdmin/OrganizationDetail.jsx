@@ -12,7 +12,7 @@ import {
   getOrganizationTitle,
 } from '../../utils/organizationHelpers';
 import { organizationService } from '../../api/services/organizationService';
-import { showDeleteConfirm, showSuccessToast, showErrorToast } from '../../utils/notifications';
+import { showConfirmDialog, showSuccessToast, showErrorToast } from '../../utils/notifications';
 
 
 const OrganizationDetail = () => {
@@ -39,7 +39,8 @@ const OrganizationDetail = () => {
   } = useOrganizationDetails(id, fetchType);
 
   
-  const organizationId = organization?.id || adminDetails?.organization_id;
+  // Determine the organization ID from available data
+  const organizationId = organization?.id || adminDetails?.organization_id || (fetchType === 'organization' ? id : null);
 
   
   const {
@@ -178,7 +179,7 @@ const OrganizationDetail = () => {
 
   
   const handleApprove = async (userId, userName) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       `Approve ${userName}`,
       `Are you sure you want to approve this join request?`,
       `Yes, approve`
@@ -200,7 +201,7 @@ const OrganizationDetail = () => {
   };
 
   const handleReject = async (userId, userName) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       `Reject ${userName}`,
       `Are you sure you want to reject this join request?`,
       `Yes, reject`

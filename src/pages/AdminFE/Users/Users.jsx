@@ -8,7 +8,7 @@ import { organizationService } from "../../../api/services/organizationService";
 import { useAuth } from "../../../context/AuthContext";
 import Pagination from "../../../components/Pagination";
 import AddUserModal from "../../../components/User/AddUserModal";
-import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../../utils/notifications";
+import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../../utils/notifications";
 
 
 const Users = () => {
@@ -147,8 +147,8 @@ const Users = () => {
   
   const handleBlockUser = useCallback(async (userId, userName, currentStatus) => {
     const action = currentStatus === 'blocked' ? 'unblock' : 'block';
-    const confirmed = await showDeleteConfirm(
-      `${action} ${userName}`,
+    const confirmed = await showConfirmDialog(
+      `${action === 'block' ? 'Block' : 'Unblock'} ${userName}`,
       `Are you sure you want to ${action} this user?`,
       `Yes, ${action} user`
     );
@@ -181,7 +181,7 @@ const Users = () => {
   }, [navigate, selected]);
 
   const handleApprove = useCallback(async (userId, userName) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       `Approve ${userName}`,
       `Are you sure you want to approve this join request?`,
       `Yes, approve`
@@ -190,7 +190,8 @@ const Users = () => {
 
     setActionLoading(userId);
     try {
-      const response = await organizationService.approveJoinRequest(currentUser.organization_id, userId);
+      const orgId = currentUser?.organization_id || currentUser?.organization?.id || currentUser?.admin_identify_id;
+      const response = await organizationService.approveJoinRequest(orgId, userId);
       if (response.success) {
         showSuccessToast('Request approved successfully');
         fetchUsers();
@@ -200,10 +201,10 @@ const Users = () => {
     } finally {
       setActionLoading(null);
     }
-  }, [fetchUsers, currentUser?.organization_id]);
+  }, [fetchUsers, currentUser]);
 
   const handleReject = useCallback(async (userId, userName) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       `Reject ${userName}`,
       `Are you sure you want to reject this join request?`,
       `Yes, reject`
@@ -212,7 +213,8 @@ const Users = () => {
 
     setActionLoading(userId);
     try {
-      const response = await organizationService.rejectJoinRequest(currentUser.organization_id, userId);
+      const orgId = currentUser?.organization_id || currentUser?.organization?.id || currentUser?.admin_identify_id;
+      const response = await organizationService.rejectJoinRequest(orgId, userId);
       if (response.success) {
         showSuccessToast('Request rejected successfully');
         fetchUsers();
@@ -222,7 +224,7 @@ const Users = () => {
     } finally {
       setActionLoading(null);
     }
-  }, [fetchUsers, currentUser?.organization_id]);
+  }, [fetchUsers, currentUser]);
 
   return (
     <div className="md:mt-5 mx-auto">

@@ -1,45 +1,52 @@
 import React, { useState, useEffect } from "react";
 import { subscriptionPlanService } from "../../../api/services/subscriptionPlanService";
 import { showSuccessToast, showErrorToast } from "../../../utils/notifications";
-import { FiCheck, FiDollarSign } from "react-icons/fi";
+import { FiCheck, FiDollarSign, FiCheckCircle } from "react-icons/fi";
 
 const Subscription = () => {
   const [plans, setPlans] = useState([]);
+  const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState(null); // Store planId being subscribed to
+  const [subscribing, setSubscribing] = useState(null); 
 
   useEffect(() => {
-    fetchPlans();
+    initData();
   }, []);
 
-  const fetchPlans = async () => {
+  const initData = async () => {
     setLoading(true);
     try {
+      // First check if there's an active subscription
+      const subResponse = await subscriptionPlanService.getCurrentSubscription();
+      if (subResponse && subResponse.success && subResponse.data) {
+        setCurrentSubscription(subResponse.data);
+      } else {
+        // If no active sub, fetch available plans
+        await fetchPlans();
+      }
+    } catch (err) {
+      console.error('Error initializing subscription data:', err);
+      // Fallback to fetching plans if current sub check fails
+      await fetchPlans();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPlans = async () => {
+    try {
       const response = await subscriptionPlanService.getSubscriptionPlans();
-      console.log('Subscription Plans API Response:', response);
-      
       if (response && response.success) {
-        // Handle nested data structures correctly
         let plansList = [];
         if (Array.isArray(response.data)) {
           plansList = response.data;
         } else if (response.data && Array.isArray(response.data.data)) {
           plansList = response.data.data;
-        } else if (response.data && typeof response.data === 'object') {
-          // If it's an object with numeric keys (rare but happens)
-          plansList = Object.values(response.data).filter(item => typeof item === 'object' && item !== null);
         }
-        
         setPlans(plansList);
-      } else if (Array.isArray(response)) {
-        // Case where the interceptor might have returned just the array
-        setPlans(response);
       }
     } catch (err) {
       console.error('Error fetching plans:', err);
-      showErrorToast('Failed to load subscription plans');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -48,16 +55,11 @@ const Subscription = () => {
     try {
       const response = await subscriptionPlanService.subscribe(planId);
       if (response.success) {
-        if (response.data?.checkout_url) {
-          // Redirect to Stripe Checkout
-          window.location.href = response.data.checkout_url;
-        } else {
-          showSuccessToast('Successfully subscribed to plan!');
-          // Reload to update subscription status and unlock routes
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1500);
-        }
+        showSuccessToast('Successfully subscribed to plan!');
+        // Reload to update UI and current subscription status
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       }
     } catch (err) {
       showErrorToast(err.response?.data?.message || 'Failed to subscribe');
@@ -66,6 +68,109 @@ const Subscription = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-48">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Active Subscription Dashboard View
+  if (currentSubscription) {
+    return (
+      <div className="py-6 md:mt-5 mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl animate-in fade-in duration-700">
+        <div className="mb-8 border-b border-gray-100 pb-6">
+          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Subscription</h2>
+          <p className="mt-1 text-sm text-gray-500">Manage your active plan and organization resources.</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white border border-gray-200 rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-5">
+                <FiCheckCircle className="w-32 h-32 text-blue-600" />
+              </div>
+              
+              <div className="flex items-center space-x-2 mb-6">
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 uppercase tracking-widest flex items-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                  Active Plan
+                </span>
+              </div>
+
+              <h3 className="text-4xl font-black text-blue-600 mb-2">{currentSubscription.plan_title}</h3>
+              <p className="text-gray-500 font-medium mb-8">Billed Monthly • ${parseFloat(currentSubscription.price).toFixed(0)}/mo</p>
+
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Aircraft Limit</p>
+                  <p className="text-2xl font-black text-gray-900">
+                    {currentSubscription.max_aircraft === 0 ? 'Unlimited' : currentSubscription.max_aircraft}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">User Seats</p>
+                  <p className="text-2xl font-black text-gray-900">
+                    {currentSubscription.max_users === 0 ? 'Unlimited' : currentSubscription.max_users}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={() => {
+                    setCurrentSubscription(null);
+                    fetchPlans();
+                  }}
+                  className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100"
+                >
+                  Change Plan
+                </button>
+                <button className="flex-1 bg-white text-gray-600 font-bold py-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+                  Billing History
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 flex items-start space-x-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm">
+                <FiDollarSign className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-900">Renewal Notice</h4>
+                <p className="text-sm text-blue-700 opacity-80 mt-1 leading-relaxed">
+                  Your plan is scheduled to renew on <span className="font-black underline">{new Date(currentSubscription.ends_at).toLocaleDateString()}</span>. 
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+              <h4 className="font-bold text-gray-900 mb-4">Plan Benefits</h4>
+              <ul className="space-y-4">
+                {[
+                  'Unlimited Flight Logs',
+                  'Instructor Oversight',
+                  'Fleet Maintenance',
+                  'Digital Logbooks',
+                  'Student Dashboard'
+                ].map((feature, idx) => (
+                  <li key={idx} className="flex items-center text-sm font-medium text-gray-600">
+                    <FiCheck className="text-green-500 mr-3 w-4 h-4" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Plans List View
   return (
     <div className="py-6 md:mt-5 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
       <div className="mb-8">
@@ -77,11 +182,7 @@ const Subscription = () => {
         </p>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-24">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-        </div>
-      ) : plans.length === 0 ? (
+      {plans.length === 0 ? (
         <div className="text-center py-16 bg-white border border-gray-200 rounded-xl">
           <FiDollarSign className="mx-auto h-12 w-12 text-gray-300 mb-4" />
           <h3 className="text-lg font-medium text-gray-900">No active plans available</h3>
@@ -92,9 +193,9 @@ const Subscription = () => {
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
+              className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col"
             >
-              <div className="p-6">
+              <div className="p-6 flex-1">
                 <div className="flex justify-between items-start">
                   <h3 className="text-xl font-bold text-gray-900">{plan.title}</h3>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
@@ -129,14 +230,6 @@ const Subscription = () => {
                     </div>
                     <span className="font-medium">{plan.aircraft}</span>
                   </div>
-                  {plan.para && (
-                    <div className="flex items-start text-sm text-gray-700">
-                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5">
-                        <FiCheck className="w-3 h-3 text-blue-600" />
-                      </div>
-                      <span className="font-medium">{plan.para}</span>
-                    </div>
-                  )}
                 </div>
               </div>
               

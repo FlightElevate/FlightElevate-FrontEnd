@@ -30,4 +30,8 @@ export const subscriptionPlanService = {
   async subscribe(planId) {
     return await api.post('/subscription-plans/subscribe', { plan_id: planId });
   },
+
+  async getCurrentSubscription() {
+    return await api.get('/subscription-plans/current');
+  },
 };
