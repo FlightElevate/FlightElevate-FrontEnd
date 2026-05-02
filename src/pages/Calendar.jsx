@@ -13,6 +13,7 @@ import { useRole } from '../hooks/useRole';
 import { api } from '../api/apiClient';
 import { ENDPOINTS } from '../api/config';
 import FindTimeModal from '../components/Calendar/FindTimeModal';
+import { FLIGHT_TYPES } from '../config/flightTypes';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 
@@ -1402,16 +1403,9 @@ const Calendar = () => {
     );
   }
 
-  // Flight type options
-  const flightTypes = [
-    'Solo',
-    'Duo Landing',
-    'Windy Smooth landing',
-    'Emergency',
-    'Crash landing',
-    'Night Flight',
-    'Cross Country'
-  ];
+  // Flight type options handled via FLIGHT_TYPES config
+  const flightTypes = FLIGHT_TYPES;
+
 
   return (
     <div className="w-full px-0 sm:px-2 md:px-4 lg:px-6 md:mt-5 mx-auto" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
@@ -2628,19 +2622,43 @@ const Calendar = () => {
                   <p className="text-xs text-gray-500 mt-1">10 characters (auto-generated, can be changed)</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Flight Type</label>
-                  <select
-                    value={reservationForm.flight_type}
-                    onChange={(e) => setReservationForm({ ...reservationForm, flight_type: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    required
-                  >
-                    <option value="">Select Flight Type</option>
-                    {flightTypes.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flight Type</label>
+                    <select
+                      value={flightTypes.includes(reservationForm.flight_type) ? reservationForm.flight_type : (reservationForm.flight_type ? 'Other' : '')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'Other') {
+                          setReservationForm({ ...reservationForm, flight_type: 'Other' });
+                        } else {
+                          setReservationForm({ ...reservationForm, flight_type: val });
+                        }
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      required
+                    >
+                      <option value="">Select Flight Type</option>
+                      {flightTypes.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {(reservationForm.flight_type === 'Other' || (reservationForm.flight_type && !flightTypes.includes(reservationForm.flight_type))) && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Custom Flight Type</label>
+                      <input
+                        type="text"
+                        placeholder="Enter flight type..."
+                        value={reservationForm.flight_type === 'Other' ? '' : reservationForm.flight_type}
+                        onChange={(e) => setReservationForm({ ...reservationForm, flight_type: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>

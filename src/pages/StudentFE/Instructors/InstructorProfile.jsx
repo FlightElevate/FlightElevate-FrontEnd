@@ -12,6 +12,7 @@ import { showDeleteConfirm, showSuccessToast, showErrorToast, showInfoToast } fr
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { safeDisplay } from "../../../utils/safeDisplay";
 import { useAuth } from "../../../context/AuthContext";
+import { FLIGHT_TYPES } from "../../../config/flightTypes";
 
 const InstructorProfile = () => {
   const { id: instructorId } = useParams();
@@ -618,26 +619,46 @@ const InstructorProfile = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Flight Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={requestForm.flight_type}
-                    onChange={(e) => setRequestForm({ ...requestForm, flight_type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    required
-                  >
-                    <option value="">Select Flight Type</option>
-                    <option value="Solo">Solo</option>
-                    <option value="Duo Landing">Duo Landing</option>
-                    <option value="Windy Smooth landing">Windy Smooth landing</option>
-                    <option value="Emergency">Emergency</option>
-                    <option value="Crash landing">Crash landing</option>
-                    <option value="Night Flight">Night Flight</option>
-                    <option value="Cross Country">Cross Country</option>
-                  </select>
-                </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Flight Type <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={FLIGHT_TYPES.includes(requestForm.flight_type) ? requestForm.flight_type : (requestForm.flight_type ? 'Other' : '')}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'Other') {
+                              setRequestForm({ ...requestForm, flight_type: 'Other' });
+                            } else {
+                              setRequestForm({ ...requestForm, flight_type: val });
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          required
+                        >
+                          <option value="">Select Flight Type</option>
+                          {FLIGHT_TYPES.map((type) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {(requestForm.flight_type === 'Other' || (requestForm.flight_type && !FLIGHT_TYPES.includes(requestForm.flight_type))) && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Custom Flight Type</label>
+                          <input
+                            type="text"
+                            placeholder="Enter flight type..."
+                            value={requestForm.flight_type === 'Other' ? '' : requestForm.flight_type}
+                            onChange={(e) => setRequestForm({ ...requestForm, flight_type: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            required
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                    </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

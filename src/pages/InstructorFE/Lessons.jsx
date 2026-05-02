@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { HiDotsVertical, HiChevronDown } from "react-icons/hi";
 import { FiSearch, FiCheck, FiX, FiPlus } from "react-icons/fi";
+import { FLIGHT_TYPES } from "../../config/flightTypes";
 import { MdFilterList } from "react-icons/md";
 import Pagination from "../../components/Pagination";
 import { Link, useNavigate } from "react-router-dom";
@@ -1789,26 +1790,46 @@ const InstructorLessons = () => {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Flight Type <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="flight_type"
-                      value={lessonForm.flight_type}
-                      onChange={handleLessonFormChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                      required
-                    >
-                      <option value="">Select flight type</option>
-                      <option value="Solo">Solo</option>
-                      <option value="Duo Landing">Duo Landing</option>
-                      <option value="Windy Smooth landing">Windy Smooth landing</option>
-                      <option value="Emergency">Emergency</option>
-                      <option value="Crash landing">Crash landing</option>
-                      <option value="Night Flight">Night Flight</option>
-                      <option value="Cross Country">Cross Country</option>
-                    </select>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Flight Type <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="flight_type"
+                        value={FLIGHT_TYPES.includes(lessonForm.flight_type) ? lessonForm.flight_type : (lessonForm.flight_type ? 'Other' : '')}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'Other') {
+                            setLessonForm({ ...lessonForm, flight_type: 'Other' });
+                          } else {
+                            setLessonForm({ ...lessonForm, flight_type: val });
+                          }
+                        }}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                        required
+                      >
+                        <option value="">Select flight type</option>
+                        {FLIGHT_TYPES.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {(lessonForm.flight_type === 'Other' || (lessonForm.flight_type && !FLIGHT_TYPES.includes(lessonForm.flight_type))) && (
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Custom Flight Type</label>
+                        <input
+                          type="text"
+                          placeholder="Enter flight type..."
+                          value={lessonForm.flight_type === 'Other' ? '' : lessonForm.flight_type}
+                          onChange={(e) => setLessonForm({ ...lessonForm, flight_type: e.target.value })}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
