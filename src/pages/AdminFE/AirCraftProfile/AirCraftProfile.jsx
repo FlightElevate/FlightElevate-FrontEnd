@@ -34,6 +34,12 @@ const AirCraftProfile = () => {
     status: 'in_service',
     total_hours: 0,
     total_cycles: 0,
+    current_hobbs: 0,
+    current_tach: 0,
+    current_tach_2: 0,
+    aircraft_class: '',
+    other_category: '',
+    other_class: '',
     default_location_id: '',
     calendar_location_ids: [],
   });
@@ -131,6 +137,12 @@ const AirCraftProfile = () => {
       status: 'in_service',
       total_hours: 0,
       total_cycles: 0,
+      current_hobbs: 0,
+      current_tach: 0,
+      current_tach_2: 0,
+      aircraft_class: '',
+      other_category: '',
+      other_class: '',
       default_location_id: '',
       calendar_location_ids: [],
     });
@@ -158,6 +170,12 @@ const AirCraftProfile = () => {
       status: aircraft.status || 'in_service',
       total_hours: aircraft.total_hours || 0,
       total_cycles: aircraft.total_cycles || 0,
+      current_hobbs: aircraft.current_hobbs || 0,
+      current_tach: aircraft.current_tach || 0,
+      current_tach_2: aircraft.current_tach_2 || 0,
+      aircraft_class: aircraft.aircraft_class || '',
+      other_category: '',
+      other_class: '',
       default_location_id: aircraft.default_location_id != null ? String(aircraft.default_location_id) : '',
       calendar_location_ids: Array.isArray(aircraft.calendar_location_ids) ? aircraft.calendar_location_ids : [],
     });
@@ -231,10 +249,16 @@ const AirCraftProfile = () => {
       
       const finalFormData = {
         ...formData,
+        category: formData.category === 'Other' ? formData.other_category : formData.category,
+        aircraft_class: formData.aircraft_class === 'Other' ? formData.other_class : formData.aircraft_class,
         additional_attributes: Object.keys(attrsObject).length > 0 ? attrsObject : null,
         default_location_id: formData.default_location_id ? parseInt(formData.default_location_id, 10) : null,
         calendar_location_ids: Array.isArray(formData.calendar_location_ids) ? formData.calendar_location_ids.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n)) : [],
       };
+      
+      // Clean up internal state fields before sending
+      delete finalFormData.other_category;
+      delete finalFormData.other_class;
       
       const dataToSend = imageFile ? new FormData() : { ...finalFormData };
       
@@ -529,16 +553,86 @@ const AirCraftProfile = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                    <input
-                      type="text"
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <select
                       value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value, aircraft_class: '' })}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Airplane, Rotorcraft, Glider"
-                    />
+                      required
+                    >
+                      <option value="">Select Category</option>
+                      <option value="Airplane">Airplane</option>
+                      <option value="Rotorcraft">Rotorcraft</option>
+                      <option value="Glider">Glider</option>
+                      <option value="Lighter-than-air">Lighter-than-air</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                 </div>
+
+                {formData.category === 'Other' && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Custom Category *</label>
+                    <input
+                      type="text"
+                      value={formData.other_category}
+                      onChange={(e) => setFormData({ ...formData, other_category: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter custom category"
+                      required
+                    />
+                  </div>
+                )}
+
+                {formData.category === 'Airplane' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Class *</label>
+                    <select
+                      value={formData.aircraft_class}
+                      onChange={(e) => setFormData({ ...formData, aircraft_class: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Class</option>
+                      <option value="Single Engine Land">Single Engine Land</option>
+                      <option value="Multi Engine Land">Multi Engine Land</option>
+                      <option value="Single Engine Sea">Single Engine Sea</option>
+                      <option value="Multi Engine Sea">Multi Engine Sea</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                )}
+
+                {formData.category === 'Rotorcraft' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Class *</label>
+                    <select
+                      value={formData.aircraft_class}
+                      onChange={(e) => setFormData({ ...formData, aircraft_class: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Class</option>
+                      <option value="Helicopter">Helicopter</option>
+                      <option value="Gyroplane">Gyroplane</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                )}
+
+                {(formData.aircraft_class === 'Other' || (formData.category === 'Other' && formData.category !== '')) && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Custom Class *</label>
+                    <input
+                      type="text"
+                      value={formData.other_class}
+                      onChange={(e) => setFormData({ ...formData, other_class: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter custom class"
+                      required={formData.aircraft_class === 'Other' || formData.category === 'Other'}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number *</label>
@@ -706,7 +800,49 @@ const AirCraftProfile = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Total Hours</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Hobbs</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.current_hobbs}
+                      onChange={(e) => setFormData({ ...formData, current_hobbs: parseFloat(e.target.value) || 0 })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {formData.aircraft_class?.includes('Multi') ? 'Tach 1' : 'Current Tach'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.current_tach}
+                      onChange={(e) => setFormData({ ...formData, current_tach: parseFloat(e.target.value) || 0 })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                {formData.aircraft_class?.includes('Multi') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tach 2</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={formData.current_tach_2}
+                      onChange={(e) => setFormData({ ...formData, current_tach_2: parseFloat(e.target.value) || 0 })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Total Airframe Hours</label>
                     <input
                       type="number"
                       step="0.01"
@@ -718,7 +854,7 @@ const AirCraftProfile = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Total Cycles</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 text-gray-500">Cycles (Optional - for Turbine)</label>
                     <input
                       type="number"
                       value={formData.total_cycles}

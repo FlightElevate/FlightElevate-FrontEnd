@@ -8,6 +8,7 @@ import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
 import { settingsService } from "../../../api/services/settingsService";
 import { locationService } from "../../../api/services/locationService";
+import { logbookService } from "../../../api/services/logbookService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast, showBlockUserConfirm } from "../../../utils/notifications";
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { getImageUrl } from "../../../utils/imageUtils";
@@ -139,7 +140,7 @@ const UserProfile = () => {
     if (!id) return;
     setLoadingLogs(true);
     try {
-      const response = await lessonService.getUserLessons(id, { per_page: 10 });
+      const response = await logbookService.getUserEntries(id, { per_page: 10 });
       if (response.success) {
         setFlightLogs(response.data);
       }
@@ -255,11 +256,11 @@ const UserProfile = () => {
     if (!searchLogs) return true;
     const searchLower = searchLogs.toLowerCase();
     return (
-      log.date?.toLowerCase().includes(searchLower) ||
-      log.time?.toLowerCase().includes(searchLower) ||
-      log.instructor?.toLowerCase().includes(searchLower) ||
-      log.status?.toLowerCase().includes(searchLower) ||
-      log.flight_type?.toLowerCase().includes(searchLower)
+      (log.flight_date_formatted || log.flight_date || "")?.toLowerCase().includes(searchLower) ||
+      (log.flight_time || "")?.toLowerCase().includes(searchLower) ||
+      (log.instructor || "")?.toLowerCase().includes(searchLower) ||
+      (log.status || "")?.toLowerCase().includes(searchLower) ||
+      (log.lesson_type || "")?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -503,13 +504,13 @@ const UserProfile = () => {
                     <tbody>
                       {filteredFlightLogs.map((log, index) => (
                         <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-3">{safeDisplay(log.date || (log.full_date ? formatDate(log.full_date) : null))}</td>
-                          <td className="px-4 py-3">{safeDisplay(log.time || (log.full_time ? formatTime(log.full_time) : null))}</td>
+                          <td className="px-4 py-3">{safeDisplay(log.flight_date_formatted || log.flight_date)}</td>
+                          <td className="px-4 py-3">{safeDisplay(log.flight_time)}</td>
                           <td className="px-4 py-3">{safeDisplay(log.instructor)}</td>
                           <td className="px-4 py-3">
                             <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{safeDisplay(log.status)}</span>
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{safeDisplay(log.flight_type)}</td>
+                          <td className="px-4 py-3 text-gray-600">{safeDisplay(log.lesson_type || log.flight_type)}</td>
                         </tr>
                       ))}
                     </tbody>

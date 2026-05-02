@@ -44,7 +44,21 @@ export const formatOrganizationInfo = (organization, user) => {
   if (organization) {
     items.push(
       { label: 'Organization Name', value: organization.name, bold: true },
-      { label: 'Organization ID', value: organization.id?.toString() || 'N/A' }
+      { label: 'Organization ID', value: organization.id?.toString() || 'N/A' },
+      { 
+        label: 'Verification Status', 
+        value: organization.verification_status?.toUpperCase() || 'PENDING',
+        status: organization.verification_status === 'verified' ? 'active' : (organization.verification_status === 'rejected' ? 'blocked' : 'inactive')
+      },
+      { 
+        label: 'Trial Ends At', 
+        value: organization.trial_ends_at ? new Date(organization.trial_ends_at).toLocaleDateString() : 'No Trial' 
+      },
+      {
+        label: 'Account Status',
+        value: organization.status?.toUpperCase() || 'ACTIVE',
+        status: organization.status
+      }
     );
   }
 

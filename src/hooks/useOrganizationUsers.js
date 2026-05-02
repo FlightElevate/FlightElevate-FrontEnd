@@ -10,7 +10,7 @@ export const useOrganizationUsers = (organizationId, role, page = 1, itemsPerPag
   const [total, setTotal] = useState(0);
 
   const fetchUsers = useCallback(async () => {
-    if (!organizationId || !role) {
+    if (!organizationId || (!role && !status)) {
       setUsers([]);
       setTotal(0);
       return;

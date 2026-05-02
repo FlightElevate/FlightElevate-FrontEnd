@@ -1543,9 +1543,26 @@ const Calendar = () => {
                   >
                     <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
                   </button>
-                  <span className="text-xs sm:text-sm font-medium text-gray-700 text-center px-1 sm:px-2 flex-1 truncate">
-                    {getDateRangeLabel()}
-                  </span>
+                  
+                  <div className="flex items-center gap-2 flex-1 justify-center">
+                    <span className="hidden md:inline text-xs sm:text-sm font-medium text-gray-700 truncate">
+                      {getDateRangeLabel()}
+                    </span>
+                    <input
+                      type="date"
+                      value={formatDateStr(currentDate)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const [y, m, d] = val.split('-').map(Number);
+                          setCurrentDate(new Date(y, m - 1, d));
+                        }
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      aria-label="Select date"
+                    />
+                  </div>
+
                   <button
                     onClick={() => calendarViewMode === 'day' ? navigateDay(1) : navigateWeek(1)}
                     className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"

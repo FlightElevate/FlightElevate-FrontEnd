@@ -11,6 +11,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    organizationName: '',
     agreeToTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -113,7 +114,8 @@ const Register = () => {
         name: fullName,
         email: formData.email,
         password: formData.password,
-        password_confirmation: formData.confirmPassword, // Required for Laravel password.confirmed validation
+        password_confirmation: formData.confirmPassword,
+        organization_name: formData.organizationName,
       });
       
       if (result.success) {
@@ -251,6 +253,25 @@ const Register = () => {
                   className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-700 focus:border-indigo-700 sm:text-sm transition-colors"
                   placeholder="john.doe@example.com"
                 />
+              </div>
+              
+              {/* Organization Name (Optional) */}
+              <div>
+                <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Organization Name (Optional)
+                </label>
+                <input
+                  id="organizationName"
+                  name="organizationName"
+                  type="text"
+                  value={formData.organizationName}
+                  onChange={handleChange}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 sm:text-sm transition-colors"
+                  placeholder="e.g. Blue Sky Aviation"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Provide a name if you want to create a new flight school organization.
+                </p>
               </div>
 
               {/* Organization and Role handled by backend as default Pilot */}

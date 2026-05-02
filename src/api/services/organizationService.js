@@ -70,11 +70,14 @@ export const organizationService = {
         if (data.name !== undefined && data.name !== null) {
           requestData.name = String(data.name).trim();
         }
+        if (data.status) requestData.status = data.status;
+        if (data.verification_status) requestData.verification_status = data.verification_status;
+        if (data.trial_ends_at) requestData.trial_ends_at = data.trial_ends_at;
         
         if (import.meta.env.DEV) {
           console.log('Updating organization with JSON:', {
             id,
-            name: data.name,
+            ...requestData,
             hasLogoFile: false,
           });
         }

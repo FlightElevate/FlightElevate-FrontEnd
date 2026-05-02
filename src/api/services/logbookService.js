@@ -15,7 +15,7 @@ export const logbookService = {
 
   // Get logbook entries for a specific user
   async getUserEntries(userId, params = {}) {
-    return await api.get(`/users/${userId}/logbooks`, { params });
+    return await api.get('/logbooks', { params: { ...params, user_id: userId } });
   },
 
   // Create a new logbook entry

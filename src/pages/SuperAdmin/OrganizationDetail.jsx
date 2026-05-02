@@ -221,6 +221,26 @@ const OrganizationDetail = () => {
       setActionLoading(null);
     }
   };
+  
+  const handleUpdateOrg = async (field, value) => {
+    setActionLoading(field);
+    try {
+      const response = await organizationService.updateOrganization(organizationId, {
+        [field]: value
+      });
+      if (response.success) {
+        showSuccessToast('Organization updated successfully');
+        // The details are likely being watched by the hook, but we might need a refresh
+        window.location.reload(); 
+      }
+    } catch (err) {
+      showErrorToast('Failed to update organization');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const isSuperAdmin = useAuth().user?.roles?.includes('Super Admin');
 
   
   const hasOrganization = organization && organization.id;
@@ -352,6 +372,65 @@ const OrganizationDetail = () => {
               </div>
             )}
           </div>
+
+          {/* Management Actions Section */}
+          {hasOrganization && isSuperAdmin && (
+            <div className="mt-6 bg-blue-50 rounded-lg p-6 border border-blue-200">
+              <h3 className="text-lg font-semibold text-blue-800 mb-4 pb-3 border-b border-blue-200">
+                Management Actions (Super Admin)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Verification Status */}
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500 mb-2">Verification Status:</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleUpdateOrg('verification_status', 'verified')}
+                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${organization.verification_status === 'verified' ? 'bg-green-600 text-white' : 'bg-white text-green-600 border border-green-600 hover:bg-green-50'}`}
+                    >
+                      Verify Org
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateOrg('verification_status', 'rejected')}
+                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${organization.verification_status === 'rejected' ? 'bg-red-600 text-white' : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'}`}
+                    >
+                      Reject Org
+                    </button>
+                  </div>
+                </div>
+
+                {/* Account Status */}
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500 mb-2">Account Status:</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleUpdateOrg('status', 'active')}
+                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${organization.status === 'active' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'}`}
+                    >
+                      Set Active
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateOrg('status', 'blocked')}
+                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${organization.status === 'blocked' ? 'bg-red-600 text-white' : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'}`}
+                    >
+                      Block Org
+                    </button>
+                  </div>
+                </div>
+
+                {/* Trial Period */}
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500 mb-2">Trial Period:</span>
+                  <input 
+                    type="date"
+                    className="px-3 py-1.5 rounded border border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500"
+                    value={organization.trial_ends_at ? new Date(organization.trial_ends_at).toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleUpdateOrg('trial_ends_at', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {}
