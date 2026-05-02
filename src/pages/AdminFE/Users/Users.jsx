@@ -9,6 +9,7 @@ import { useAuth } from "../../../context/AuthContext";
 import Pagination from "../../../components/Pagination";
 import AddUserModal from "../../../components/User/AddUserModal";
 import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../../utils/notifications";
+import { isSuperAdmin } from "../../../utils/roleUtils";
 
 
 const Users = () => {
@@ -42,7 +43,10 @@ const Users = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
-  const roleFilters = ["Instructor", "Student", "Custom Roles Users", "Join Requests"];
+  const roleFilters = ["Instructor", "Student", "Custom Roles Users"];
+  if (isSuperAdmin(currentUser?.roles)) {
+    roleFilters.push("Join Requests");
+  }
 
   
   const fetchUsers = useCallback(async () => {
