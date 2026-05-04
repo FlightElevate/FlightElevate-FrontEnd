@@ -86,7 +86,7 @@ const TABS = [
   { id: 'overview', label: 'Overview', icon: FiFileText },
   { id: 'dispatch', label: 'Dispatch', icon: FiSend },
   { id: 'checkin', label: 'Check-In', icon: FiCheckCircle },
-  { id: 'invoice', label: 'Invoice', icon: FiDollarSign },
+  { id: 'invoice', label: 'Invoice', icon: FiDollarSign, hidden: true },
   { id: 'logsession', label: 'Log Session', icon: FiBook },
   { id: 'delete', label: 'Delete', icon: FiTrash2 },
   { id: 'calendar', label: 'Calendar Sync', icon: FiCalendar },
@@ -302,8 +302,8 @@ const ReservationDetail = () => {
       const data = res?.data?.data ?? res?.data ?? res;
       setReservation(data);
       if (data?.invoice) setInvoice(data.invoice);
-      showSuccess('Check-in complete! Logbook & invoice auto-generated.');
-      setActiveTab('invoice');
+      showSuccess('Check-in complete! Logbook entries have been generated.');
+      setActiveTab('overview');
     } catch (err) {
       showError(err?.message ?? err?.response?.data?.message ?? 'Check-in failed');
     } finally {
@@ -490,7 +490,7 @@ const ReservationDetail = () => {
         {/* Tabs */}
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex gap-0 overflow-x-auto">
-            {TABS.filter((tab) => tab.id !== 'delete' || isAdmin).map((tab) => {
+            {TABS.filter((tab) => !tab.hidden && (tab.id !== 'delete' || isAdmin)).map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -507,7 +507,6 @@ const ReservationDetail = () => {
                 </button>
               );
             })}
-          </div>
         </div>
       </div>
 
@@ -582,7 +581,7 @@ const ReservationDetail = () => {
                   { key: 'reserved', label: 'Reserved', done: true },
                   { key: 'dispatched', label: 'Dispatched', done: ['dispatched', 'completed'].includes(status), time: reservation.dispatched_at },
                   { key: 'completed', label: 'Checked In', done: status === 'completed', time: reservation.checked_in_at },
-                  { key: 'invoiced', label: 'Invoiced', done: invoice?.status === 'paid' },
+                  // { key: 'invoiced', label: 'Invoiced', done: invoice?.status === 'paid' },
                 ].map((step, idx, arr) => (
                   <React.Fragment key={step.key}>
                     <div className="flex flex-col items-center min-w-[80px] text-center">
@@ -924,143 +923,159 @@ const ReservationDetail = () => {
 
         {/* ── INVOICE TAB ── */}
         {activeTab === 'invoice' && (
-          <div>
-            {!invoice ? (
-              <div className="bg-gray-100 border border-gray-200 rounded-xl p-12 text-center">
-                <FiDollarSign size={48} className="text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">No Invoice Found</h3>
-                <p className="text-gray-500 mb-6 max-w-sm mx-auto">This reservation doesn't have an invoice yet. Invoices are created after check-in.</p>
-                {canInvoice && (
-                  <button onClick={handleSaveInvoice} disabled={actionLoading} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
-                    Create Invoice
-                  </button>
-                )}
+          <div className="space-y-6">
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-12 text-center">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <FiDollarSign size={32} />
               </div>
-            ) : (
-              <div className="space-y-4">
-                {/* --- PAID SUMMARY --- */}
-                {(invoice.status === 'paid' && !isEditingInvoice) && (
-                  <Section title="Invoice Details" icon={FiDollarSign}>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
-                        <FiCheckCircle size={14} /> Paid via {invoice.payment_method} on {new Date(invoice.updated_at).toLocaleString()}
-                      </div>
-                      {isAdmin && (
-                        <button
-                          onClick={() => setIsEditingInvoice(true)}
-                          className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
-                        >
-                          Edit Invoice
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-gray-100">
-                      <Field label="Aircraft Rate" value={`$${invoice.aircraft_rate}`} />
-                      <Field label="Dual Instruction" value={`${invoice.instruction_dual_hours} hrs`} />
-                      <Field label="Ground Instruction" value={`${invoice.instruction_ground_hours} hrs`} />
-                      <Field label="Instructor Rate" value={`$${invoice.instructor_rate}`} />
-                      <Field label="Tax" value={`${invoice.tax_percent}%`} />
-                    </div>
-                    <div className="pt-4 flex flex-col items-end gap-1">
-                      <div className="text-sm text-gray-500">Total Charged</div>
-                      <div className="text-2xl font-bold text-gray-900">${invoice.total?.toFixed(2)}</div>
-                    </div>
-                    {invoice.notes && <p className="text-sm text-gray-600 mt-4 bg-gray-50 rounded-lg p-3">{invoice.notes}</p>}
-                    
-                    {invoice.is_refunded && (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-                        <p className="text-xs font-bold text-red-600 uppercase mb-1">Refund Issued</p>
-                        <p className="text-sm text-red-700">Amount: ${Number(invoice.refund_amount).toFixed(2)} — Reason: {invoice.refund_reason || 'N/A'}</p>
-                      </div>
-                    )}
-                  </Section>
-                )}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Invoice Coming Soon</h2>
+              <p className="text-gray-500 max-w-sm mx-auto">
+                The invoicing and payment system is currently being finalized. 
+                You will be able to manage billing directly from here very soon.
+              </p>
+            </div>
 
-                {/* --- EDIT / DRAFT FORM --- */}
-                {(invoice.status !== 'paid' || isEditingInvoice) && (
-                  <Section title={isEditingInvoice ? "Edit Invoice Details" : "Invoice Draft"} icon={FiDollarSign}>
-                    <p className="text-sm text-gray-500 mb-4">Adjust rates and hours as needed. The total will be recalculated.</p>
-                    <form onSubmit={async (e) => {
-                      await handleSaveInvoice(e);
-                      setIsEditingInvoice(false);
-                    }} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.aircraft_rate} onChange={e => setInvoiceForm(f => ({ ...f, aircraft_rate: e.target.value }))} />
-                        <Input label="Dual Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_dual_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} />
-                        <Input label="Ground Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_ground_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} />
-                        <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.instructor_rate} onChange={e => setInvoiceForm(f => ({ ...f, instructor_rate: e.target.value }))} />
-                        <Input label="Tax %" type="number" step="0.01" min="0" max="100" value={invoiceForm.tax_percent} onChange={e => setInvoiceForm(f => ({ ...f, tax_percent: e.target.value }))} />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Invoice Notes</label>
-                        <textarea rows={2} value={invoiceForm.notes} onChange={e => setInvoiceForm(f => ({ ...f, notes: e.target.value }))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Internal notes or customer visible comments..." />
-                      </div>
-                      <div className="flex justify-between items-center bg-blue-50 rounded-lg p-4 border border-blue-100">
-                        <div>
-                          <div className="text-xs text-blue-600 font-medium uppercase">Estimated Total</div>
-                          <div className="text-xl font-bold text-blue-900">${((parseFloat(invoiceForm.aircraft_rate || 0) * (reservation.hobbs_block_time || 0)) + (parseFloat(invoiceForm.instruction_dual_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0)) + (parseFloat(invoiceForm.instruction_ground_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0))).toFixed(2)}</div>
-                        </div>
-                        <div className="flex gap-3">
-                          {(isEditingInvoice || invoice.status === 'draft') && invoice.id && (
-                            <button type="button" onClick={() => setIsEditingInvoice(false)} className="px-5 py-2 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">Cancel</button>
-                          )}
-                          <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50">
-                            {actionLoading ? <FiLoader className="animate-spin" /> : <FiDollarSign size={14} />}
-                            {isEditingInvoice ? 'Update Invoice' : 'Save Invoice Draft'}
-                          </button>
-                        </div>
-                      </div>
-                    </form>
-                  </Section>
-                )}
-                
-                {/* --- PAYMENT OPTIONS (only if not paid) --- */}
-                {invoice.status !== 'paid' && !isEditingInvoice && (
-                  <Section title="Issue Payment" icon={FiDollarSign}>
-                    <div className="flex flex-col md:flex-row gap-6">
-                      <div className="flex-1 space-y-4">
-                        <div className="flex flex-col gap-2">
-                          <label className="text-sm font-semibold text-gray-700">Method:</label>
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                            {['card', 'cash', 'check', 'account'].map(m => (
-                              <button key={m} onClick={() => setChargeMethod(m)} className={`px-4 py-2 rounded-lg border text-sm font-medium capitalize transition-all ${chargeMethod === m ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
-                                {m}
-                              </button>
-                            ))}
+            {/* Original content preserved for future launch */}
+            {false && (
+              <div>
+                {!invoice ? (
+                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-12 text-center">
+                    <FiDollarSign size={48} className="text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">No Invoice Found</h3>
+                    <p className="text-gray-500 mb-6 max-w-sm mx-auto">This reservation doesn't have an invoice yet. Invoices are created after check-in.</p>
+                    {canInvoice && (
+                      <button onClick={handleSaveInvoice} disabled={actionLoading} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+                        Create Invoice
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* --- PAID SUMMARY --- */}
+                    {(invoice.status === 'paid' && !isEditingInvoice) && (
+                      <Section title="Invoice Details" icon={FiDollarSign}>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                          <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
+                            <FiCheckCircle size={14} /> Paid via {invoice.payment_method} on {new Date(invoice.updated_at).toLocaleString()}
                           </div>
+                          {isAdmin && (
+                            <button
+                              onClick={() => setIsEditingInvoice(true)}
+                              className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                            >
+                              Edit Invoice
+                            </button>
+                          )}
                         </div>
-                        {chargeMethod === 'card' && (
-                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Stripe Payment Method ID</label>
-                            <input type="text" value={stripePaymentMethodId} onChange={e => setStripePaymentMethodId(e.target.value)} placeholder="pm_..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-gray-100">
+                          <Field label="Aircraft Rate" value={`$${invoice.aircraft_rate}`} />
+                          <Field label="Dual Instruction" value={`${invoice.instruction_dual_hours} hrs`} />
+                          <Field label="Ground Instruction" value={`${invoice.instruction_ground_hours} hrs`} />
+                          <Field label="Instructor Rate" value={`$${invoice.instructor_rate}`} />
+                          <Field label="Tax" value={`${invoice.tax_percent}%`} />
+                        </div>
+                        <div className="pt-4 flex flex-col items-end gap-1">
+                          <div className="text-sm text-gray-500">Total Charged</div>
+                          <div className="text-2xl font-bold text-gray-900">${invoice.total?.toFixed(2)}</div>
+                        </div>
+                        {invoice.notes && <p className="text-sm text-gray-600 mt-4 bg-gray-50 rounded-lg p-3">{invoice.notes}</p>}
+                        
+                        {invoice.is_refunded && (
+                          <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+                            <p className="text-xs font-bold text-red-600 uppercase mb-1">Refund Issued</p>
+                            <p className="text-sm text-red-700">Amount: ${Number(invoice.refund_amount).toFixed(2)} — Reason: {invoice.refund_reason || 'N/A'}</p>
                           </div>
                         )}
-                      </div>
-                      <div className="md:w-64 bg-gray-900 rounded-xl p-6 text-white text-center flex flex-col justify-center shadow-lg border border-gray-800">
-                        <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Total to Charge</div>
-                        <div className="text-3xl font-bold mb-4">${invoice.total?.toFixed(2)}</div>
-                        <button onClick={() => setShowChargeDialog(true)} disabled={actionLoading} className="w-full py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-lg font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50">
-                          {actionLoading ? <FiLoader className="animate-spin mx-auto" /> : 'Charge Customer'}
-                        </button>
-                      </div>
-                    </div>
-                  </Section>
-                )}
+                      </Section>
+                    )}
 
-                {/* --- REFUND (Admin only, already paid) --- */}
-                {isAdmin && invoice.status === 'paid' && !invoice.is_refunded && !isEditingInvoice && (
-                  <Section title="Issue Refund" icon={FiRefreshCw}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <Input label="Refund Amount ($)" type="number" step="0.01" min="0" max={invoice.total} value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
-                      <Input label="Reason for Refund" value={refundForm.refund_reason} onChange={e => setRefundForm(f => ({ ...f, refund_reason: e.target.value }))} placeholder="e.g., Error in hours, Customer request" />
-                    </div>
-                    <div className="flex justify-end">
-                      <button onClick={() => setShowRefundDialog(true)} disabled={actionLoading || !refundForm.refund_amount} className="flex items-center gap-2 px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50">
-                        <FiRefreshCw size={14} className={actionLoading ? 'animate-spin' : ''} />
-                        Process Refund
-                      </button>
-                    </div>
-                  </Section>
+                    {/* --- EDIT / DRAFT FORM --- */}
+                    {(invoice.status !== 'paid' || isEditingInvoice) && (
+                      <Section title={isEditingInvoice ? "Edit Invoice Details" : "Invoice Draft"} icon={FiDollarSign}>
+                        <p className="text-sm text-gray-500 mb-4">Adjust rates and hours as needed. The total will be recalculated.</p>
+                        <form onSubmit={async (e) => {
+                          await handleSaveInvoice(e);
+                          setIsEditingInvoice(false);
+                        }} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.aircraft_rate} onChange={e => setInvoiceForm(f => ({ ...f, aircraft_rate: e.target.value }))} />
+                            <Input label="Dual Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_dual_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} />
+                            <Input label="Ground Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_ground_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} />
+                            <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.instructor_rate} onChange={e => setInvoiceForm(f => ({ ...f, instructor_rate: e.target.value }))} />
+                            <Input label="Tax %" type="number" step="0.01" min="0" max="100" value={invoiceForm.tax_percent} onChange={e => setInvoiceForm(f => ({ ...f, tax_percent: e.target.value }))} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Invoice Notes</label>
+                            <textarea rows={2} value={invoiceForm.notes} onChange={e => setInvoiceForm(f => ({ ...f, notes: e.target.value }))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Internal notes or customer visible comments..." />
+                          </div>
+                          <div className="flex justify-between items-center bg-blue-50 rounded-lg p-4 border border-blue-100">
+                            <div>
+                              <div className="text-xs text-blue-600 font-medium uppercase">Estimated Total</div>
+                              <div className="text-xl font-bold text-blue-900">${((parseFloat(invoiceForm.aircraft_rate || 0) * (reservation.hobbs_block_time || 0)) + (parseFloat(invoiceForm.instruction_dual_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0)) + (parseFloat(invoiceForm.instruction_ground_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0))).toFixed(2)}</div>
+                            </div>
+                            <div className="flex gap-3">
+                              {(isEditingInvoice || invoice.status === 'draft') && invoice.id && (
+                                <button type="button" onClick={() => setIsEditingInvoice(false)} className="px-5 py-2 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">Cancel</button>
+                              )}
+                              <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50">
+                                {actionLoading ? <FiLoader className="animate-spin" /> : <FiDollarSign size={14} />}
+                                {isEditingInvoice ? 'Update Invoice' : 'Save Invoice Draft'}
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+                      </Section>
+                    )}
+                    
+                    {/* --- PAYMENT OPTIONS (only if not paid) --- */}
+                    {invoice.status !== 'paid' && !isEditingInvoice && (
+                      <Section title="Issue Payment" icon={FiDollarSign}>
+                        <div className="flex flex-col md:flex-row gap-6">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex flex-col gap-2">
+                              <label className="text-sm font-semibold text-gray-700">Method:</label>
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                {['card', 'cash', 'check', 'account'].map(m => (
+                                  <button key={m} onClick={() => setChargeMethod(m)} className={`px-4 py-2 rounded-lg border text-sm font-medium capitalize transition-all ${chargeMethod === m ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
+                                    {m}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            {chargeMethod === 'card' && (
+                              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Stripe Payment Method ID</label>
+                                <input type="text" value={stripePaymentMethodId} onChange={e => setStripePaymentMethodId(e.target.value)} placeholder="pm_..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="md:w-64 bg-gray-900 rounded-xl p-6 text-white text-center flex flex-col justify-center shadow-lg border border-gray-800">
+                            <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Total to Charge</div>
+                            <div className="text-3xl font-bold mb-4">${invoice.total?.toFixed(2)}</div>
+                            <button onClick={() => setShowChargeDialog(true)} disabled={actionLoading} className="w-full py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-lg font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50">
+                              {actionLoading ? <FiLoader className="animate-spin mx-auto" /> : 'Charge Customer'}
+                            </button>
+                          </div>
+                        </div>
+                      </Section>
+                    )}
+
+                    {/* --- REFUND (Admin only, already paid) --- */}
+                    {isAdmin && invoice.status === 'paid' && !invoice.is_refunded && !isEditingInvoice && (
+                      <Section title="Issue Refund" icon={FiRefreshCw}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <Input label="Refund Amount ($)" type="number" step="0.01" min="0" max={invoice.total} value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
+                          <Input label="Reason for Refund" value={refundForm.refund_reason} onChange={e => setRefundForm(f => ({ ...f, refund_reason: e.target.value }))} placeholder="e.g., Error in hours, Customer request" />
+                        </div>
+                        <div className="flex justify-end">
+                          <button onClick={() => setShowRefundDialog(true)} disabled={actionLoading || !refundForm.refund_amount} className="flex items-center gap-2 px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50">
+                            <FiRefreshCw size={14} className={actionLoading ? 'animate-spin' : ''} />
+                            Process Refund
+                          </button>
+                        </div>
+                      </Section>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -1177,7 +1192,8 @@ const ReservationDetail = () => {
 
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default ReservationDetail;
