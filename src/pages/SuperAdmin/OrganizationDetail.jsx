@@ -14,6 +14,7 @@ import {
 } from '../../utils/organizationHelpers';
 import { organizationService } from '../../api/services/organizationService';
 import { showConfirmDialog, showSuccessToast, showErrorToast } from '../../utils/notifications';
+import { useAuth } from '../../context/AuthContext';
 
 
 const OrganizationDetail = () => {
