@@ -10,6 +10,7 @@ import {
   formatUserInfo,
   formatOrganizationInfo,
   getOrganizationTitle,
+  getTrialRemainingDays,
 } from '../../utils/organizationHelpers';
 import { organizationService } from '../../api/services/organizationService';
 import { showConfirmDialog, showSuccessToast, showErrorToast } from '../../utils/notifications';
@@ -418,15 +419,38 @@ const OrganizationDetail = () => {
                   </div>
                 </div>
 
-                {/* Trial Period */}
+                {/* Trial Period Detail */}
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500 mb-2">Trial Period:</span>
-                  <input 
-                    type="date"
-                    className="px-3 py-1.5 rounded border border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500"
-                    value={organization.trial_ends_at ? new Date(organization.trial_ends_at).toISOString().split('T')[0] : ''}
-                    onChange={(e) => handleUpdateOrg('trial_ends_at', e.target.value)}
-                  />
+                  <span className="text-sm font-medium text-gray-500 mb-2">Trial Period Management:</span>
+                  <div className="bg-white p-3 rounded border border-gray-200">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-semibold text-blue-700">
+                        {organization.trial_ends_at ? (
+                          (() => {
+                            const days = getTrialRemainingDays(organization.trial_ends_at);
+                            return days > 0 ? `${days} Days Remaining` : 'Trial Expired';
+                          })()
+                        ) : 'No Trial Set'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Ends: {organization.trial_ends_at ? new Date(organization.trial_ends_at).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                    {organization.trial_ends_at && (
+                      <div className="w-full bg-gray-100 rounded-full h-1.5 mb-3">
+                        <div 
+                          className={`h-1.5 rounded-full ${getTrialRemainingDays(organization.trial_ends_at) > 5 ? 'bg-blue-600' : 'bg-red-600'}`} 
+                          style={{ width: `${Math.min(100, (getTrialRemainingDays(organization.trial_ends_at) / 30) * 100)}%` }}
+                        ></div>
+                      </div>
+                    )}
+                    <input 
+                      type="date"
+                      className="w-full px-3 py-1.5 rounded border border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500"
+                      value={organization.trial_ends_at ? new Date(organization.trial_ends_at).toISOString().split('T')[0] : ''}
+                      onChange={(e) => handleUpdateOrg('trial_ends_at', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

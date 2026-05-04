@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { FiSearch, FiPlus } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 import { HiDotsVertical } from "react-icons/hi";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { userService } from "../../api/services/userService";
 import { organizationService } from "../../api/services/organizationService";
 import Pagination from "../../components/Pagination";
@@ -11,10 +11,13 @@ import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../utils
 
 
 const UserManagement = () => {
+  const roleFilters = ["Instructor", "Student", "Organization", "Admin", "Request"];
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
   
   
-  const [selected, setSelected] = useState("Instructor");
+  const [selected, setSelected] = useState(tabParam && roleFilters.includes(tabParam) ? tabParam : "Instructor");
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -34,7 +37,11 @@ const UserManagement = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
 
-  const roleFilters = ["Instructor", "Student", "Organization", "Admin"];
+  useEffect(() => {
+    if (tabParam && roleFilters.includes(tabParam)) {
+      setSelected(tabParam);
+    }
+  }, [tabParam]);
 
   
   useEffect(() => {
@@ -65,13 +72,14 @@ const UserManagement = () => {
       let response;
 
       
-      if (selected === "Organization") {
+      if (selected === "Organization" || selected === "Request") {
         response = await organizationService.getOrganizations({
           page: currentPage,
           per_page: itemsPerPage,
           search: searchTerm,
           sort: 'created_at',
-          order: 'desc'
+          order: 'desc',
+          ...(selected === "Request" ? { verification_status: 'pending' } : {})
         });
       } else {
         
@@ -154,7 +162,7 @@ const UserManagement = () => {
 
   
   const handleRowClick = useCallback(async (item) => {
-    if (selected === "Organization") {
+    if (selected === "Organization" || selected === "Request") {
       
       navigate(`/user-management/organization/${item.id}?type=organization`);
     } else if (selected === "Admin") {
@@ -165,6 +173,103 @@ const UserManagement = () => {
       navigate(`/user-management/profile/${item.id}`);
     }
   }, [navigate, selected]);
+
+  const handleApproveOrganization = useCallback(async (orgId) => {
+    const confirmed = await showDeleteConfirm(
+      "Approve Organization",
+      "Are you sure you want to approve this organization?",
+      "Yes, Approve"
+    );
+    if (!confirmed) return;
+
+    setActionLoading(orgId);
+    try {
+      const response = await organizationService.updateOrganization(orgId, {
+        verification_status: 'verified',
+        status: 'active'
+      });
+      if (response.success) {
+        showSuccessToast("Organization approved successfully");
+        fetchUsers();
+      }
+    } catch (err) {
+      showErrorToast("Failed to approve organization");
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchUsers]);
+
+  const handleRejectOrganization = useCallback(async (orgId) => {
+    const confirmed = await showDeleteConfirm(
+      "Reject Organization",
+      "Are you sure you want to reject this organization?",
+      "Yes, Reject"
+    );
+    if (!confirmed) return;
+
+    setActionLoading(orgId);
+    try {
+      const response = await organizationService.updateOrganization(orgId, {
+        verification_status: 'rejected'
+      });
+      if (response.success) {
+        showSuccessToast("Organization rejected successfully");
+        fetchUsers();
+      }
+    } catch (err) {
+      showErrorToast("Failed to reject organization");
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchUsers]);
+
+  const handleBlockOrganization = useCallback(async (orgId) => {
+    const confirmed = await showDeleteConfirm(
+      "Block Organization",
+      "Are you sure you want to block this organization?",
+      "Yes, Block"
+    );
+    if (!confirmed) return;
+
+    setActionLoading(orgId);
+    try {
+      const response = await organizationService.updateOrganization(orgId, {
+        status: 'blocked'
+      });
+      if (response.success) {
+        showSuccessToast("Organization blocked successfully");
+        fetchUsers();
+      }
+    } catch (err) {
+      showErrorToast("Failed to block organization");
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchUsers]);
+
+  const handleUnblockOrganization = useCallback(async (orgId) => {
+    const confirmed = await showDeleteConfirm(
+      "Unblock Organization",
+      "Are you sure you want to unblock this organization?",
+      "Yes, Unblock"
+    );
+    if (!confirmed) return;
+
+    setActionLoading(orgId);
+    try {
+      const response = await organizationService.updateOrganization(orgId, {
+        status: 'active'
+      });
+      if (response.success) {
+        showSuccessToast("Organization unblocked successfully");
+        fetchUsers();
+      }
+    } catch (err) {
+      showErrorToast("Failed to unblock organization");
+    } finally {
+      setActionLoading(null);
+    }
+  }, [fetchUsers]);
 
   return (
     <div className="md:mt-5 mx-auto">
@@ -292,8 +397,8 @@ const UserManagement = () => {
                     {selected === "Organization" && <th className="pl-5">Aircraft Count</th>}
                     {selected !== "Organization" && <th className="pl-5">Role</th>}
                     <th className="pl-5">Joined Date</th>
-                    {selected !== "Organization" && <th className="pl-5">Status</th>}
-                    {selected === "Organization" && <th className="pl-5">Status</th>}
+                    {(selected === "Organization" || selected === "Request") && <th className="pl-5">Trial End</th>}
+                    <th className="pl-5">Status</th>
                     <th className="pr-3">Action</th>
                   </tr>
                 </thead>
@@ -301,7 +406,7 @@ const UserManagement = () => {
                   {users.length > 0 ? (
                     users.map((item) => {
                       
-                      if (selected === "Organization") {
+                      if (selected === "Organization" || selected === "Request") {
                         return (
                           <OrganizationRow
                             key={item.id}
@@ -312,6 +417,11 @@ const UserManagement = () => {
                             isDropdownOpen={openDropdownId === item.id}
                             onDropdownToggle={() => setOpenDropdownId(openDropdownId === item.id ? null : item.id)}
                             dropdownRef={(el) => (dropdownRefs.current[item.id] = el)}
+                            isRequest={selected === "Request"}
+                            onApprove={() => handleApproveOrganization(item.id)}
+                            onReject={() => handleRejectOrganization(item.id)}
+                            onBlock={() => handleBlockOrganization(item.id)}
+                            onUnblock={() => handleUnblockOrganization(item.id)}
                           />
                         );
                       }
@@ -350,7 +460,7 @@ const UserManagement = () => {
               {users.length > 0 ? (
                 users.map((item) => {
                   
-                  if (selected === "Organization") {
+                  if (selected === "Organization" || selected === "Request") {
                     return (
                       <div
                         key={item.id}
@@ -401,6 +511,30 @@ const UserManagement = () => {
                                 >
                                   View
                                 </button>
+                                {selected === "Request" && (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdownId(null);
+                                        handleApproveOrganization(item.id);
+                                      }}
+                                      className="block w-full text-left px-4 py-3 text-sm text-green-600 hover:bg-green-50 transition-colors min-h-[44px]"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdownId(null);
+                                        handleRejectOrganization(item.id);
+                                      }}
+                                      className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors min-h-[44px]"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>
@@ -414,18 +548,24 @@ const UserManagement = () => {
                             <span className="text-xs text-gray-500">Aircraft Count</span>
                             <p className="text-sm font-medium text-gray-800">{item.aircraft_count || 0}</p>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                           <div>
                             <span className="text-xs text-gray-500">Joined Date</span>
                             <p className="text-sm text-gray-700">
                               {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
                             </p>
                           </div>
+                          <div>
+                            <span className="text-xs text-gray-500">Trial End</span>
+                            <p className="text-sm text-gray-700 font-medium text-blue-600">
+                              {item.trial_ends_at ? new Date(item.trial_ends_at).toLocaleDateString() : 'No Trial'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            item.verification_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : (item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
                           }`}>
-                            {item.status || 'Active'}
+                            {item.verification_status === 'pending' ? 'Pending Approval' : (item.status || 'Active')}
                           </span>
                         </div>
                       </div>
@@ -708,6 +848,11 @@ const OrganizationRow = React.memo(({
   isDropdownOpen,
   onDropdownToggle,
   dropdownRef,
+  isRequest,
+  onApprove,
+  onReject,
+  onBlock,
+  onUnblock,
 }) => {
   const statusConfig = {
     active: {
@@ -754,8 +899,11 @@ const OrganizationRow = React.memo(({
         {organization.created_at ? new Date(organization.created_at).toLocaleDateString() : 'N/A'}
       </td>
       <td className="p-6">
+        {organization.trial_ends_at ? new Date(organization.trial_ends_at).toLocaleDateString() : 'No Trial'}
+      </td>
+      <td className="p-6">
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${status.bg} ${status.text}`}>
-          {organization.status || 'Active'}
+          {organization.verification_status === 'pending' ? 'Pending Approval' : (organization.status || 'Active')}
         </span>
       </td>
       <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
@@ -765,6 +913,12 @@ const OrganizationRow = React.memo(({
           isOpen={isDropdownOpen}
           onToggle={onDropdownToggle}
           ref={dropdownRef}
+          isRequest={isRequest}
+          onApprove={onApprove}
+          onReject={onReject}
+          onBlock={onBlock}
+          onUnblock={onUnblock}
+          status={organization.status}
         />
       </td>
     </tr>
@@ -779,6 +933,12 @@ const OrganizationActionsDropdown = React.forwardRef(({
   organizationName,
   isOpen,
   onToggle,
+  isRequest,
+  onApprove,
+  onReject,
+  onBlock,
+  onUnblock,
+  status,
 }, ref) => {
   const navigate = useNavigate();
   
@@ -797,7 +957,7 @@ const OrganizationActionsDropdown = React.forwardRef(({
         <HiDotsVertical className="w-5 h-5 text-gray-500" />
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+        <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -808,6 +968,44 @@ const OrganizationActionsDropdown = React.forwardRef(({
           >
             View Details
           </button>
+          {isRequest && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onApprove();
+                  onToggle();
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50"
+              >
+                Approve
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReject();
+                  onToggle();
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {!isRequest && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                status === 'blocked' ? onUnblock() : onBlock();
+                onToggle();
+              }}
+              className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                status === 'blocked' ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {status === 'blocked' ? 'Unblock' : 'Block'}
+            </button>
+          )}
         </div>
       )}
     </div>

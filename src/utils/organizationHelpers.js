@@ -83,6 +83,16 @@ export const formatOrganizationInfo = (organization, user) => {
 };
 
 
+export const getTrialRemainingDays = (trialEndsAt) => {
+  if (!trialEndsAt) return null;
+  const end = new Date(trialEndsAt);
+  const now = new Date();
+  const diffTime = end - now;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays > 0 ? diffDays : 0;
+};
+
+
 export const getOrganizationTitle = (user) => {
   return user?.organization?.name || 'Organization Details';
 };

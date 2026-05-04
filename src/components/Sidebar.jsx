@@ -7,6 +7,7 @@ import { authService } from "../api/services/authService";
 import { getImageUrl } from "../utils/imageUtils";
 import { HiChevronDown } from "react-icons/hi";
 import logo from "../assets/SVG/logo.svg";
+import { getTrialRemainingDays } from "../utils/organizationHelpers";
 
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -264,6 +265,42 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               </div>
             )}
           </nav>
+
+          {/* Trial Status Badge */}
+          {!user?.roles?.includes('Super Admin') && user?.organization_id && (
+            <div className="mt-8 px-4">
+              <div className="bg-blue-800 bg-opacity-50 rounded-lg p-3 border border-blue-500">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] font-semibold text-blue-200 uppercase tracking-wider">Trial Status</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-medium">
+                    {user.is_trial_active ? 'Active' : 'Expired'}
+                  </span>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-lg font-bold leading-none">
+                      {user.trial_ends_at ? getTrialRemainingDays(user.trial_ends_at) : 0}
+                    </p>
+                    <p className="text-[10px] text-blue-300">Days Remaining</p>
+                  </div>
+                  <Link 
+                    to="/subscription" 
+                    className="text-[10px] bg-white text-blue-700 px-2 py-1 rounded font-bold hover:bg-blue-50 transition-colors"
+                  >
+                    Upgrade
+                  </Link>
+                </div>
+                {user.trial_ends_at && (
+                  <div className="w-full bg-blue-900 rounded-full h-1 mt-2">
+                    <div 
+                      className={`h-1 rounded-full ${getTrialRemainingDays(user.trial_ends_at) > 5 ? 'bg-blue-400' : 'bg-red-400'}`} 
+                      style={{ width: `${Math.min(100, (getTrialRemainingDays(user.trial_ends_at) / 30) * 100)}%` }}
+                    ></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </>
