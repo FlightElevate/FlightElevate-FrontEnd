@@ -78,7 +78,29 @@ const ACDetails = ({ aircraft }) => {
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Flight Hours & Cycles</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-gray-500">Total Hours</p>
+            <p className="text-sm font-medium text-gray-500">Current Hobbs</p>
+            <p className="text-base text-gray-800 font-semibold">
+              {aircraft.current_hobbs != null ? parseFloat(aircraft.current_hobbs).toFixed(1) : '0.0'}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-gray-500">
+              {aircraft.aircraft_class?.includes('Multi') ? 'Current Tach 1' : 'Current Tach'}
+            </p>
+            <p className="text-base text-gray-800 font-semibold">
+              {aircraft.current_tach != null ? parseFloat(aircraft.current_tach).toFixed(1) : '0.0'}
+            </p>
+          </div>
+          {aircraft.aircraft_class?.includes('Multi') && (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-gray-500">Current Tach 2</p>
+              <p className="text-base text-gray-800 font-semibold">
+                {aircraft.current_tach_2 != null ? parseFloat(aircraft.current_tach_2).toFixed(1) : '0.0'}
+              </p>
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-gray-500">Total Airframe Hours</p>
             <p className="text-base text-gray-800 font-semibold">
               {aircraft.total_hours != null && !isNaN(parseFloat(aircraft.total_hours))
                 ? parseFloat(aircraft.total_hours).toFixed(2)

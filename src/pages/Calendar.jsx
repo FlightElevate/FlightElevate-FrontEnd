@@ -913,27 +913,27 @@ const Calendar = () => {
       if (matchedKey) {
         const actColor = calendarSettings.activity_colors[matchedKey];
         const customColorMap = {
-          slate: 'bg-slate-500 border-slate-600 shadow-[0_0_8px_rgba(100,116,139,0.3)]',
-          gray: 'bg-gray-500 border-gray-600 shadow-[0_0_8px_rgba(107,114,128,0.3)]',
-          zinc: 'bg-zinc-500 border-zinc-600 shadow-[0_0_8px_rgba(113,113,122,0.3)]',
-          red: 'bg-red-500 border-red-600 shadow-[0_0_8px_rgba(239,68,68,0.3)]',
-          orange: 'bg-orange-500 border-orange-600 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
-          amber: 'bg-amber-500 border-amber-600 shadow-[0_0_8px_rgba(245,158,11,0.3)] text-gray-900',
-          yellow: 'bg-yellow-400 border-yellow-500 shadow-[0_0_8px_rgba(250,204,21,0.3)] text-gray-900',
-          lime: 'bg-lime-500 border-lime-600 shadow-[0_0_8px_rgba(132,204,22,0.3)] text-gray-900',
-          green: 'bg-green-500 border-green-600 shadow-[0_0_8px_rgba(34,197,94,0.3)]',
-          emerald: 'bg-emerald-500 border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.3)]',
-          teal: 'bg-teal-500 border-teal-600 shadow-[0_0_8px_rgba(20,184,166,0.3)]',
-          cyan: 'bg-cyan-500 border-cyan-600 shadow-[0_0_8px_rgba(6,182,212,0.3)]',
-          sky: 'bg-sky-500 border-sky-600 shadow-[0_0_8px_rgba(14,165,233,0.3)]',
-          blue: 'bg-blue-500 border-blue-600 shadow-[0_0_8px_rgba(59,130,246,0.3)]',
-          indigo: 'bg-indigo-500 border-indigo-600 shadow-[0_0_8px_rgba(99,102,241,0.3)]',
-          violet: 'bg-violet-500 border-violet-600 shadow-[0_0_8px_rgba(139,92,246,0.3)]',
-          purple: 'bg-purple-500 border-purple-600 shadow-[0_0_8px_rgba(168,85,247,0.3)]',
-          fuchsia: 'bg-fuchsia-500 border-fuchsia-600 shadow-[0_0_8px_rgba(217,70,239,0.3)]',
-          pink: 'bg-pink-500 border-pink-600 shadow-[0_0_8px_rgba(236,72,153,0.3)]',
-          rose: 'bg-rose-500 border-rose-600 shadow-[0_0_8px_rgba(244,63,94,0.3)]',
-          black: 'bg-gray-900 border-black shadow-[0_0_8px_rgba(0,0,0,0.3)]',
+          slate: 'bg-slate-100 border-slate-300 text-slate-800 shadow-sm',
+          gray: 'bg-gray-100 border-gray-300 text-gray-800 shadow-sm',
+          zinc: 'bg-zinc-100 border-zinc-300 text-zinc-800 shadow-sm',
+          red: 'bg-red-100 border-red-300 text-red-800 shadow-sm',
+          orange: 'bg-orange-100 border-orange-300 text-orange-800 shadow-sm',
+          amber: 'bg-amber-100 border-amber-300 text-amber-900 shadow-sm',
+          yellow: 'bg-yellow-100 border-yellow-300 text-yellow-900 shadow-sm',
+          lime: 'bg-lime-100 border-lime-300 text-lime-900 shadow-sm',
+          green: 'bg-green-100 border-green-300 text-green-800 shadow-sm',
+          emerald: 'bg-emerald-100 border-emerald-300 text-emerald-800 shadow-sm',
+          teal: 'bg-teal-100 border-teal-300 text-teal-800 shadow-sm',
+          cyan: 'bg-cyan-100 border-cyan-300 text-cyan-800 shadow-sm',
+          sky: 'bg-sky-100 border-sky-300 text-sky-800 shadow-sm',
+          blue: 'bg-blue-100 border-blue-300 text-blue-800 shadow-sm',
+          indigo: 'bg-indigo-100 border-indigo-300 text-indigo-800 shadow-sm',
+          violet: 'bg-violet-100 border-violet-300 text-violet-800 shadow-sm',
+          purple: 'bg-purple-100 border-purple-300 text-purple-800 shadow-sm',
+          fuchsia: 'bg-fuchsia-100 border-fuchsia-300 text-fuchsia-800 shadow-sm',
+          pink: 'bg-pink-100 border-pink-300 text-pink-800 shadow-sm',
+          rose: 'bg-rose-100 border-rose-300 text-rose-800 shadow-sm',
+          black: 'bg-gray-800 border-black text-white shadow-sm',
         };
         if (customColorMap[actColor]) return customColorMap[actColor];
       }
@@ -941,29 +941,29 @@ const Calendar = () => {
 
     const color = event?.color || event;
     // Priority 1: Special Status colors (regardless of resource)
-    if (color === 'red' || color === 'light-red') return 'bg-red-400 border-red-500';
-    if (color === 'yellow') return 'bg-yellow-400 border-yellow-500 text-gray-800'; // Requested
-    if (color === 'orange') return 'bg-orange-400 border-orange-500';
-    if (color === 'gray') return 'bg-gray-400 border-gray-500';
+    if (color === 'red' || color === 'light-red') return 'bg-red-100 border-red-200 text-red-800';
+    if (color === 'yellow') return 'bg-yellow-100 border-yellow-200 text-yellow-900';
+    if (color === 'orange') return 'bg-orange-100 border-orange-200 text-orange-800';
+    if (color === 'gray') return 'bg-gray-100 border-gray-200 text-gray-800';
 
     // Priority 2: Resource-specific colors
     if (itemType === 'aircraft') {
-      return 'bg-blue-500 border-blue-600 shadow-[0_0_8px_rgba(59,130,246,0.3)]';
+      return 'bg-blue-100 border-blue-300 text-blue-800 shadow-sm';
     }
     if (itemType === 'instructor') {
-      return 'bg-emerald-500 border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.3)]';
+      return 'bg-emerald-100 border-emerald-300 text-emerald-800 shadow-sm';
     }
 
     // Fallback
     const colorMap = {
-      blue: 'bg-blue-500 border-blue-600',
-      red: 'bg-red-400 border-red-500',
-      'light-red': 'bg-red-300 border-red-400',
-      orange: 'bg-orange-400 border-orange-500',
-      yellow: 'bg-yellow-400 border-yellow-500 text-gray-800',
-      gray: 'bg-gray-400 border-gray-500',
+      blue: 'bg-blue-100 border-blue-300 text-blue-800',
+      red: 'bg-red-100 border-red-300 text-red-800',
+      'light-red': 'bg-red-50 border-red-200 text-red-700',
+      orange: 'bg-orange-100 border-orange-300 text-orange-800',
+      yellow: 'bg-yellow-100 border-yellow-300 text-yellow-900',
+      gray: 'bg-gray-100 border-gray-300 text-gray-800',
     };
-    return colorMap[color] || 'bg-blue-500 border-blue-600';
+    return colorMap[color] || 'bg-blue-100 border-blue-300 text-blue-800';
   };
 
   const handleEventHover = (event, e, context = null) => {
@@ -1671,7 +1671,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
                             
                             return (
-                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                              <div key={idx} className={`absolute top-2 bottom-2 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
                                 style={{ 
@@ -1705,7 +1705,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
 
                             return (
-                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/10
+                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/10
                                 ${isStartingToday ? 'rounded-l' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r' : 'border-r-0'}`} 
                                 style={{ 
@@ -1768,7 +1768,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
 
                             return (
-                              <div key={idx} className={`absolute top-2 bottom-2 text-white px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                              <div key={idx} className={`absolute top-2 bottom-2 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
                                 style={{ 
@@ -1802,7 +1802,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
 
                             return (
-                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 text-white px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event, 'instructor')} border border-white/10
+                              <div key={`mob-${idx}`} className={`absolute top-1 bottom-1 px-1 cursor-pointer z-10 flex sm:hidden shadow-sm overflow-hidden ${getEventColor(event, 'instructor')} border border-white/10
                                 ${isStartingToday ? 'rounded-l' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r' : 'border-r-0'}`} 
                                 style={{ 
@@ -1872,7 +1872,7 @@ const Calendar = () => {
                                     
                                     return (
                                       <div key={i} 
-                                        className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev, 'aircraft')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} 
+                                        className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev, 'aircraft')} shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} 
                                         title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`}
                                         onMouseEnter={(e) => handleEventHover(ev, e, 'aircraft')} 
                                         onMouseLeave={handleEventLeave} 
@@ -1921,7 +1921,7 @@ const Calendar = () => {
                                       : `Ends ${formatEventTimeForDisplay(ev.end_time).replace(':00', '')}`;
 
                                     return (
-                                      <div key={i} className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev, 'instructor')} text-white shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e, 'instructor')} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>
+                                      <div key={i} className={`rounded p-1 text-[10px] font-bold truncate cursor-pointer ${getEventColor(ev, 'instructor')} shadow-sm border border-white/10 hover:brightness-110 transition-all flex items-center gap-1`} title={safeDisplay(ev.title) || `${formatEventTimeForDisplay(ev.start_time)} - ${formatEventTimeForDisplay(ev.end_time)}`} onMouseEnter={(e) => handleEventHover(ev, e, 'instructor')} onMouseLeave={handleEventLeave} onClick={() => handleEventClick(ev)}>
                                         {!isStart && <span className="opacity-70">←</span>}
                                         <span className="truncate">{displayTime}{ev.student?.name ? ` - ${ev.student.name}` : ''}</span>
                                         {!isEnd && <span className="opacity-70">→</span>}
@@ -2119,28 +2119,28 @@ const Calendar = () => {
                             <div className="flex justify-between items-center mb-5 border-b border-gray-50 pb-3">
                               <span className="text-base font-bold text-gray-800">{type}</span>
                               <div className={`w-4 h-4 rounded-full shadow-sm ring-4 ring-opacity-20 animate-pulse ${
-                                    currentSelection === 'slate' ? 'bg-slate-500 ring-slate-500' :
-                                    currentSelection === 'gray' ? 'bg-gray-500 ring-gray-500' :
-                                    currentSelection === 'zinc' ? 'bg-zinc-500 ring-zinc-500' :
-                                    currentSelection === 'red' ? 'bg-red-500 ring-red-500' :
-                                    currentSelection === 'orange' ? 'bg-orange-500 ring-orange-500' :
-                                    currentSelection === 'amber' ? 'bg-amber-500 ring-amber-500' :
-                                    currentSelection === 'yellow' ? 'bg-yellow-400 ring-yellow-400' :
-                                    currentSelection === 'lime' ? 'bg-lime-500 ring-lime-500' :
-                                    currentSelection === 'green' ? 'bg-green-500 ring-green-500' :
-                                    currentSelection === 'emerald' ? 'bg-emerald-500 ring-emerald-500' :
-                                    currentSelection === 'teal' ? 'bg-teal-500 ring-teal-500' :
-                                    currentSelection === 'cyan' ? 'bg-cyan-500 ring-cyan-500' :
-                                    currentSelection === 'sky' ? 'bg-sky-500 ring-sky-500' :
-                                    currentSelection === 'blue' ? 'bg-blue-500 ring-blue-500' :
-                                    currentSelection === 'indigo' ? 'bg-indigo-500 ring-indigo-500' :
-                                    currentSelection === 'violet' ? 'bg-violet-500 ring-violet-500' :
-                                    currentSelection === 'purple' ? 'bg-purple-500 ring-purple-500' :
-                                    currentSelection === 'fuchsia' ? 'bg-fuchsia-500 ring-fuchsia-500' :
-                                    currentSelection === 'pink' ? 'bg-pink-500 ring-pink-500' :
-                                    currentSelection === 'rose' ? 'bg-rose-500 ring-rose-500' :
-                                    currentSelection === 'black' ? 'bg-gray-900 ring-gray-900' :
-                                    'bg-blue-500 ring-blue-500'
+                                    currentSelection === 'slate' ? 'bg-slate-100 ring-slate-400' :
+                                    currentSelection === 'gray' ? 'bg-gray-100 ring-gray-400' :
+                                    currentSelection === 'zinc' ? 'bg-zinc-100 ring-zinc-400' :
+                                    currentSelection === 'red' ? 'bg-red-100 ring-red-400' :
+                                    currentSelection === 'orange' ? 'bg-orange-100 ring-orange-400' :
+                                    currentSelection === 'amber' ? 'bg-amber-100 ring-amber-400' :
+                                    currentSelection === 'yellow' ? 'bg-yellow-100 ring-yellow-400' :
+                                    currentSelection === 'lime' ? 'bg-lime-100 ring-lime-400' :
+                                    currentSelection === 'green' ? 'bg-green-100 ring-green-400' :
+                                    currentSelection === 'emerald' ? 'bg-emerald-100 ring-emerald-400' :
+                                    currentSelection === 'teal' ? 'bg-teal-100 ring-teal-400' :
+                                    currentSelection === 'cyan' ? 'bg-cyan-100 ring-cyan-400' :
+                                    currentSelection === 'sky' ? 'bg-sky-100 ring-sky-400' :
+                                    currentSelection === 'blue' ? 'bg-blue-100 ring-blue-400' :
+                                    currentSelection === 'indigo' ? 'bg-indigo-100 ring-indigo-400' :
+                                    currentSelection === 'violet' ? 'bg-violet-100 ring-violet-400' :
+                                    currentSelection === 'purple' ? 'bg-purple-100 ring-purple-400' :
+                                    currentSelection === 'fuchsia' ? 'bg-fuchsia-100 ring-fuchsia-400' :
+                                    currentSelection === 'pink' ? 'bg-pink-100 ring-pink-400' :
+                                    currentSelection === 'rose' ? 'bg-rose-100 ring-rose-400' :
+                                    currentSelection === 'black' ? 'bg-gray-800 ring-gray-900' :
+                                    'bg-blue-100 ring-blue-400'
                               }`}></div>
                             </div>
                             
@@ -2154,7 +2154,7 @@ const Calendar = () => {
                                 'black'
                               ].map(c => {
                                 const isSelected = calendarSettings.activity_colors?.[type] === c;
-                                const checkColor = ['amber', 'yellow', 'lime'].includes(c) ? 'text-gray-900' : 'text-white';
+                                const checkColor = 'text-gray-900';
                                 
                                 return (
                                   <button
@@ -2171,28 +2171,28 @@ const Calendar = () => {
                                         ? 'ring-2 ring-offset-2 ring-gray-900 scale-[1.15] z-10 shadow-md' 
                                         : 'hover:scale-[1.15] hover:shadow-sm hover:z-10 opacity-70 hover:opacity-100 cursor-pointer'
                                     } ${
-                                      c === 'slate' ? 'bg-slate-500' :
-                                      c === 'gray' ? 'bg-gray-500' :
-                                      c === 'zinc' ? 'bg-zinc-500' :
-                                      c === 'red' ? 'bg-red-500' :
-                                      c === 'orange' ? 'bg-orange-500' :
-                                      c === 'amber' ? 'bg-amber-500' :
-                                      c === 'yellow' ? 'bg-yellow-400' :
-                                      c === 'lime' ? 'bg-lime-500' :
-                                      c === 'green' ? 'bg-green-500' :
-                                      c === 'emerald' ? 'bg-emerald-500' :
-                                      c === 'teal' ? 'bg-teal-500' :
-                                      c === 'cyan' ? 'bg-cyan-500' :
-                                      c === 'sky' ? 'bg-sky-500' :
-                                      c === 'blue' ? 'bg-blue-500' :
-                                      c === 'indigo' ? 'bg-indigo-500' :
-                                      c === 'violet' ? 'bg-violet-500' :
-                                      c === 'purple' ? 'bg-purple-500' :
-                                      c === 'fuchsia' ? 'bg-fuchsia-500' :
-                                      c === 'pink' ? 'bg-pink-500' :
-                                      c === 'rose' ? 'bg-rose-500' :
-                                      c === 'black' ? 'bg-gray-900' :
-                                      'bg-gray-500'
+                                      c === 'slate' ? 'bg-slate-100 border border-slate-200' :
+                                      c === 'gray' ? 'bg-gray-100 border border-gray-200' :
+                                      c === 'zinc' ? 'bg-zinc-100 border border-zinc-200' :
+                                      c === 'red' ? 'bg-red-100 border border-red-200' :
+                                      c === 'orange' ? 'bg-orange-100 border border-orange-200' :
+                                      c === 'amber' ? 'bg-amber-100 border border-amber-200' :
+                                      c === 'yellow' ? 'bg-yellow-100 border border-yellow-200' :
+                                      c === 'lime' ? 'bg-lime-100 border border-lime-200' :
+                                      c === 'green' ? 'bg-green-100 border border-green-200' :
+                                      c === 'emerald' ? 'bg-emerald-100 border border-emerald-200' :
+                                      c === 'teal' ? 'bg-teal-100 border border-teal-200' :
+                                      c === 'cyan' ? 'bg-cyan-100 border border-cyan-200' :
+                                      c === 'sky' ? 'bg-sky-100 border border-sky-200' :
+                                      c === 'blue' ? 'bg-blue-100 border border-blue-200' :
+                                      c === 'indigo' ? 'bg-indigo-100 border border-indigo-200' :
+                                      c === 'violet' ? 'bg-violet-100 border border-violet-200' :
+                                      c === 'purple' ? 'bg-purple-100 border border-purple-200' :
+                                      c === 'fuchsia' ? 'bg-fuchsia-100 border border-fuchsia-200' :
+                                      c === 'pink' ? 'bg-pink-100 border border-pink-200' :
+                                      c === 'rose' ? 'bg-rose-100 border border-rose-200' :
+                                      c === 'black' ? 'bg-gray-800' :
+                                      'bg-blue-100 border border-blue-200'
                                     }`}
                                     title={c}
                                   >
