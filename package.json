@@ -41,7 +41,9 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "@tailwindcss/vite",
+      "postcss"
     ]
   }
 }
