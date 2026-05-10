@@ -101,11 +101,7 @@ const Subscription = () => {
 
               <h3 className="text-4xl font-black text-blue-600 mb-2">{currentSubscription.plan_title}</h3>
               <p className="text-gray-500 font-medium mb-8">
-                {currentSubscription.is_per_aircraft ? (
-                  <>Billed Monthly • ${parseFloat(currentSubscription.price / currentSubscription.aircraft_count).toFixed(2)}/aircraft • Total: ${parseFloat(currentSubscription.price).toFixed(2)}/mo</>
-                ) : (
-                  <>Billed Monthly • ${parseFloat(currentSubscription.price).toFixed(2)}/mo</>
-                )}
+                Billed Monthly • ${parseFloat(currentSubscription.price / currentSubscription.aircraft_count).toFixed(2)}/aircraft • Total: ${parseFloat(currentSubscription.price).toFixed(2)}/mo
               </p>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
@@ -214,7 +210,7 @@ const Subscription = () => {
                 
                 <div className="mt-6 flex items-baseline">
                   <span className="text-4xl font-extrabold text-gray-900">${parseFloat(plan.price).toFixed(0)}</span>
-                  <span className="ml-1 text-sm font-medium text-gray-500">{plan.is_per_aircraft ? '/aircraft/mo' : '/mo'}</span>
+                  <span className="ml-1 text-sm font-medium text-gray-500">/aircraft/mo</span>
                 </div>
 
                 <div className="mt-6 space-y-4">

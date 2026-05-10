@@ -26,7 +26,7 @@ const Plans = () => {
         max_aircraft: plan.max_aircraft != null ? String(plan.max_aircraft) : '0',
         max_users: plan.max_users != null ? String(plan.max_users) : '0',
         price: plan.price != null ? String(plan.price) : '',
-        is_per_aircraft: plan.is_per_aircraft || false,
+        is_per_aircraft: true,
         setup_fee: plan.setup_fee != null ? String(plan.setup_fee) : '',
         para: plan.para || '',
         status: plan.status || 'active',
@@ -40,7 +40,7 @@ const Plans = () => {
       max_aircraft: '0',
       max_users: '0',
       price: '',
-      is_per_aircraft: false,
+      is_per_aircraft: true,
       setup_fee: '',
       para: '',
       status: 'active',
@@ -61,7 +61,7 @@ const Plans = () => {
         max_aircraft: plan.max_aircraft != null ? String(plan.max_aircraft) : '0',
         max_users: plan.max_users != null ? String(plan.max_users) : '0',
         price: plan.price != null ? String(plan.price) : '',
-        is_per_aircraft: plan.is_per_aircraft || false,
+        is_per_aircraft: true,
         setup_fee: plan.setup_fee != null ? String(plan.setup_fee) : '',
         para: plan.para || '',
         status: plan.status || 'active',
@@ -94,7 +94,7 @@ const Plans = () => {
           max_aircraft: plan.max_aircraft != null ? String(plan.max_aircraft) : '0',
           max_users: plan.max_users != null ? String(plan.max_users) : '0',
           price: plan.price != null ? String(plan.price) : '',
-          is_per_aircraft: plan.is_per_aircraft || false,
+          is_per_aircraft: true,
           setup_fee: plan.setup_fee != null ? String(plan.setup_fee) : '',
           para: plan.para || '',
           status: plan.status || 'active',
@@ -122,7 +122,7 @@ const Plans = () => {
         max_aircraft: parseInt(formData.max_aircraft) || 0,
         max_users: parseInt(formData.max_users) || 0,
         price: parseFloat(formData.price),
-        is_per_aircraft: formData.is_per_aircraft,
+        is_per_aircraft: true,
         para: formData.para || null,
         status: formData.status,
         stripe_plan_id: formData.stripe_plan_id || null,
@@ -196,7 +196,7 @@ const Plans = () => {
 
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">
-                {formData.is_per_aircraft ? 'Monthly Price per Aircraft ($) *' : 'Monthly Base Price ($) *'}
+                Monthly Price per Aircraft ($) *
               </label>
               <input
                 type="number"
@@ -208,19 +208,6 @@ const Plans = () => {
                 className="w-full border border-gray-200 bg-gray-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
                 placeholder="0.00"
               />
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 px-1">
-              <input
-                type="checkbox"
-                id="is_per_aircraft"
-                checked={formData.is_per_aircraft}
-                onChange={(e) => setFormData({ ...formData, is_per_aircraft: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="is_per_aircraft" className="text-sm font-bold text-gray-700 cursor-pointer">
-                Charge Per Aircraft
-              </label>
             </div>
 
             <div>

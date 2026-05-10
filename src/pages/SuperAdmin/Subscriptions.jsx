@@ -281,7 +281,7 @@ const Subscription = () => {
                       </p>
                       <div className="flex items-center mt-2">
                         <span className="text-lg font-semibold text-[#4F4D55]">
-                          ${parseFloat(plan.price).toFixed(2)}{plan.is_per_aircraft ? '/aircraft' : '/mo'}
+                          ${parseFloat(plan.price).toFixed(2)}/aircraft
                         </span>
                         <button
                           onClick={() => togglePlan(index)}
