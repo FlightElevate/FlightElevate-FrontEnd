@@ -109,6 +109,7 @@ const ReservationDetail = () => {
   const [actionSuccess, setActionSuccess] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showAttentionModal, setShowAttentionModal] = useState(false);
   const [invoice, setInvoice] = useState(null);
   const [metarStation, setMetarStation] = useState('KMQJ');
   const [metarLoading, setMetarLoading] = useState(false);
@@ -228,8 +229,8 @@ const ReservationDetail = () => {
     instructor_rate_per_hour: '',
   });
 
-  const handleDispatch = async (e) => {
-    e.preventDefault();
+  const proceedDispatch = async () => {
+    setShowAttentionModal(false);
     setActionLoading(true);
     setActionError(null);
     try {
@@ -254,6 +255,19 @@ const ReservationDetail = () => {
     }
   };
 
+  const handleDispatch = async (e) => {
+    e.preventDefault();
+    const hasReminders = reservation?.aircraft?.maintenance_reminders?.length > 0;
+    const hasSquawks = reservation?.aircraft?.squawks?.length > 0;
+    const notInService = reservation?.aircraft?.status && reservation.aircraft.status !== 'in_service';
+
+    if (hasReminders || hasSquawks || notInService) {
+      setShowAttentionModal(true);
+    } else {
+      await proceedDispatch();
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────────────────
   // CHECK-IN
   // ─────────────────────────────────────────────────────────────────────────
@@ -270,6 +284,8 @@ const ReservationDetail = () => {
     instruction_instrument_hours: '',
     instruction_cirrus_flight_tyq_hours: '',
     instruction_cirrus_ground_tyq_hours: '',
+    landings_day: '',
+    landings_night: '',
     checkin_notes: '',
     squawks_text: '',
   });
@@ -296,6 +312,8 @@ const ReservationDetail = () => {
         instruction_instrument_hours: checkinForm.instruction_instrument_hours ? parseFloat(checkinForm.instruction_instrument_hours) : null,
         instruction_cirrus_flight_tyq_hours: checkinForm.instruction_cirrus_flight_tyq_hours ? parseFloat(checkinForm.instruction_cirrus_flight_tyq_hours) : null,
         instruction_cirrus_ground_tyq_hours: checkinForm.instruction_cirrus_ground_tyq_hours ? parseFloat(checkinForm.instruction_cirrus_ground_tyq_hours) : null,
+        landings_day: checkinForm.landings_day ? parseInt(checkinForm.landings_day) : 0,
+        landings_night: checkinForm.landings_night ? parseInt(checkinForm.landings_night) : 0,
         checkin_notes: checkinForm.checkin_notes || null,
         squawks: squawks.length ? squawks : undefined,
       });
@@ -780,6 +798,8 @@ const ReservationDetail = () => {
                           instruction_instrument_hours: reservation.instruction_instrument_hours != null ? String(reservation.instruction_instrument_hours) : '',
                           instruction_cirrus_flight_tyq_hours: reservation.instruction_cirrus_flight_tyq_hours != null ? String(reservation.instruction_cirrus_flight_tyq_hours) : '',
                           instruction_cirrus_ground_tyq_hours: reservation.instruction_cirrus_ground_tyq_hours != null ? String(reservation.instruction_cirrus_ground_tyq_hours) : '',
+                          landings_day: reservation.landings_day != null ? String(reservation.landings_day) : '',
+                          landings_night: reservation.landings_night != null ? String(reservation.landings_night) : '',
                           checkin_notes: reservation.checkin_notes || '',
                           squawks_text: reservation.squawks?.map(s => s.squawk ?? s).join('\n') || '',
                         });
@@ -809,6 +829,8 @@ const ReservationDetail = () => {
                   <Field label="Instrument" value={reservation.instruction_instrument_hours ? `${reservation.instruction_instrument_hours} hrs` : null} />
                   <Field label="Cirrus Flight TYQ" value={reservation.instruction_cirrus_flight_tyq_hours ? `${reservation.instruction_cirrus_flight_tyq_hours} hrs` : null} />
                   <Field label="Cirrus Ground TYQ" value={reservation.instruction_cirrus_ground_tyq_hours ? `${reservation.instruction_cirrus_ground_tyq_hours} hrs` : null} />
+                  <Field label="Day Landings" value={reservation.landings_day} />
+                  <Field label="Night Landings" value={reservation.landings_night} />
                 </div>
                 {reservation.checkin_notes && <p className="text-sm text-gray-600 mt-3 bg-gray-50 rounded-lg p-3">{reservation.checkin_notes}</p>}
                 <div className="mt-4 flex items-center gap-2 text-blue-600 text-sm bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
@@ -845,6 +867,8 @@ const ReservationDetail = () => {
                     <Input label="Instrument" type="number" step="0.1" min="0" value={checkinForm.instruction_instrument_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_instrument_hours: e.target.value }))} placeholder="0" />
                     <Input label="Cirrus Flight TYQ" type="number" step="0.1" min="0" value={checkinForm.instruction_cirrus_flight_tyq_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_cirrus_flight_tyq_hours: e.target.value }))} placeholder="0" />
                     <Input label="Cirrus Ground TYQ" type="number" step="0.1" min="0" value={checkinForm.instruction_cirrus_ground_tyq_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_cirrus_ground_tyq_hours: e.target.value }))} placeholder="0" />
+                    <Input label="Day Landings" type="number" min="0" value={checkinForm.landings_day} onChange={e => setCheckinForm(f => ({ ...f, landings_day: e.target.value }))} placeholder="0" />
+                    <Input label="Night Landings" type="number" min="0" value={checkinForm.landings_night} onChange={e => setCheckinForm(f => ({ ...f, landings_night: e.target.value }))} placeholder="0" />
                   </div>
                   {/* Live block time preview */}
                   {checkinForm.hobbs_in && reservation.hobbs_out && (
@@ -1188,6 +1212,87 @@ const ReservationDetail = () => {
               Sync now (configure integration first)
             </button>
           </Section>
+        )}
+
+        {showAttentionModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-gray-100">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="p-3 bg-red-50 rounded-full text-red-600 flex-shrink-0">
+                  <FiAlertTriangle size={24} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-lg text-gray-900">Aircraft Attention Required</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    This aircraft has active maintenance items, squawks, or status constraints. Please review before proceeding:
+                  </p>
+
+                  {/* Status alert if not in service */}
+                  {reservation?.aircraft?.status && reservation.aircraft.status !== 'in_service' && (
+                    <div className="mt-3 bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded-lg font-medium flex items-center gap-1.5 animate-pulse">
+                      <span>Status:</span>
+                      <span className="capitalize font-semibold">{reservation.aircraft.status.replace(/_/g, ' ')}</span>
+                    </div>
+                  )}
+
+                  {/* Squawks */}
+                  {reservation?.aircraft?.squawks?.length > 0 && (
+                    <div className="mt-4 border border-red-100 rounded-xl p-4 bg-red-50/50">
+                      <p className="text-xs font-bold text-red-800 uppercase tracking-wider mb-2">Active Squawks / Issues</p>
+                      <ul className="space-y-2 text-sm text-red-950">
+                        {reservation.aircraft.squawks.map((s) => (
+                          <li key={s.id} className="border-b border-red-100/50 pb-2 last:border-0 last:pb-0">
+                            <span className="font-semibold block">{s.squawk}</span>
+                            {s.description && <span className="block text-xs text-red-800/80 mt-0.5">{s.description}</span>}
+                            {s.ground_aircraft && (
+                              <span className="inline-flex bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5 border border-red-200">
+                                GROUNDS AIRCRAFT
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Maintenance Reminders */}
+                  {reservation?.aircraft?.maintenance_reminders?.length > 0 && (
+                    <div className="mt-4 border border-amber-100 rounded-xl p-4 bg-amber-50/50">
+                      <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Maintenance Reminders</p>
+                      <ul className="space-y-2 text-sm text-amber-950">
+                        {reservation.aircraft.maintenance_reminders.map((m) => (
+                          <li key={m.id} className="border-b border-amber-100/50 pb-2 last:border-0 last:pb-0">
+                            <span className="font-semibold block">{m.template_name || 'Maintenance Task'}</span>
+                            <div className="flex gap-4 mt-1 text-xs text-amber-800/90">
+                              {m.hours_remaining != null && <span>Hours left: <strong className="text-amber-900">{parseFloat(m.hours_remaining).toFixed(1)} hrs</strong></span>}
+                              {m.days_remaining != null && <span>Days left: <strong className="text-amber-900">{m.days_remaining} days</strong></span>}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6 border-t border-gray-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAttentionModal(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel &amp; Check Plane
+                </button>
+                <button
+                  type="button"
+                  onClick={() => proceedDispatch()}
+                  className="px-4 py-2 rounded-lg text-white text-sm font-medium bg-red-600 hover:bg-red-700 shadow-sm transition-colors"
+                >
+                  Proceed with Dispatch
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>

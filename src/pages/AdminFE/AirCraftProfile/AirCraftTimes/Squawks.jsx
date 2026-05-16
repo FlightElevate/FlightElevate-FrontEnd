@@ -39,6 +39,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
     description: '',
     status: 'awaiting_review',
     reference_no: '',
+    ground_aircraft: false,
   });
 
   useEffect(() => {
@@ -88,6 +89,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
       description: '',
       status: 'awaiting_review',
       reference_no: '',
+      ground_aircraft: false,
     });
     setShowModal(true);
   };
@@ -99,6 +101,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
       description: squawk.description || '',
       status: squawk.status || 'awaiting_review',
       reference_no: squawk.reference_no || '',
+      ground_aircraft: squawk.ground_aircraft ?? false,
     });
     setOpenMenuId(null);
     setShowModal(true);
@@ -153,6 +156,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
         description: formData.description,
         status: formData.status,
         reference_no: formData.reference_no || null,
+        ground_aircraft: formData.ground_aircraft,
       };
 
       if (editingSquawk) {
@@ -359,6 +363,19 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Optional reference number"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 py-2">
+                <input
+                  type="checkbox"
+                  id="ground_aircraft"
+                  checked={formData.ground_aircraft}
+                  onChange={(e) => setFormData({ ...formData, ground_aircraft: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="ground_aircraft" className="text-sm font-medium text-red-600 select-none cursor-pointer">
+                  Ground Aircraft (Take Out of Service)
+                </label>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">

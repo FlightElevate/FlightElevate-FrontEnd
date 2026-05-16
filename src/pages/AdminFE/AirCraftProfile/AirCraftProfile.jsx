@@ -320,7 +320,7 @@ const AirCraftProfile = () => {
 
   const getStatusColor = (status) => {
     if (status === 'in_service') {
-      return 'bg-[#FFF1DA] text-[#C47E0A]';
+      return 'bg-[#E1FAEA] text-[#016626]';
     }
     return 'bg-[#FFE3E3] text-[#961616]';
   };

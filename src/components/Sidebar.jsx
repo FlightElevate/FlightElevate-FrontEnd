@@ -267,7 +267,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           </nav>
 
           {/* Trial Status Badge */}
-          {!user?.roles?.includes('Super Admin') && user?.organization_id && (
+          {!user?.roles?.some(role => ['super admin', 'student', 'instructor'].includes(role.toLowerCase())) && user?.organization_id && (
             <div className="mt-8 px-4">
               <div className="bg-blue-800 bg-opacity-50 rounded-lg p-3 border border-blue-500">
                 <div className="flex justify-between items-center mb-2">
