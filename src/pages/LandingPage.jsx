@@ -96,7 +96,7 @@ const LandingPage = () => {
       icon: <FiCalendar className="w-5 h-5" />,
       title: "Smart Scheduling",
       description: "Effortlessly manage flight bookings, instructor schedules, and aircraft availability with intelligent clash-detection and calendar sync.",
-      color: "from-blue-500 to-indigo-500",
+      color: "from-blue-700 to-blue-600",
       details: "Our proprietary scheduling matrix resolves overlapping bookings instantly. Real-time availability blocks keep instructors and aircraft synced across all campus locations. Includes automatic calendar pushes to Google, Outlook, and iCal.",
       tag: "Core Engine"
     },
@@ -104,7 +104,7 @@ const LandingPage = () => {
       icon: <FiBarChart2 className="w-5 h-5" />,
       title: "Operations Analytics",
       description: "Gain complete insight into fleet utilization, training hours, student activity levels, and financial KPIs with real-time reporting.",
-      color: "from-indigo-500 to-purple-500",
+      color: "from-blue-600 to-sky-500",
       details: "Visualize flight school performance metrics instantly. Track dual vs solo hours, monitor instructor utilization ratios, and analyze monthly billing cycles with premium interactive graphs built directly into the admin center.",
       tag: "Intelligence"
     },
@@ -112,7 +112,7 @@ const LandingPage = () => {
       icon: <FiBook className="w-5 h-5" />,
       title: "Integrated Digital Logbook",
       description: "Perfect record-keeping with digital instructor endorsements, dual/solo hour categorization, and instant FAA audit compatibility.",
-      color: "from-purple-500 to-pink-500",
+      color: "from-blue-700 to-sky-600",
       details: "Built to comply with FAA Part 61 & 141 logbook regulations. Instructors digitally sign flight hours, and students instantly view their endorsements, flight history, and curriculum benchmarks on any device.",
       tag: "Compliance"
     },
@@ -120,7 +120,7 @@ const LandingPage = () => {
       icon: <FiNavigation className="w-5 h-5" />,
       title: "Aircraft Management",
       description: "Oversee maintenance, engine overhauls, 100-hour inspections, active squawks, and automatically ground aircraft for maximum flight safety.",
-      color: "from-pink-500 to-rose-500",
+      color: "from-blue-800 to-blue-600",
       details: "Link hobbs and tach times directly to inspection triggers. If a pilot reports a grounding squawk during check-in, FlightElevate automatically locks dispatch capabilities for that aircraft until an admin clears the maintenance logs.",
       tag: "MVP Standard"
     },
@@ -128,7 +128,7 @@ const LandingPage = () => {
       icon: <FiUser className="w-5 h-5" />,
       title: "Student Progress Tracking",
       description: "Track milestones, logged requirements, stage checks, lesson completions, and syllabus objectives in one unified place.",
-      color: "from-rose-500 to-orange-500",
+      color: "from-blue-700 to-sky-500",
       details: "Provide students with a visual roadmap of their pilot certificates. Instructors tick off syllabus requirements in real time, automatically unlocking stage exams once prerequisite lessons are completed successfully.",
       tag: "Coming Soon"
     },
@@ -136,7 +136,7 @@ const LandingPage = () => {
       icon: <FiShield className="w-5 h-5" />,
       title: "Compliance & Reporting",
       description: "Keep your training center fully aligned with Part 61 & Part 141 syllabus requirements and FAA compliance reporting standards.",
-      color: "from-orange-500 to-blue-500",
+      color: "from-blue-600 to-blue-800",
       details: "Generate comprehensive reports for regulatory bodies in one click. Maintain detailed audit records for students, instructors, and fleet safety checks, protecting your flight academy from compliance vulnerabilities.",
       tag: "Security Ready"
     }
@@ -168,7 +168,7 @@ const LandingPage = () => {
       description: "Broadened support catering to corporate flight departments, private flying clubs, and single-owner aircraft structures."
     },
     {
-      icon: <FiRefreshCw className="text-indigo-500 w-5 h-5" />,
+      icon: <FiRefreshCw className="text-blue-500 w-5 h-5" />,
       category: "System Intelligence",
       title: "SRS (Smart Recovery)",
       description: "Intelligent recovery workflows to handle scheduling disruptions caused by unexpected maintenance grounding or weather changes."
@@ -211,25 +211,25 @@ const LandingPage = () => {
 
   const themeClasses = isDarkMode 
     ? {
-        bg: 'bg-[#030712]',
-        bgSecondary: 'bg-[#090D1F]',
-        bgCard: 'bg-[#111827]/40 backdrop-blur-xl border-[#1F2937]/60 shadow-[0_8px_30px_rgb(0,0,0,0.4)]',
-        bgCardHover: 'hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)]',
+        bg: 'bg-[#030612]',
+        bgSecondary: 'bg-[#0b1022]',
+        bgCard: 'bg-[#0b1022]/40 backdrop-blur-xl border-[#1e293b]/60 shadow-[0_8px_30px_rgb(0,0,0,0.4)]',
+        bgCardHover: 'hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(29,78,216,0.15)]',
         text: 'text-gray-100',
         textSecondary: 'text-gray-400',
-        border: 'border-[#1F2937]/85',
-        gradientText: 'bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent',
-        navBg: 'bg-[#030712]/75'
+        border: 'border-[#1e293b]/85',
+        gradientText: 'bg-gradient-to-r from-blue-400 via-blue-500 to-sky-400 bg-clip-text text-transparent',
+        navBg: 'bg-[#030612]/75'
       }
     : {
         bg: 'bg-[#F8FAFC]',
         bgSecondary: 'bg-white',
         bgCard: 'bg-white/70 backdrop-blur-xl border-slate-200/90 shadow-[0_8px_30px_rgb(0,0,0,0.02)]',
-        bgCardHover: 'hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.08)]',
+        bgCardHover: 'hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(29,78,216,0.08)]',
         text: 'text-slate-900',
         textSecondary: 'text-slate-600',
         border: 'border-slate-200',
-        gradientText: 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent',
+        gradientText: 'bg-gradient-to-r from-blue-700 via-blue-600 to-sky-500 bg-clip-text text-transparent',
         navBg: 'bg-[#F8FAFC]/75'
       };
 
@@ -241,18 +241,18 @@ const LandingPage = () => {
       
       {/* Light Blurs */}
       <div className="absolute top-0 inset-x-0 h-[800px] overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-blue-600/20 via-indigo-500/10 to-purple-600/10 blur-[140px] rounded-full dark:opacity-65" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-blue-700/20 via-blue-600/10 to-sky-500/10 blur-[140px] rounded-full dark:opacity-65" />
         <div className="absolute top-[300px] left-[-100px] w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full dark:opacity-40" />
-        <div className="absolute top-[200px] right-[-100px] w-[500px] h-[500px] bg-purple-500/10 blur-[120px] rounded-full dark:opacity-40" />
+        <div className="absolute top-[200px] right-[-100px] w-[500px] h-[500px] bg-sky-500/10 blur-[120px] rounded-full dark:opacity-40" />
       </div>
 
       {/* Modern Centered Floating Navbar (Pill Design) */}
       <div className="fixed top-5 inset-x-0 z-50 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-none">
-        <header className={`pointer-events-auto max-w-5xl mx-auto rounded-full ${isDarkMode ? 'bg-[#0d1527]/80' : 'bg-white/80'} border ${themeClasses.border} backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.15)] px-6 py-3 flex items-center justify-between`}>
+        <header className={`pointer-events-auto max-w-5xl mx-auto rounded-full ${isDarkMode ? 'bg-[#0b1022]/80' : 'bg-white/80'} border ${themeClasses.border} backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.15)] px-6 py-3 flex items-center justify-between`}>
           
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/35 text-white font-black text-base transform hover:rotate-6 transition-transform cursor-pointer">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/35 text-white font-black text-base transform hover:rotate-6 transition-transform cursor-pointer">
               FE
             </div>
             <span className={`text-base font-extrabold tracking-tight ${themeClasses.text}`}>
@@ -290,13 +290,13 @@ const LandingPage = () => {
             </button>
             <button
               onClick={() => navigate('/login')}
-              className="hidden sm:inline-flex text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:text-blue-700 bg-transparent transition-colors px-3 py-1"
+              className="hidden sm:inline-flex text-xs font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-400 hover:text-blue-800 bg-transparent transition-colors px-3 py-1"
             >
               Sign In
             </button>
             <button
               onClick={() => navigate('/register')}
-              className="hidden sm:inline-flex px-5 py-2 text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.03] active:scale-[0.97]"
+              className="hidden sm:inline-flex px-5 py-2 text-xs font-bold uppercase tracking-wider text-white bg-blue-700 hover:bg-blue-800 rounded-full shadow-lg shadow-blue-700/20 transition-all hover:scale-[1.03] active:scale-[0.97]"
             >
               Get Started
             </button>
@@ -337,13 +337,13 @@ const LandingPage = () => {
             <div className="pt-4 border-t border-slate-200/50 dark:border-gray-800/50 flex flex-col gap-2">
               <button
                 onClick={() => { navigate('/login'); setMobileMenuOpen(false); }}
-                className="w-full py-3 text-center text-xs font-bold uppercase tracking-wider border border-blue-600 text-blue-600 rounded-2xl hover:bg-blue-600/5 transition-colors"
+                className="w-full py-3 text-center text-xs font-bold uppercase tracking-wider border border-blue-700 text-blue-700 rounded-2xl hover:bg-blue-700/5 transition-colors"
               >
                 Sign In
               </button>
               <button
                 onClick={() => { navigate('/register'); setMobileMenuOpen(false); }}
-                className="w-full py-3 text-center text-xs font-bold uppercase tracking-wider bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-colors"
+                className="w-full py-3 text-center text-xs font-bold uppercase tracking-wider bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-700/20 hover:bg-blue-800 transition-colors"
               >
                 Get Started
               </button>
@@ -369,7 +369,7 @@ const LandingPage = () => {
 
               {/* Title */}
               <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight ${themeClasses.text} leading-[1.06]`}>
-                All-in-One Platform for <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 animate-pulse">Modern Flight</span> Operations
+                All-in-One Platform for <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-blue-600 to-sky-500 dark:from-blue-400 dark:via-blue-500 dark:to-sky-400 animate-pulse">Modern Flight</span> Operations
               </h2>
 
               {/* Subheading */}
@@ -386,7 +386,7 @@ const LandingPage = () => {
               <div className="flex flex-wrap gap-4 pt-4">
                 <button
                   onClick={() => navigate('/register')}
-                  className="px-8 py-4 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-2xl shadow-xl shadow-blue-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 group"
+                  className="px-8 py-4 text-base font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-2xl shadow-xl shadow-blue-700/25 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 group"
                 >
                   Explore Platform
                   <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -396,7 +396,7 @@ const LandingPage = () => {
                   type="button"
                   className={`px-8 py-4 text-base font-bold rounded-2xl border ${themeClasses.border} hover:bg-slate-200/20 dark:hover:bg-slate-800/25 transition-all flex items-center gap-2`}
                 >
-                  <FiPlay className="text-blue-500 fill-blue-500/10 w-4 h-4" />
+                  <FiPlay className="text-blue-700 fill-blue-700/10 w-4 h-4" />
                   Watch Overview
                 </button>
               </div>
@@ -405,7 +405,7 @@ const LandingPage = () => {
 
             {/* Hero Right - INTERACTIVE Switcher Mockup */}
             <div className="lg:col-span-6 relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-3xl blur-[50px] opacity-10 dark:opacity-20 z-0" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-blue-700 to-sky-500 rounded-3xl blur-[50px] opacity-10 dark:opacity-20 z-0" />
               
               {/* Premium Dashboard Frame */}
               <div className={`relative ${themeClasses.bgCard} border rounded-2xl shadow-2xl overflow-hidden z-10 max-w-xl mx-auto`}>
@@ -506,7 +506,7 @@ const LandingPage = () => {
                     <div className="space-y-4 animate-fade-in">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Instructor Workspace</p>
+                          <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Instructor Workspace</p>
                           <h4 className="text-lg font-extrabold tracking-tight">Capt. Alex Carter</h4>
                         </div>
                         <span className="text-[10px] font-bold text-slate-500 dark:text-gray-400">5 Lessons Today</span>
@@ -515,7 +515,7 @@ const LandingPage = () => {
                       <div className="space-y-2.5">
                         <div className="p-3.5 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/40 dark:border-slate-800 flex justify-between items-center">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-sm">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-sm">
                               08
                             </div>
                             <div>
@@ -528,7 +528,7 @@ const LandingPage = () => {
 
                         <div className="p-3.5 rounded-xl bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/40 dark:border-slate-800 flex justify-between items-center">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-sm">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-sm">
                               10
                             </div>
                             <div>
@@ -540,9 +540,9 @@ const LandingPage = () => {
                         </div>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-indigo-500/5 border border-indigo-500/15 flex items-center justify-between">
+                      <div className="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/15 flex items-center justify-between">
                         <span className="text-[11px] font-bold text-slate-600 dark:text-gray-400">Digital Logbook Signatures Pending:</span>
-                        <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded text-[10px] font-bold">2 Actions</span>
+                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-[10px] font-bold">2 Actions</span>
                       </div>
                     </div>
                   )}
@@ -638,7 +638,7 @@ const LandingPage = () => {
           <h2 className={`text-3xl sm:text-4xl md:text-5xl font-black tracking-tight ${themeClasses.text} leading-tight`}>
             Designed for Efficiency.<br />Built to Elevate the Experience.
           </h2>
-          <div className="w-16 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto rounded-full" />
+          <div className="w-16 h-1 bg-gradient-to-r from-blue-700 to-blue-600 mx-auto rounded-full" />
           
           <p className={`text-lg sm:text-xl ${themeClasses.textSecondary} leading-relaxed font-normal`}>
             FlightElevate delivers a clean, intuitive experience through a structured, workflow-driven approach to scheduling and operations.
@@ -667,7 +667,7 @@ const LandingPage = () => {
             
             {/* Pillar 1 */}
             <div className={`p-8 rounded-2xl border ${themeClasses.bgCard} ${themeClasses.bgCardHover} text-left space-y-5 hover:-translate-y-1.5 transition-all duration-300 relative group`}>
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-500 to-indigo-500 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-700 to-blue-600 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <FiMessageSquare className="w-6 h-6" />
               </div>
@@ -680,12 +680,12 @@ const LandingPage = () => {
 
             {/* Pillar 2 */}
             <div className={`p-8 rounded-2xl border ${themeClasses.bgCard} ${themeClasses.bgCardHover} text-left space-y-5 hover:-translate-y-1.5 transition-all duration-300 relative group`}>
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-500 to-purple-500 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-600 to-sky-500 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <FiEye className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold">Smart View</h3>
-              <h4 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Smart Views. Role-Based Intelligence.</h4>
+              <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400">Smart Views. Role-Based Intelligence.</h4>
               <p className={`text-sm ${themeClasses.textSecondary} leading-relaxed`}>
                 Each user sees what matters most. Tailored dashboards for students, instructors, and administrators ensure faster decisions and better situational awareness.
               </p>
@@ -693,12 +693,12 @@ const LandingPage = () => {
 
             {/* Pillar 3 */}
             <div className={`p-8 rounded-2xl border ${themeClasses.bgCard} ${themeClasses.bgCardHover} text-left space-y-5 hover:-translate-y-1.5 transition-all duration-300 relative group`}>
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-purple-500 to-pink-500 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
                 <FiSliders className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold">Admin Control</h3>
-              <h4 className="text-sm font-semibold text-purple-600 dark:text-purple-400">Complete Operational Oversight</h4>
+              <h4 className="text-sm font-semibold text-sky-600 dark:text-sky-400">Complete Operational Oversight</h4>
               <p className={`text-sm ${themeClasses.textSecondary} leading-relaxed`}>
                 Gain full visibility across your organization with customizable access controls. Monitor schedules, cancellations, and weather impacts in real time—all from one dashboard.
               </p>
@@ -885,15 +885,15 @@ const LandingPage = () => {
                     <p className="text-[9px] text-slate-500 dark:text-gray-400 font-semibold">Reduced administration</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 text-center space-y-1">
+                  <div className="p-4 rounded-2xl bg-blue-600/5 border border-blue-600/10 text-center space-y-1">
                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-400 block">Efficiency Boost</span>
-                    <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">+{efficiencyScore}%</p>
+                    <p className="text-3xl font-black text-blue-600 dark:text-blue-400">+{efficiencyScore}%</p>
                     <p className="text-[9px] text-slate-500 dark:text-gray-400 font-semibold">Operational throughput</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-purple-500/5 border border-purple-500/10 text-center space-y-1">
+                  <div className="p-4 rounded-2xl bg-sky-500/5 border border-sky-500/10 text-center space-y-1">
                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-400 block">Paper Eliminated</span>
-                    <p className="text-3xl font-black text-purple-600 dark:text-purple-400">{paperSaved} lbs</p>
+                    <p className="text-3xl font-black text-sky-600 dark:text-sky-400">{paperSaved} lbs</p>
                     <p className="text-[9px] text-slate-500 dark:text-gray-400 font-semibold">Digital logbooks only</p>
                   </div>
 
@@ -992,7 +992,7 @@ const LandingPage = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 pb-12 border-b border-gray-800/10 dark:border-gray-800/50">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-sm">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 to-blue-600 flex items-center justify-center text-white font-extrabold text-sm">
                 FE
               </div>
               <span className={`text-lg font-bold tracking-tight ${themeClasses.text}`}>

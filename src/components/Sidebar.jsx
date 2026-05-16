@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { getNavigationItemsByRole } from "../config/navigation";
 import { settingsService } from "../api/services/settingsService";
 import { authService } from "../api/services/authService";
+import { subscriptionPlanService } from "../api/services/subscriptionPlanService";
 import { getImageUrl } from "../utils/imageUtils";
 import { HiChevronDown } from "react-icons/hi";
 import logo from "../assets/SVG/logo.svg";
@@ -18,6 +19,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [logoError, setLogoError] = useState(false);
   const [showOrgSwitcher, setShowOrgSwitcher] = useState(false);
   const [switchingOrg, setSwitchingOrg] = useState(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   
   const navLinks = useMemo(() => {
@@ -70,10 +72,27 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       }
     };
 
+    const checkSubscriptionStatus = async () => {
+      if (user?.roles?.some(role => ['admin'].includes(role.toLowerCase()))) {
+        try {
+          const response = await subscriptionPlanService.getCurrentSubscription();
+          if (response && response.success && response.data) {
+            setHasActiveSubscription(true);
+          } else {
+            setHasActiveSubscription(false);
+          }
+        } catch (err) {
+          console.error('Error fetching subscription in sidebar:', err);
+          setHasActiveSubscription(false);
+        }
+      }
+    };
+
     if (user?.id) {
       fetchOrganizationData();
+      checkSubscriptionStatus();
     }
-  }, [user?.id, user?.organization_id]); // Refresh when user's active org changes
+  }, [user?.id, user?.organization_id, user?.roles]); // Refresh when user's active org changes
 
   const handleOrgSwitch = async (orgId) => {
     if (orgId === user.organization_id) {
@@ -267,7 +286,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           </nav>
 
           {/* Trial Status Badge */}
-          {!user?.roles?.some(role => ['super admin', 'student', 'instructor'].includes(role.toLowerCase())) && user?.organization_id && (
+          {!hasActiveSubscription && !user?.roles?.some(role => ['super admin', 'student', 'instructor'].includes(role.toLowerCase())) && user?.organization_id && (
             <div className="mt-8 px-4">
               <div className="bg-blue-800 bg-opacity-50 rounded-lg p-3 border border-blue-500">
                 <div className="flex justify-between items-center mb-2">

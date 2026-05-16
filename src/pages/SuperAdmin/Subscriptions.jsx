@@ -135,6 +135,15 @@ const Subscription = () => {
               <MdFilterList className="w-[20px] h-[20px]" />
               <span className="whitespace-nowrap">Sort by</span>
             </button>
+            {selected === "Subscription Plans" && (
+              <button
+                onClick={handleAddPlan}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md text-sm font-bold transition"
+              >
+                <FiPlus size={16} />
+                <span className="whitespace-nowrap">Add Plan</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -299,11 +308,16 @@ const Subscription = () => {
                           <Link
                             to={`/subscription-plans/plans/${plan.id}`}
                             state={{ plan }}
-                            className="px-5 py-2 bg-[#F6F6F6] rounded-lg text-sm text-[#505050] font-medium hover:bg-gray-100 transition"
+                            className="px-5 py-2 bg-[#F6F6F6] rounded-lg text-sm text-[#505050] font-bold hover:bg-gray-100 transition"
                           >
                             Edit Plan
                           </Link>
-                          {/* Delete Plan is disabled to guarantee exactly one persistent plan remains active */}
+                          <button
+                            onClick={(e) => handleDelete(plan, e)}
+                            className="px-5 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg text-sm font-bold transition"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                     )}

@@ -256,7 +256,7 @@ const TotalRevenue = () => {
 
       {}
       <div className="w-full relative" style={{ height: '320px', minWidth: '300px', minHeight: '320px' }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
           <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -326,10 +326,10 @@ const TotalRevenue = () => {
               stroke="#1D4ED8"
               strokeWidth={2}
               dot={(props) => {
-                const { cx, cy, payload } = props;
+                const { cx, cy, payload, key } = props;
                 const isCurrent = payload.fullDate === currentFullDate || payload.date === currentDate;
                 return (
-                  <g>
+                  <g key={key || `dot-${cx}-${cy}`}>
                     <circle
                       cx={cx}
                       cy={cy}

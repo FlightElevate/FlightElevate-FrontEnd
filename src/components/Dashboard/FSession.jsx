@@ -199,7 +199,7 @@ const FSession = () => {
 
       {}
       <div className="w-full" style={{ height: '320px', minWidth: '300px', minHeight: '320px' }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
           <BarChart data={processedData} barGap={3}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis

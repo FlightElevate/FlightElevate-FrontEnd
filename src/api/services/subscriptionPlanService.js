@@ -27,11 +27,19 @@ export const subscriptionPlanService = {
     return await api.delete(ENDPOINTS.SUBSCRIPTION_PLANS.DELETE(id));
   },
 
-  async subscribe(planId) {
-    return await api.post('/subscription-plans/subscribe', { plan_id: planId });
+  async subscribe(planId, aircraftCount = 1) {
+    return await api.post('/subscription-plans/subscribe', { plan_id: planId, aircraft_count: aircraftCount });
   },
 
   async getCurrentSubscription() {
     return await api.get('/subscription-plans/current');
+  },
+
+  async getBillingHistory() {
+    return await api.get('/subscription-plans/billing-history');
+  },
+
+  async getBillingPortal() {
+    return await api.post('/subscription-plans/billing-portal');
   },
 };
