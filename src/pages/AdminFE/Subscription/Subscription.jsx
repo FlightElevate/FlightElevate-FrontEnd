@@ -106,9 +106,9 @@ const Subscription = () => {
 
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-gray-550/5 rounded-2xl p-5 border border-gray-100">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Aircraft Limit</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Pricing Model</p>
                   <p className="text-2xl font-black text-gray-900">
-                    {currentSubscription.max_aircraft === 0 ? 'Unlimited' : currentSubscription.max_aircraft}
+                    Per Aircraft
                   </p>
                 </div>
                 <div className="bg-gray-550/5 rounded-2xl p-5 border border-gray-100">
@@ -218,19 +218,13 @@ const Subscription = () => {
                     <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mr-3">
                       <FiCheck className="w-3 h-3 text-blue-600" />
                     </div>
-                    <span className="font-medium">{plan.max_aircraft === 0 ? 'Unlimited' : plan.max_aircraft} Aircraft</span>
+                    <span className="font-medium">Per Aircraft Pricing</span>
                   </div>
                   <div className="flex items-center text-sm text-gray-700">
                     <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mr-3">
                       <FiCheck className="w-3 h-3 text-blue-600" />
                     </div>
                     <span className="font-medium">{plan.max_users === 0 ? 'Unlimited' : plan.max_users} Users</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-700">
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                      <FiCheck className="w-3 h-3 text-blue-600" />
-                    </div>
-                    <span className="font-medium">{plan.aircraft}</span>
                   </div>
                 </div>
               </div>
