@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { subscriptionPlanService } from "../../../api/services/subscriptionPlanService";
+import { aircraftService } from "../../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast } from "../../../utils/notifications";
 import { FiCheck, FiDollarSign, FiCheckCircle } from "react-icons/fi";
 
@@ -8,6 +9,7 @@ const Subscription = () => {
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState(null); 
+  const [aircraftCount, setAircraftCount] = useState(0);
 
   useEffect(() => {
     initData();
@@ -16,18 +18,23 @@ const Subscription = () => {
   const initData = async () => {
     setLoading(true);
     try {
-      // First check if there's an active subscription
+      // Fetch available plans first
+      await fetchPlans();
+
+      // Check if there's an active subscription
       const subResponse = await subscriptionPlanService.getCurrentSubscription();
       if (subResponse && subResponse.success && subResponse.data) {
         setCurrentSubscription(subResponse.data);
-      } else {
-        // If no active sub, fetch available plans
-        await fetchPlans();
+      }
+
+      // Fetch aircraft count dynamically
+      const acResponse = await aircraftService.getAircraft();
+      if (acResponse && acResponse.success) {
+        const acList = acResponse.data?.data || (Array.isArray(acResponse.data) ? acResponse.data : []);
+        setAircraftCount(acList.length);
       }
     } catch (err) {
       console.error('Error initializing subscription data:', err);
-      // Fallback to fetching plans if current sub check fails
-      await fetchPlans();
     } finally {
       setLoading(false);
     }
@@ -105,13 +112,13 @@ const Subscription = () => {
               </p>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-gray-550/5 rounded-2xl p-5 border border-gray-100">
+                <div className="bg-gray-555/5 rounded-2xl p-5 border border-gray-100">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Pricing Model</p>
                   <p className="text-2xl font-black text-gray-900">
-                    Per Aircraft
+                    Per Aircraft ({currentSubscription.aircraft_count} added)
                   </p>
                 </div>
-                <div className="bg-gray-550/5 rounded-2xl p-5 border border-gray-100">
+                <div className="bg-gray-555/5 rounded-2xl p-5 border border-gray-100">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">User Seats</p>
                   <p className="text-2xl font-black text-gray-900">
                     {currentSubscription.max_users === 0 ? 'Unlimited' : currentSubscription.max_users}
@@ -218,7 +225,7 @@ const Subscription = () => {
                     <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mr-3">
                       <FiCheck className="w-3 h-3 text-blue-600" />
                     </div>
-                    <span className="font-medium">Per Aircraft Pricing</span>
+                    <span className="font-medium">Per Aircraft ({aircraftCount} added)</span>
                   </div>
                   <div className="flex items-center text-sm text-gray-700">
                     <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mr-3">
