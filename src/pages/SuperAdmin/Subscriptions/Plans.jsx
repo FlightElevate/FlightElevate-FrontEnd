@@ -9,12 +9,10 @@ const Plans = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   
-  
   const isEdit = (planId && planId !== 'new') || (state?.plan && state.plan.id);
   
   const [loading, setLoading] = useState(isEdit && !state?.plan);
   const [submitting, setSubmitting] = useState(false);
-  
   
   const getInitialData = () => {
     if (state?.plan) {
@@ -22,61 +20,43 @@ const Plans = () => {
       return {
         title: plan.title || '',
         description: plan.description || '',
-        aircraft: plan.aircraft || '',
-        max_aircraft: plan.max_aircraft != null ? String(plan.max_aircraft) : '0',
-        max_users: plan.max_users != null ? String(plan.max_users) : '0',
         price: plan.price != null ? String(plan.price) : '',
-        is_per_aircraft: true,
-        setup_fee: plan.setup_fee != null ? String(plan.setup_fee) : '',
-        para: plan.para || '',
         status: plan.status || 'active',
         stripe_plan_id: plan.stripe_plan_id || '',
+        para: plan.para || '',
       };
     }
     return {
-      title: '',
-      description: '',
-      aircraft: '',
-      max_aircraft: '0',
-      max_users: '0',
-      price: '',
-      is_per_aircraft: true,
-      setup_fee: '',
-      para: '',
+      title: 'Standard Plan',
+      description: 'Comprehensive aviation management scaled per aircraft.',
+      price: '50.00',
       status: 'active',
       stripe_plan_id: '',
+      para: 'Full access to flight logs, fleet maintenance tracking, booking calendar, and instructor digital dashboards.',
     };
   };
 
   const [formData, setFormData] = useState(getInitialData());
 
-  
   useEffect(() => {
     if (state?.plan) {
       const plan = state.plan;
       setFormData({
         title: plan.title || '',
         description: plan.description || '',
-        aircraft: plan.aircraft || '',
-        max_aircraft: plan.max_aircraft != null ? String(plan.max_aircraft) : '0',
-        max_users: plan.max_users != null ? String(plan.max_users) : '0',
         price: plan.price != null ? String(plan.price) : '',
-        is_per_aircraft: true,
-        setup_fee: plan.setup_fee != null ? String(plan.setup_fee) : '',
-        para: plan.para || '',
         status: plan.status || 'active',
         stripe_plan_id: plan.stripe_plan_id || '',
+        para: plan.para || '',
       });
       setLoading(false);
     }
   }, [state]);
 
-  
   useEffect(() => {
     if (planId && planId !== 'new' && !state?.plan) {
       fetchPlan();
     }
-    
   }, [planId]);
 
   const fetchPlan = async () => {
@@ -90,15 +70,10 @@ const Plans = () => {
         setFormData({
           title: plan.title || '',
           description: plan.description || '',
-          aircraft: plan.aircraft || '',
-          max_aircraft: plan.max_aircraft != null ? String(plan.max_aircraft) : '0',
-          max_users: plan.max_users != null ? String(plan.max_users) : '0',
           price: plan.price != null ? String(plan.price) : '',
-          is_per_aircraft: true,
-          setup_fee: plan.setup_fee != null ? String(plan.setup_fee) : '',
-          para: plan.para || '',
           status: plan.status || 'active',
           stripe_plan_id: plan.stripe_plan_id || '',
+          para: plan.para || '',
         });
       }
     } catch (err) {
@@ -118,11 +93,11 @@ const Plans = () => {
       const data = {
         title: formData.title,
         description: formData.description || null,
-        aircraft: formData.aircraft,
-        max_aircraft: parseInt(formData.max_aircraft) || 0,
-        max_users: parseInt(formData.max_users) || 0,
+        aircraft: "1", // Internal index
+        max_aircraft: 0, // Auto-set unlimited
+        max_users: 0, // Auto-set unlimited
         price: parseFloat(formData.price),
-        is_per_aircraft: true,
+        is_per_aircraft: true, // Strictly per aircraft
         para: formData.para || null,
         status: formData.status,
         stripe_plan_id: formData.stripe_plan_id || null,
@@ -165,9 +140,9 @@ const Plans = () => {
   return (
     <div className="md:mt-5 mx-auto max-w-4xl animate-in fade-in duration-500">
       <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-550/5">
           <h2 className="text-lg font-bold text-gray-800">
-            {isEdit ? 'Edit Subscription Plan' : 'Add New Plan'}
+            {isEdit ? 'Edit Subscription Pricing' : 'Add New Pricing'}
           </h2>
           <button
             onClick={() => navigate('/subscription-plans')}
@@ -179,7 +154,7 @@ const Plans = () => {
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            {/* Plan Identity */}
+            
             <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">
                 Plan Name *
@@ -190,7 +165,7 @@ const Plans = () => {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full border border-gray-200 bg-gray-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                placeholder="e.g. Basic Plan"
+                placeholder="e.g. Standard Plan"
               />
             </div>
 
@@ -205,7 +180,7 @@ const Plans = () => {
                 min="0"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full border border-gray-200 bg-gray-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                className="w-full border border-gray-200 bg-gray-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all font-bold text-blue-600 text-lg"
                 placeholder="0.00"
               />
             </div>
@@ -222,49 +197,6 @@ const Plans = () => {
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
-            </div>
-
-            {/* Limits */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">
-                Max Aircraft (0 = Unlimited) *
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                value={formData.max_aircraft}
-                onChange={(e) => setFormData({ ...formData, max_aircraft: e.target.value })}
-                className="w-full border border-gray-200 bg-gray-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">
-                Max Users *
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                value={formData.max_users}
-                onChange={(e) => setFormData({ ...formData, max_users: e.target.value })}
-                className="w-full border border-gray-200 bg-gray-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 ml-1">
-                Display Label (e.g. "5 Aircraft") *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.aircraft}
-                onChange={(e) => setFormData({ ...formData, aircraft: e.target.value })}
-                className="w-full border border-gray-200 bg-gray-50/30 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                placeholder="How limits appear to users"
-              />
             </div>
 
             <div className="md:col-span-2">
@@ -320,7 +252,7 @@ const Plans = () => {
               disabled={submitting}
               className="px-8 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-bold shadow-md transition disabled:opacity-50"
             >
-              {submitting ? 'Saving...' : isEdit ? 'Update Plan' : 'Create Plan'}
+              {submitting ? 'Saving...' : isEdit ? 'Update Pricing' : 'Create Pricing'}
             </button>
           </div>
         </form>
