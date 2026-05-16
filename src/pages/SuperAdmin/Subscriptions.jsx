@@ -130,15 +130,7 @@ const Subscription = () => {
                 ⌘
               </span>
             </div>
-            {selected === "Subscription Plans" && (
-              <button
-                onClick={handleAddPlan}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                <FiPlus size={18} />
-                Add Plan
-              </button>
-            )}
+            {/* Add Plan is disabled as there is exactly one persistent per-aircraft plan */}
             <button className="flex items-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm text-sm text-gray-700">
               <MdFilterList className="w-[20px] h-[20px]" />
               <span className="whitespace-nowrap">Sort by</span>
@@ -311,12 +303,7 @@ const Subscription = () => {
                           >
                             Edit Plan
                           </Link>
-                          <button
-                            onClick={(e) => handleDelete(plan, e)}
-                            className="px-5 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
-                          >
-                            Delete Plan
-                          </button>
+                          {/* Delete Plan is disabled to guarantee exactly one persistent plan remains active */}
                         </div>
                       </div>
                     )}
