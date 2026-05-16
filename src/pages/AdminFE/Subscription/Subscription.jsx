@@ -100,8 +100,8 @@ const Subscription = () => {
               </div>
 
               <h3 className="text-4xl font-black text-blue-600 mb-2">{currentSubscription.plan_title}</h3>
-              <p className="text-gray-500 font-medium mb-8">
-                Billed Monthly • ${parseFloat(currentSubscription.price / currentSubscription.aircraft_count).toFixed(2)}/aircraft • Total: ${parseFloat(currentSubscription.price).toFixed(2)}/mo
+              <p className="text-gray-550 font-medium mb-8">
+                Billed Monthly • ${parseFloat(currentSubscription.price / Math.max(1, currentSubscription.aircraft_count)).toFixed(0)}/aircraft/mo
               </p>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
