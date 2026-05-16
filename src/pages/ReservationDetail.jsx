@@ -507,14 +507,14 @@ const ReservationDetail = () => {
 
         {/* Tabs */}
         <div className="max-w-5xl mx-auto px-4">
-          <div className="flex gap-0 overflow-x-auto">
+          <div className="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-800 scrollbar-none">
             {TABS.filter((tab) => !tab.hidden && (tab.id !== 'delete' || isAdmin)).map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 -mb-[1px] whitespace-nowrap transition-colors
                     ${activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -525,8 +525,8 @@ const ReservationDetail = () => {
                 </button>
               );
             })}
+          </div>
         </div>
-      </div>
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-6">

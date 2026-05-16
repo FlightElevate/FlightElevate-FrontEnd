@@ -86,6 +86,12 @@ const Register = () => {
       return;
     }
 
+    if (!formData.organizationName.trim()) {
+      setError('Organization name is required');
+      showErrorToast('Organization name is required');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       showErrorToast('Passwords do not match');
@@ -255,22 +261,23 @@ const Register = () => {
                 />
               </div>
               
-              {/* Organization Name (Optional) */}
+              {/* Organization Name */}
               <div>
                 <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Organization Name (Optional)
+                  Organization Name
                 </label>
                 <input
                   id="organizationName"
                   name="organizationName"
                   type="text"
+                  required
                   value={formData.organizationName}
                   onChange={handleChange}
                   className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-700 focus:border-blue-700 sm:text-sm transition-colors"
                   placeholder="e.g. Blue Sky Aviation"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Provide a name if you want to create a new flight school organization.
+                  Provide the name of your flight school or organization.
                 </p>
               </div>
 
