@@ -15,7 +15,7 @@ const InstructorDashboard = React.memo(() => {
     <div className="p-2 gap-6">
       <div className='mb-10'>
         <h2 className="text-3xl fw6 leading-[38px]">Welcome Back, {userName}</h2>
-        <p className='text-base text-[#8A8A8A]'>Keep the track of you flight lessons records and analytics here.</p>
+        <p className='text-base text-[#8A8A8A]'>Keep track of your flight lesson records and analytics here.</p>
       </div>
 
       <div className="flex flex-col gap-6">

@@ -184,3 +184,18 @@ html {
     touch-action: pan-x pan-y;
   }
 }
+
+/* Seamless infinite horizontal marquee animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee 30s linear infinite;
+}

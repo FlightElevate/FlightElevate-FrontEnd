@@ -76,28 +76,28 @@ const LandingPage = () => {
 
   const features = [
     {
-      icon: <FiCalendar className="w-5 h-5 text-blue-700" />,
+      icon: <FiCalendar className="w-5 h-5" />,
       title: "Smart Operations Scheduling",
       description: "Effortlessly manage flight bookings, instructor schedules, and aircraft availability with intelligent clash-detection.",
       details: "Our proprietary scheduling matrix resolves overlapping bookings instantly. Real-time availability blocks keep instructors and aircraft synced across all campus locations. Includes automatic calendar pushes to Google, Outlook, and iCal.",
       tag: "Core Scheduler"
     },
     {
-      icon: <FiBarChart2 className="w-5 h-5 text-blue-700" />,
+      icon: <FiBarChart2 className="w-5 h-5" />,
       title: "Live Operations Analytics",
       description: "Gain complete insight into fleet utilization, training hours, student activity levels, and financial KPIs with real-time reporting.",
       details: "Visualize flight school performance metrics instantly. Track dual vs solo hours, monitor instructor utilization ratios, and analyze monthly billing cycles with premium interactive graphs built directly into the admin center.",
       tag: "School Metrics"
     },
     {
-      icon: <FiBook className="w-5 h-5 text-blue-700" />,
+      icon: <FiBook className="w-5 h-5" />,
       title: "Integrated Pilot Logbook",
       description: "Perfect record-keeping with digital instructor endorsements, dual/solo hour categorization, and instant FAA audit compatibility.",
       details: "Built to comply with FAA Part 61 & 141 logbook regulations. Instructors digitally sign flight hours, and students instantly view their endorsements, flight history, and curriculum benchmarks on any device.",
       tag: "Digital Logbook"
     },
     {
-      icon: <FiNavigation className="w-5 h-5 text-blue-700" />,
+      icon: <FiNavigation className="w-5 h-5" />,
       title: "Aircraft Fleet Management",
       description: "Oversee maintenance, engine overhauls, 100-hour inspections, active squawks, and automatically ground aircraft for maximum safety.",
       details: "Link hobbs and tach times directly to inspection triggers. If a pilot reports a grounding squawk during check-in, FlightElevate automatically locks dispatch capabilities for that aircraft until an admin clears the maintenance logs.",
@@ -121,6 +121,27 @@ const LandingPage = () => {
     {
       question: "Is the platform customizable?",
       answer: "Yes! FlightElevate offers flexible configurations tailored to your organization. You can define custom locations, aircraft categories, and lesson structures that align perfectly with your operations."
+    }
+  ];
+
+  const comingSoonFeatures = [
+    {
+      icon: <FiShield className="w-5 h-5 text-blue-700" />,
+      category: "Part 91 / 135",
+      title: "Advanced Fleet Dispatch",
+      description: "Automates pre-flight risk assessment sheets, weather warnings, and direct flight-following widgets to monitor active cross-country paths."
+    },
+    {
+      icon: <FiSliders className="w-5 h-5 text-blue-700" />,
+      category: "Ground Ops",
+      title: "Interactive Squawk Desk",
+      description: "Allows ground crews and mechanics to interact with real-time discrepancy lists, sign off fixes, and upload parts receipts directly."
+    },
+    {
+      icon: <FiBarChart2 className="w-5 h-5 text-blue-700" />,
+      category: "Syllabus Integration",
+      title: "Part 141 Training Curves",
+      description: "Compares student progress metrics against local stage-check curves to auto-flag students falling behind their curriculum hours."
     }
   ];
 
@@ -449,7 +470,12 @@ const LandingPage = () => {
             <div className="animate-marquee whitespace-nowrap flex gap-12 text-[11px] font-extrabold tracking-widest text-slate-400 opacity-70">
               <span>✈️ APEX FLIGHT SCHOOLS</span>
               <span>⚡ VERTICAL FLIGHT ACADEMY</span>
-              <span>🎓 HORIZON AVIATION</span>
+              <span>🦅 BLUE RIDGE FLYERS</span>
+              <span>🌐 COASTAL WINGS</span>
+              <span>🏆 SUMMIT FLIGHT SERVICES</span>
+              {/* Duplicate for seamless infinite marquee scroll */}
+              <span>✈️ APEX FLIGHT SCHOOLS</span>
+              <span>⚡ VERTICAL FLIGHT ACADEMY</span>
               <span>🦅 BLUE RIDGE FLYERS</span>
               <span>🌐 COASTAL WINGS</span>
               <span>🏆 SUMMIT FLIGHT SERVICES</span>
@@ -647,6 +673,45 @@ const LandingPage = () => {
               </div>
             </div>
 
+          </div>
+
+        </div>
+      </section>
+
+      {/* Coming Soon: Expanding Capabilities Section */}
+      <section className="py-20 sm:py-24 bg-[#F8FAFC] border-t border-b border-slate-100 relative z-10" id="coming-soon">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+            <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Future Roadmap</span>
+            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              Coming Soon: Expanding Capabilities
+            </h3>
+            <p className="text-sm text-slate-500 font-medium">
+              We are actively developing premium next-level tools to broaden operational horizons.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {comingSoonFeatures.map((item, index) => (
+              <div key={index} className="p-6 rounded-2xl border border-slate-100 bg-white text-left space-y-3 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 shadow-sm">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-700/5 to-transparent rounded-bl-full pointer-events-none" />
+                
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-700 flex-shrink-0">
+                    {item.icon}
+                  </div>
+                  <span className="text-[10px] font-bold tracking-wider text-blue-700 uppercase">
+                    {item.category}
+                  </span>
+                </div>
+
+                <h4 className="text-sm font-black text-slate-900 group-hover:text-blue-700 transition-colors">{item.title}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  {item.description}
+                </p>
+              </div>
+            ))}
           </div>
 
         </div>

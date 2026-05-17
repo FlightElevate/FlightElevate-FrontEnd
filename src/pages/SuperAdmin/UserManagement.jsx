@@ -7,7 +7,7 @@ import { userService } from "../../api/services/userService";
 import { organizationService } from "../../api/services/organizationService";
 import Pagination from "../../components/Pagination";
 import AddUserModal from "../../components/User/AddUserModal";
-import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../utils/notifications";
+import { showConfirmDialog, showDeleteConfirm, showSuccessToast, showErrorToast } from "../../utils/notifications";
 
 
 const UserManagement = () => {
@@ -133,8 +133,8 @@ const UserManagement = () => {
   
   const handleBlockUser = useCallback(async (userId, userName, currentStatus) => {
     const action = currentStatus === 'blocked' ? 'unblock' : 'block';
-    const confirmed = await showDeleteConfirm(
-      `${action} ${userName}`,
+    const confirmed = await showConfirmDialog(
+      `${action === 'block' ? 'Block' : 'Unblock'} User`,
       `Are you sure you want to ${action} this user?`,
       `Yes, ${action} user`
     );
@@ -175,7 +175,7 @@ const UserManagement = () => {
   }, [navigate, selected]);
 
   const handleApproveOrganization = useCallback(async (orgId) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       "Approve Organization",
       "Are you sure you want to approve this organization?",
       "Yes, Approve"
@@ -200,7 +200,7 @@ const UserManagement = () => {
   }, [fetchUsers]);
 
   const handleRejectOrganization = useCallback(async (orgId) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       "Reject Organization",
       "Are you sure you want to reject this organization?",
       "Yes, Reject"
@@ -224,7 +224,7 @@ const UserManagement = () => {
   }, [fetchUsers]);
 
   const handleBlockOrganization = useCallback(async (orgId) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       "Block Organization",
       "Are you sure you want to block this organization?",
       "Yes, Block"
@@ -248,7 +248,7 @@ const UserManagement = () => {
   }, [fetchUsers]);
 
   const handleUnblockOrganization = useCallback(async (orgId) => {
-    const confirmed = await showDeleteConfirm(
+    const confirmed = await showConfirmDialog(
       "Unblock Organization",
       "Are you sure you want to unblock this organization?",
       "Yes, Unblock"
@@ -390,12 +390,12 @@ const UserManagement = () => {
                       />
                     </th>
                     <th className="pl-5">Name</th>
-                    {selected !== "Organization" && <th className="pl-5">Email</th>}
-                    {selected === "Organization" && <th className="pl-5">Contact Email</th>}
-                    {selected !== "Organization" && <th className="pl-5">Organization</th>}
-                    {selected === "Organization" && <th className="pl-5">Users Count</th>}
-                    {selected === "Organization" && <th className="pl-5">Aircraft Count</th>}
-                    {selected !== "Organization" && <th className="pl-5">Role</th>}
+                    {(selected !== "Organization" && selected !== "Request") && <th className="pl-5">Email</th>}
+                    {(selected === "Organization" || selected === "Request") && <th className="pl-5">Contact Email</th>}
+                    {(selected !== "Organization" && selected !== "Request") && <th className="pl-5">Organization</th>}
+                    {(selected === "Organization" || selected === "Request") && <th className="pl-5">Users Count</th>}
+                    {(selected === "Organization" || selected === "Request") && <th className="pl-5">Aircraft Count</th>}
+                    {(selected !== "Organization" && selected !== "Request") && <th className="pl-5">Role</th>}
                     <th className="pl-5">Joined Date</th>
                     {(selected === "Organization" || selected === "Request") && <th className="pl-5">Trial End</th>}
                     <th className="pl-5">Status</th>
@@ -443,8 +443,8 @@ const UserManagement = () => {
                     })
                   ) : (
                     <tr className="h-[72px]">
-                      <td colSpan={selected === "Organization" ? "7" : "8"} className="text-center text-gray-500 py-6">
-                        No {selected === "Organization" ? "organizations" : selected.toLowerCase()} found
+                      <td colSpan={(selected === "Organization" || selected === "Request") ? "9" : "8"} className="text-center text-gray-500 py-6">
+                        No {(selected === "Organization" || selected === "Request") ? "organizations" : selected.toLowerCase() + "s"} found
                       </td>
                     </tr>
                   )}
