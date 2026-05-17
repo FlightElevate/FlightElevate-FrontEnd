@@ -644,6 +644,34 @@ const Calendar = () => {
     }
   }, [showNewReservationModal, isEditMode]);
 
+  // Auto-fill student location and suggested PIC when student selection changes (only for new reservations)
+  useEffect(() => {
+    if (showNewReservationModal && !isEditMode && reservationForm.student_id && students.length > 0) {
+      const student = students.find((s) => String(s.id) === String(reservationForm.student_id));
+      if (student) {
+        const suggestedPIC = student.certificate_level && ['Private', 'Commercial', 'ATP'].includes(student.certificate_level)
+          ? String(student.id)
+          : reservationForm.instructor_id;
+        
+        // Auto-fill location from student's assigned location if they have one
+        const studentLocationId = student.default_location_id
+          ? String(student.default_location_id)
+          : reservationForm.location_id;
+        
+        setReservationForm(prev => {
+          if (prev.acting_pic_user_id !== suggestedPIC || prev.location_id !== studentLocationId) {
+            return {
+              ...prev,
+              acting_pic_user_id: suggestedPIC || prev.acting_pic_user_id,
+              location_id: studentLocationId,
+            };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [showNewReservationModal, isEditMode, reservationForm.student_id, students]);
+
   useEffect(() => {
     if (showSettingsModal) {
       fetchCalendarSettings();
