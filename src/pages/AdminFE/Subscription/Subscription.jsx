@@ -369,31 +369,49 @@ const Subscription = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { date: '16 May 2026', invoice: 'INV-2026-004', amount: `$${currentSubscription ? (parseFloat(currentSubscription.price)).toFixed(2) : '200.00'}`, status: 'Paid' },
-                      { date: '16 Apr 2026', invoice: 'INV-2026-003', amount: `$${currentSubscription ? (parseFloat(currentSubscription.price)).toFixed(2) : '200.00'}`, status: 'Paid' },
-                      { date: '16 Mar 2026', invoice: 'INV-2026-002', amount: `$${currentSubscription ? (parseFloat(currentSubscription.price)).toFixed(2) : '200.00'}`, status: 'Paid' },
-                      { date: '16 Feb 2026', invoice: 'INV-2026-001', amount: `$${currentSubscription ? (parseFloat(currentSubscription.price)).toFixed(2) : '200.00'}`, status: 'Paid' }
-                    ].map((item, idx) => (
-                      <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                        <td className="text-xs font-semibold text-slate-650 py-4">{item.date}</td>
-                        <td className="text-xs font-bold text-slate-800 py-4">{item.invoice}</td>
-                        <td className="text-xs font-black text-slate-900 py-4 font-mono">{item.amount}</td>
-                        <td className="py-4 text-center">
-                          <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/30">
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="py-4 text-right">
-                          <button 
-                            onClick={() => showSuccessToast(`${item.invoice} receipt downloaded successfully!`)}
-                            className="inline-flex p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
-                          >
-                            <FiDownload className="w-4 h-4" />
-                          </button>
+                    {invoices.length > 0 ? (
+                      invoices.map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                          <td className="text-xs font-semibold text-slate-650 py-4">{item.date}</td>
+                          <td className="text-xs font-bold text-slate-800 py-4">{item.number}</td>
+                          <td className="text-xs font-black text-slate-900 py-4 font-mono">{item.amount}</td>
+                          <td className="py-4 text-center">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              item.status.toLowerCase() === 'paid' 
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/30' 
+                                : 'bg-amber-50 text-amber-700 border border-amber-200/30'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="py-4 text-right">
+                            {item.pdf_url && item.pdf_url !== '#' ? (
+                              <a 
+                                href={item.pdf_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
+                              >
+                                <FiDownload className="w-4 h-4" />
+                              </a>
+                            ) : (
+                              <button 
+                                onClick={() => showSuccessToast(`${item.number} receipt downloaded successfully!`)}
+                                className="inline-flex p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
+                              >
+                                <FiDownload className="w-4 h-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="text-center py-8 text-xs text-slate-400 font-medium">
+                          No invoice history found.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
