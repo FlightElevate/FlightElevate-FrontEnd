@@ -23,8 +23,7 @@ import {
   FiCheckCircle,
   FiDollarSign,
   FiClock,
-  FiDownload,
-  FiCpu
+  FiDownload
 } from 'react-icons/fi';
 
 const LandingPage = () => {
@@ -124,40 +123,40 @@ const LandingPage = () => {
 
   const comingSoonFeatures = [
     {
-      icon: <FiCpu className="w-5 h-5 text-blue-700" />,
-      category: "AI Operations",
-      title: "Cognitive AI & Voice Bots",
-      description: "AI-assisted chatbots, voice-command assistance, and FBO coordination voice bots powered by OpenAI & custom LLMs (Mistral/LLaMA)."
-    },
-    {
-      icon: <FiNavigation className="w-5 h-5 text-blue-700" />,
-      category: "Operations",
-      title: "Corporate & Crew Scheduling",
-      description: "Expanding platform support for corporate aviation, crew scheduling workflows, dispatch management, and automated hotel booking integrations."
-    },
-    {
-      icon: <FiActivity className="w-5 h-5 text-blue-700" />,
-      category: "Intelligent Tools",
-      title: "Weight, Balance & Weather",
-      description: "Integrated real-time weight & balance tools, aviation weather forecast integrations, and proactive safety management warnings."
+      icon: <FiZap className="w-5 h-5 text-blue-700" />,
+      category: "AI & Assistance",
+      title: "Pilot AI",
+      description: "Designed by a pilot, for pilots. Intelligent assistance for scheduling and operational support"
     },
     {
       icon: <FiSliders className="w-5 h-5 text-blue-700" />,
-      category: "Maintenance",
-      title: "Safety Management & Inventory",
-      description: "Automated Safety Management System (SMS), aircraft downtime tracking, maintenance restrictions, and inventory module tracking."
+      category: "Dispatch & Operations",
+      title: "Integrated Dispatch",
+      description: "Integrated Dispatch with Weight & Balance"
     },
     {
-      icon: <FiBarChart2 className="w-5 h-5 text-blue-700" />,
-      category: "Database & Analytics",
-      title: "Analytical DB & Models",
-      description: "Planned MongoDB secondary database analytics framework for high-throughput reporting, forecasting, and operational bottlenecks."
+      icon: <FiActivity className="w-5 h-5 text-blue-700" />,
+      category: "Dispatch & Operations",
+      title: "Weather on the Go",
+      description: "Real-time weather insights within operational workflows"
+    },
+    {
+      icon: <FiNavigation className="w-5 h-5 text-blue-700" />,
+      category: "Operational Expansion",
+      title: "Part 91 Support",
+      description: "Part 91 Operations Support"
     },
     {
       icon: <FiShield className="w-5 h-5 text-blue-700" />,
-      category: "Compliance",
-      title: "Enterprise Audit Logging",
-      description: "Immutable security audit logging, sensitive document protection, and advanced role-based access control (RBAC) compliance."
+      category: "System Intelligence",
+      title: "SRS (Smart Recovery System)",
+      description: "Intelligent handling of scheduling disruptions"
+    },
+    {
+      icon: <FiBarChart2 className="w-5 h-5 text-blue-700" />,
+      category: "Data & Insights",
+      title: "Advanced & Predictive Analytics",
+      description: "Advanced & Predictive Analytics"
     }
   ];
 
