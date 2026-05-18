@@ -23,7 +23,8 @@ import {
   FiCheckCircle,
   FiDollarSign,
   FiClock,
-  FiDownload
+  FiDownload,
+  FiCpu
 } from 'react-icons/fi';
 
 const LandingPage = () => {
@@ -123,34 +124,40 @@ const LandingPage = () => {
 
   const comingSoonFeatures = [
     {
-      icon: <FiZap className="w-5 h-5 text-blue-700" />,
-      category: "AI & Assistance",
-      title: "Pilot AI",
-      description: "Designed by a pilot, for pilots. Intelligent assistance for scheduling and operational support"
-    },
-    {
-      icon: <FiSliders className="w-5 h-5 text-blue-700" />,
-      category: "Dispatch & Operations",
-      title: "Integrated Dispatch",
-      description: "Integrated Dispatch with Weight & Balance & Weather on the Go — Real-time weather insights within operational workflows"
+      icon: <FiCpu className="w-5 h-5 text-blue-700" />,
+      category: "AI Operations",
+      title: "Cognitive AI & Voice Bots",
+      description: "AI-assisted chatbots, voice-command assistance, and FBO coordination voice bots powered by OpenAI & custom LLMs (Mistral/LLaMA)."
     },
     {
       icon: <FiNavigation className="w-5 h-5 text-blue-700" />,
-      category: "Operational Expansion",
-      title: "Part 91 Support",
-      description: "Part 91 Operations Support for corporate flight departments and advanced flying clubs"
+      category: "Operations",
+      title: "Corporate & Crew Scheduling",
+      description: "Expanding platform support for corporate aviation, crew scheduling workflows, dispatch management, and automated hotel booking integrations."
     },
     {
-      icon: <FiShield className="w-5 h-5 text-blue-700" />,
-      category: "System Intelligence",
-      title: "SRS (Smart Recovery)",
-      description: "SRS (Smart Recovery System) — Intelligent handling of scheduling disruptions and automatic notification handling"
+      icon: <FiActivity className="w-5 h-5 text-blue-700" />,
+      category: "Intelligent Tools",
+      title: "Weight, Balance & Weather",
+      description: "Integrated real-time weight & balance tools, aviation weather forecast integrations, and proactive safety management warnings."
+    },
+    {
+      icon: <FiSliders className="w-5 h-5 text-blue-700" />,
+      category: "Maintenance",
+      title: "Safety Management & Inventory",
+      description: "Automated Safety Management System (SMS), aircraft downtime tracking, maintenance restrictions, and inventory module tracking."
     },
     {
       icon: <FiBarChart2 className="w-5 h-5 text-blue-700" />,
-      category: "Data & Insights",
-      title: "Advanced Analytics",
-      description: "Advanced & Predictive Analytics to forecast operational bottlenecks and student checkride readiness"
+      category: "Database & Analytics",
+      title: "Analytical DB & Models",
+      description: "Planned MongoDB secondary database analytics framework for high-throughput reporting, forecasting, and operational bottlenecks."
+    },
+    {
+      icon: <FiShield className="w-5 h-5 text-blue-700" />,
+      category: "Compliance",
+      title: "Enterprise Audit Logging",
+      description: "Immutable security audit logging, sensitive document protection, and advanced role-based access control (RBAC) compliance."
     }
   ];
 
