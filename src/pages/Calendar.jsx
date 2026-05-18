@@ -1475,130 +1475,135 @@ const Calendar = () => {
           </div>
           
           {/* Second Row: Location and Date Navigation */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-            {/* Organization Select - Only visible for Super Admin */}
-            {isSuperAdmin() && (
-              <select
-                value={selectedOrganizationId}
-                onChange={handleOrganizationChange}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:flex-shrink-0 sm:min-w-[140px]"
-              >
-                <option value="">Select Organization</option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>{org.name}</option>
-                ))}
-              </select>
-            )}
-
-            {!isStudent() && (
-              <select
-                value={selectedCalendarLocationId}
-                onChange={(e) => setSelectedCalendarLocationId(e.target.value)}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:flex-shrink-0 sm:min-w-[160px]"
-                aria-label="Filter calendar by location"
-              >
-                <option value="">All locations</option>
-                {allLocations
-                  .filter((loc) => loc.id != null && String(loc.id) !== '' && !String(loc.id).startsWith('new:'))
-                  .map((loc) => (
-                    <option key={loc.id} value={String(loc.id)}>
-                      {loc.name}
-                    </option>
+          <div className="flex flex-wrap items-center justify-between gap-3 w-full pt-1">
+            {/* Filters Group */}
+            <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-none">
+              {/* Organization Select - Only visible for Super Admin */}
+              {isSuperAdmin() && (
+                <select
+                  value={selectedOrganizationId}
+                  onChange={handleOrganizationChange}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:flex-shrink-0 sm:min-w-[140px]"
+                >
+                  <option value="">Select Organization</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
                   ))}
-              </select>
-            )}
+                </select>
+              )}
 
+              {!isStudent() && (
+                <select
+                  value={selectedCalendarLocationId}
+                  onChange={(e) => setSelectedCalendarLocationId(e.target.value)}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm w-full sm:w-auto sm:flex-shrink-0 sm:min-w-[160px]"
+                  aria-label="Filter calendar by location"
+                >
+                  <option value="">All locations</option>
+                  {allLocations
+                    .filter((loc) => loc.id != null && String(loc.id) !== '' && !String(loc.id).startsWith('new:'))
+                    .map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>
+                        {loc.name}
+                      </option>
+                    ))}
+                </select>
+              )}
 
-            {/* Week / Day / Custom view toggle */}
-            <div className="flex items-center gap-0.5 rounded-lg border border-gray-300 p-0.5 bg-gray-50 flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setCalendarViewMode('week')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'week' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Week
-              </button>
-              <button
-                type="button"
-                onClick={() => setCalendarViewMode('day')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'day' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Day
-              </button>
-              <button
-                type="button"
-                onClick={() => setCalendarViewMode('custom')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'custom' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Custom
-              </button>
+              {/* Week / Day / Custom view toggle */}
+              <div className="flex items-center gap-0.5 rounded-lg border border-gray-300 p-0.5 bg-gray-50 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCalendarViewMode('week')}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'week' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+                >
+                  Week
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalendarViewMode('day')}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'day' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+                >
+                  Day
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalendarViewMode('custom')}
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'custom' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+                >
+                  Custom
+                </button>
+              </div>
             </div>
 
-            {/* Custom date range inputs (visible when Custom view) */}
-            {calendarViewMode === 'custom' && (
-              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">From</label>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
-                />
-                <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">To</label>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
-                />
-              </div>
-            )}
-
-            {/* Date Navigation (hidden for Custom view) */}
-            <div className="flex items-center gap-1 sm:gap-2 justify-between sm:justify-start flex-1 min-w-0">
-              {calendarViewMode !== 'custom' && (
-                <>
-                  <button
-                    onClick={() => calendarViewMode === 'day' ? navigateDay(-1) : navigateWeek(-1)}
-                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                    aria-label={calendarViewMode === 'day' ? 'Previous day' : 'Previous week'}
-                  >
-                    <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
-                  </button>
-                  
-                  <div className="flex items-center gap-2 flex-1 justify-center">
-                    <span className="hidden md:inline text-xs sm:text-sm font-medium text-gray-700 truncate">
-                      {getDateRangeLabel()}
-                    </span>
-                    <input
-                      type="date"
-                      value={formatDateStr(currentDate)}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val) {
-                          const [y, m, d] = val.split('-').map(Number);
-                          setCurrentDate(new Date(y, m - 1, d));
-                        }
-                      }}
-                      className="px-2 py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      aria-label="Select date"
-                    />
-                  </div>
-
-                  <button
-                    onClick={() => calendarViewMode === 'day' ? navigateDay(1) : navigateWeek(1)}
-                    className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                    aria-label={calendarViewMode === 'day' ? 'Next day' : 'Next week'}
-                  >
-                    <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
-                  </button>
-                </>
-              )}
+            {/* Date Navigation & Custom inputs Group */}
+            <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-none justify-end">
+              {/* Custom date range inputs (visible when Custom view) */}
               {calendarViewMode === 'custom' && (
-                <span className="text-xs sm:text-sm font-medium text-gray-700 px-1 sm:px-2 truncate">
-                  {getDateRangeLabel()}
-                </span>
+                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                  <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">From</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+                  />
+                  <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">To</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
+                  />
+                </div>
               )}
+
+              {/* Date Navigation (hidden for Custom view) */}
+              <div className="flex items-center gap-1 sm:gap-2 justify-between sm:justify-start flex-shrink-0">
+                {calendarViewMode !== 'custom' && (
+                  <>
+                    <button
+                      onClick={() => calendarViewMode === 'day' ? navigateDay(-1) : navigateWeek(-1)}
+                      className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0 border border-gray-200 bg-white shadow-sm"
+                      aria-label={calendarViewMode === 'day' ? 'Previous day' : 'Previous week'}
+                    >
+                      <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                    </button>
+                    
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="hidden lg:inline text-xs sm:text-sm font-semibold text-gray-700">
+                        {getDateRangeLabel()}
+                      </span>
+                      <input
+                        type="date"
+                        value={formatDateStr(currentDate)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val) {
+                            const [y, m, d] = val.split('-').map(Number);
+                            setCurrentDate(new Date(y, m - 1, d));
+                          }
+                        }}
+                        className="px-2 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        aria-label="Select date"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => calendarViewMode === 'day' ? navigateDay(1) : navigateWeek(1)}
+                      className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0 border border-gray-200 bg-white shadow-sm"
+                      aria-label={calendarViewMode === 'day' ? 'Next day' : 'Next week'}
+                    >
+                      <FiChevronRight size={18} className="sm:w-5 sm:h-5" />
+                    </button>
+                  </>
+                )}
+                {calendarViewMode === 'custom' && (
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 px-1 sm:px-2 truncate">
+                    {getDateRangeLabel()}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

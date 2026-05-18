@@ -76,72 +76,81 @@ const LandingPage = () => {
 
   const features = [
     {
-      icon: <FiCalendar className="w-5 h-5" />,
-      title: "Smart Operations Scheduling",
-      description: "Effortlessly manage flight bookings, instructor schedules, and aircraft availability with intelligent clash-detection.",
-      details: "Our proprietary scheduling matrix resolves overlapping bookings instantly. Real-time availability blocks keep instructors and aircraft synced across all campus locations. Includes automatic calendar pushes to Google, Outlook, and iCal.",
-      tag: "Core Scheduler"
+      icon: <FiCheckCircle className="w-5 h-5" />,
+      title: "Connected Platform",
+      description: "Seamless Communication Across Your Organization",
+      details: "Connect students, instructors, and staff through a centralized messaging system—keeping communication streamlined, trackable, and efficient.",
+      tag: "Connected Platform"
     },
     {
-      icon: <FiBarChart2 className="w-5 h-5" />,
-      title: "Live Operations Analytics",
-      description: "Gain complete insight into fleet utilization, training hours, student activity levels, and financial KPIs with real-time reporting.",
-      details: "Visualize flight school performance metrics instantly. Track dual vs solo hours, monitor instructor utilization ratios, and analyze monthly billing cycles with premium interactive graphs built directly into the admin center.",
-      tag: "School Metrics"
+      icon: <FiUser className="w-5 h-5" />,
+      title: "Smart View",
+      description: "Smart Views. Role-Based Intelligence.",
+      details: "Each user sees what matters most. Tailored dashboards for students, instructors, and administrators ensure faster decisions and better situational awareness.",
+      tag: "Smart View"
     },
     {
-      icon: <FiBook className="w-5 h-5" />,
-      title: "Integrated Pilot Logbook",
-      description: "Perfect record-keeping with digital instructor endorsements, dual/solo hour categorization, and instant FAA audit compatibility.",
-      details: "Built to comply with FAA Part 61 & 141 logbook regulations. Instructors digitally sign flight hours, and students instantly view their endorsements, flight history, and curriculum benchmarks on any device.",
-      tag: "Digital Logbook"
-    },
-    {
-      icon: <FiNavigation className="w-5 h-5" />,
-      title: "Aircraft Fleet Management",
-      description: "Oversee maintenance, engine overhauls, 100-hour inspections, active squawks, and automatically ground aircraft for maximum safety.",
-      details: "Link hobbs and tach times directly to inspection triggers. If a pilot reports a grounding squawk during check-in, FlightElevate automatically locks dispatch capabilities for that aircraft until an admin clears the maintenance logs.",
-      tag: "Safety & Maintenance"
+      icon: <FiSliders className="w-5 h-5" />,
+      title: "Admin Control",
+      description: "Complete Operational Oversight",
+      details: "Gain full visibility across your organization with customizable access controls. Monitor schedules, cancellations, and weather impacts in real time—all from one dashboard.",
+      tag: "Admin Control"
     }
   ];
 
   const faqs = [
     {
       question: "Who is FlightElevate built for?",
-      answer: "FlightElevate is designed specifically for Part 61 and Part 141 flight schools, with complete support for personal pilot logbooks, flying clubs, and future expansion into Part 91 and university aviation programs."
+      answer: "FlightElevate is designed for Part 61 and Part 141 flight schools, with future expansion into Part 91 operations and aviation programs."
     },
     {
       question: "Can FlightElevate replace my current scheduling system?",
-      answer: "Yes. FlightElevate is engineered as an all-in-one flight operations suite that seamlessly consolidates scheduling, compliance, internal communication, and logbook entries into one intelligent interface."
+      answer: "Yes. FlightElevate is built as an all-in-one platform that streamlines scheduling, communication, and operations."
     },
     {
       question: "Does it support compliance and reporting?",
-      answer: "Absolutely. The platform features built-in compliance frameworks that track flight times, inspect aircraft currencies, and generate exportable reports for regulatory audits."
+      answer: "Yes. The platform supports operational tracking, reporting, and regulatory requirements."
     },
     {
       question: "Is the platform customizable?",
-      answer: "Yes! FlightElevate offers flexible configurations tailored to your organization. You can define custom locations, aircraft categories, and lesson structures that align perfectly with your operations."
+      answer: "Yes. FlightElevate offers flexible configurations aligned with your workflows."
+    },
+    {
+      question: "Are mobile apps available?",
+      answer: "Mobile apps for iOS and Android are currently in development."
     }
   ];
 
   const comingSoonFeatures = [
     {
-      icon: <FiShield className="w-5 h-5 text-blue-700" />,
-      category: "Part 91 / 135",
-      title: "Advanced Fleet Dispatch",
-      description: "Automates pre-flight risk assessment sheets, weather warnings, and direct flight-following widgets to monitor active cross-country paths."
+      icon: <FiZap className="w-5 h-5 text-blue-700" />,
+      category: "AI & Assistance",
+      title: "Pilot AI",
+      description: "Designed by a pilot, for pilots. Intelligent assistance for scheduling and operational support"
     },
     {
       icon: <FiSliders className="w-5 h-5 text-blue-700" />,
-      category: "Ground Ops",
-      title: "Interactive Squawk Desk",
-      description: "Allows ground crews and mechanics to interact with real-time discrepancy lists, sign off fixes, and upload parts receipts directly."
+      category: "Dispatch & Operations",
+      title: "Integrated Dispatch",
+      description: "Integrated Dispatch with Weight & Balance & Weather on the Go — Real-time weather insights within operational workflows"
+    },
+    {
+      icon: <FiNavigation className="w-5 h-5 text-blue-700" />,
+      category: "Operational Expansion",
+      title: "Part 91 Support",
+      description: "Part 91 Operations Support for corporate flight departments and advanced flying clubs"
+    },
+    {
+      icon: <FiShield className="w-5 h-5 text-blue-700" />,
+      category: "System Intelligence",
+      title: "SRS (Smart Recovery)",
+      description: "SRS (Smart Recovery System) — Intelligent handling of scheduling disruptions and automatic notification handling"
     },
     {
       icon: <FiBarChart2 className="w-5 h-5 text-blue-700" />,
-      category: "Syllabus Integration",
-      title: "Part 141 Training Curves",
-      description: "Compares student progress metrics against local stage-check curves to auto-flag students falling behind their curriculum hours."
+      category: "Data & Insights",
+      title: "Advanced Analytics",
+      description: "Advanced & Predictive Analytics to forecast operational bottlenecks and student checkride readiness"
     }
   ];
 
@@ -174,15 +183,18 @@ const LandingPage = () => {
           </div>
 
           {/* Desktop Nav Items */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden lg:flex items-center space-x-6">
             <a href="#philosophy" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               Philosophy
             </a>
             <a href="#features-interactive" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
+              Pillars
+            </a>
+            <a href="#features-list" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               Features
             </a>
-            <a href="#calculator" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
-              Calculator
+            <a href="#coming-soon" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
+              Roadmap
             </a>
             <a href="#faq" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               FAQ
@@ -207,7 +219,7 @@ const LandingPage = () => {
             {/* Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1.5 rounded-full border border-slate-200 hover:bg-slate-55 transition-all focus:outline-none"
+              className="lg:hidden p-1.5 rounded-full border border-slate-200 hover:bg-slate-55 transition-all focus:outline-none"
               aria-label="Toggle Menu"
             >
               {mobileMenuOpen ? <FiX size={14} /> : <FiMenu size={14} />}
@@ -218,18 +230,21 @@ const LandingPage = () => {
 
         {/* Mobile Navigation Dropdown Menu */}
         {mobileMenuOpen && (
-          <div ref={menuRef} className="pointer-events-auto mt-3 max-w-4xl mx-auto rounded-2xl bg-white border border-slate-100 shadow-xl p-5 space-y-3 md:hidden">
+          <div ref={menuRef} className="pointer-events-auto mt-3 max-w-4xl mx-auto rounded-2xl bg-white border border-slate-100 shadow-xl p-5 space-y-3 lg:hidden">
             <div className="flex flex-col space-y-1 text-left">
-              <a href="#philosophy" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-50 transition-all">
+              <a href="#philosophy" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
                 Philosophy
               </a>
-              <a href="#features-interactive" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-50 transition-all">
+              <a href="#features-interactive" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
+                Pillars
+              </a>
+              <a href="#features-list" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
                 Features
               </a>
-              <a href="#calculator" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-50 transition-all">
-                Calculator
+              <a href="#coming-soon" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
+                Roadmap
               </a>
-              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-50 transition-all">
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
                 FAQ
               </a>
             </div>
@@ -264,17 +279,22 @@ const LandingPage = () => {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/60 shadow-[0_2px_10px_rgba(29,78,216,0.02)]">
                 <FiZap className="w-3.5 h-3.5 text-blue-700 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Next-Gen Flight Ops Platform</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-750">Part 61 & Part 141 Flight Operations</span>
               </div>
 
               {/* Title */}
               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.08]">
-                All-in-One Workspace for <span className="text-blue-700 relative">Modern Flight</span> Academies
+                All-in-One Platform for <span className="text-blue-700 relative">Modern Flight</span> Operations
               </h2>
 
+              {/* Subheading */}
+              <p className="text-xs sm:text-sm font-extrabold text-blue-700 uppercase tracking-wider leading-relaxed">
+                Built for Part 61 & Part 141 flight schools, with support for personal pilot logbooks, flying clubs, and future expansion into Part 91 and university aviation programs.
+              </p>
+
               {/* Supporting Text */}
-              <p className="text-base sm:text-lg text-slate-500 font-medium leading-relaxed max-w-xl">
-                FlightElevate centralizes scheduling, digital logbook endorsements, aircraft dispatch, and maintenance warnings into a unified, lightweight system.
+              <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed max-w-xl">
+                Manage student training, oversee instructors, and streamline aircraft operations—all within a single, intelligent platform.
               </p>
 
               {/* CTAs */}
@@ -292,13 +312,13 @@ const LandingPage = () => {
                   className="px-7 py-3.5 text-xs font-bold uppercase tracking-wider rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-55 transition-all flex items-center gap-2"
                 >
                   <FiPlay className="text-blue-700 fill-blue-700/10 w-3.5 h-3.5" />
-                  See Features
+                  Watch Overview
                 </a>
               </div>
 
             </div>
 
-            {/* Hero Right - Interactive Premium Mockup with actual sidebar color matching the dashboard */}
+            {/* Hero Right - Interactive Premium Mockup */}
             <div className="lg:col-span-6 relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-700/10 to-sky-500/10 rounded-2xl blur-[40px] opacity-30 z-0" />
               
@@ -488,28 +508,31 @@ const LandingPage = () => {
       <section className="py-20 sm:py-24 bg-white relative z-10 border-b border-slate-100" id="philosophy">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/60 text-[10px] font-bold uppercase tracking-wider">
-            Our Philosophy
+            Core Philosophy
           </div>
           <h3 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-tight">
-            Designed for Simplicity. Built to Elevate Operations.
+            Designed for Efficiency. Built to Elevate the Experience.
           </h3>
-          <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed">
-            By eliminating bulky structures and AI template layouts, FlightElevate focuses entirely on clean, high-performance operational flows. Students schedule flights instantly, instructors complete digital logbooks with zero friction, and fleet managers get real-time maintenance signals.
+          <p className="text-sm sm:text-base text-slate-600 font-semibold leading-relaxed">
+            FlightElevate delivers a clean, intuitive experience through a structured, workflow-driven approach to scheduling and operations.
+          </p>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+            By simplifying complex processes and removing unnecessary friction, the platform brings consistency to daily workflows—improving efficiency and enabling smoother, more reliable flight operations.
           </p>
         </div>
       </section>
 
-      {/* Interactive Capabilities Showcase */}
+      {/* Interactive Capabilities Showcase (centralized communication, dashboard etc) */}
       <section className="py-20 sm:py-24 relative z-10" id="features-interactive">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Capabilities</span>
             <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-              Consolidated Flight Operations
+              Centralized Workflows & Command
             </h3>
             <p className="text-sm text-slate-500 font-medium">
-              Explore our core platform components and operational features in real time.
+              Explore the three core pillars of our operational approach in real time.
             </p>
           </div>
 
@@ -550,25 +573,20 @@ const LandingPage = () => {
                     {features[activeFeatureTab].tag}
                   </div>
 
-                  <h4 className="text-xl font-black text-slate-900">{features[activeFeatureTab].title}</h4>
+                  <h4 className="text-xl font-black text-slate-900">{features[activeFeatureTab].description}</h4>
                   
                   <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                    {features[activeFeatureTab].description}
-                  </p>
-
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs sm:text-sm leading-relaxed text-slate-550">
-                    <strong className="text-blue-700 font-bold block mb-1">How it works:</strong>
                     {features[activeFeatureTab].details}
-                  </div>
+                  </p>
                 </div>
 
                 <div className="pt-6 border-t border-slate-100 mt-6 flex justify-between items-center text-xs">
-                  <span className="text-slate-400 font-medium">Platform Standard Capable</span>
+                  <span className="text-slate-400 font-medium">FlightElevate Operational Standard</span>
                   <button 
                     onClick={() => navigate('/register')}
                     className="text-blue-700 font-bold hover:underline flex items-center gap-1"
                   >
-                    Launch School Portal
+                    Explore Platform
                     <FiArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -580,8 +598,73 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Features and Performance Card Grid */}
+      <section className="py-20 sm:py-24 bg-[#F8FAFC] relative z-10 border-t border-b border-slate-100" id="features-list">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-2xl mx-auto mb-16 space-y-2">
+            <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">At A Glance</span>
+            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              Built to Deliver Results
+            </h3>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            
+            {/* Features Card */}
+            <div className="p-8 rounded-2xl border border-slate-100 bg-white text-left space-y-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                  <FiCheck className="w-4 h-4" />
+                </div>
+                <h4 className="text-lg font-black text-slate-900">Platform Features</h4>
+              </div>
+              <ul className="space-y-3.5">
+                {[
+                  "Smart Scheduling",
+                  "Operations Analytics",
+                  "Integrated Digital Logbook",
+                  "Aircraft Management",
+                  "Student Progress Tracking (Coming Soon)",
+                  "Compliance & Reporting"
+                ].map((feat, index) => (
+                  <li key={index} className="flex items-center gap-3 text-slate-650 font-bold text-xs sm:text-sm">
+                    <div className="w-2 h-2 rounded-full bg-blue-700 flex-shrink-0" />
+                    <span>{feat}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Performance & Availability Card */}
+            <div className="p-8 rounded-2xl border border-slate-100 bg-white text-left space-y-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                  <FiActivity className="w-4 h-4" />
+                </div>
+                <h4 className="text-lg font-black text-slate-900">Performance & Availability</h4>
+              </div>
+              <ul className="space-y-3.5">
+                {[
+                  "Reduce administrative workload by up to 60%",
+                  "99.99% cloud-based reliability",
+                  "Accessible on desktop",
+                  "Mobile apps coming soon (iOS & Android)"
+                ].map((perf, index) => (
+                  <li key={index} className="flex items-center gap-3 text-slate-655 font-bold text-xs sm:text-sm">
+                    <div className="w-2 h-2 rounded-full bg-blue-700 flex-shrink-0" />
+                    <span>{perf}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ROI Savings Calculator */}
-      <section className="py-20 sm:py-24 bg-white border-t border-b border-slate-100 relative z-10" id="calculator">
+      <section className="py-20 sm:py-24 bg-white border-b border-slate-100 relative z-10" id="calculator">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="grid lg:grid-cols-12 gap-12 items-center">
@@ -694,22 +777,24 @@ const LandingPage = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {comingSoonFeatures.map((item, index) => (
-              <div key={index} className="p-6 rounded-2xl border border-slate-100 bg-white text-left space-y-3 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 shadow-sm">
+              <div key={index} className="p-6 rounded-2xl border border-slate-100 bg-white text-left space-y-3 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 shadow-sm flex flex-col justify-between">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-700/5 to-transparent rounded-bl-full pointer-events-none" />
                 
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-700 flex-shrink-0">
-                    {item.icon}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-blue-50 text-blue-700 flex-shrink-0">
+                      {item.icon}
+                    </div>
+                    <span className="text-[10px] font-bold tracking-wider text-blue-750 uppercase">
+                      {item.category}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold tracking-wider text-blue-700 uppercase">
-                    {item.category}
-                  </span>
-                </div>
 
-                <h4 className="text-sm font-black text-slate-900 group-hover:text-blue-700 transition-colors">{item.title}</h4>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                  {item.description}
-                </p>
+                  <h4 className="text-sm font-black text-slate-900 group-hover:text-blue-700 transition-colors">{item.title}</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                    {item.description}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
@@ -736,7 +821,7 @@ const LandingPage = () => {
               >
                 <button
                   onClick={() => toggleFaq(index)}
-                  className="w-full px-6 py-4.5 flex items-center justify-between text-left text-slate-800 hover:bg-slate-55 transition-colors focus:outline-none"
+                  className="w-full px-6 py-4.5 flex items-center justify-between text-left text-slate-800 hover:bg-slate-50 transition-colors focus:outline-none"
                 >
                   <span className="font-extrabold text-sm sm:text-base">{faq.question}</span>
                   <div className={`p-1 rounded bg-slate-50 text-slate-500 transition-transform duration-300 ${openFaq === index ? 'rotate-180' : ''}`}>
@@ -745,7 +830,7 @@ const LandingPage = () => {
                 </button>
                 
                 {openFaq === index && (
-                  <div className="px-6 py-4 border-t border-slate-50 bg-[#F8FAFC] text-xs sm:text-sm text-slate-500 leading-relaxed font-medium">
+                  <div className="px-6 py-4 border-t border-slate-50 bg-[#F8FAFC] text-xs sm:text-sm text-slate-550 leading-relaxed font-semibold">
                     {faq.answer}
                   </div>
                 )}

@@ -968,9 +968,9 @@ const Setting = () => {
             </div>
           </div>
 
-          {}
+          {/* Desktop Tab Buttons */}
           <div className="hidden md:block">
-            <div className="flex gap-2 px-6 py-4">
+            <div className="flex gap-2 px-6 py-4 overflow-x-auto max-w-full">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -2002,13 +2002,13 @@ const Setting = () => {
                 {/* Add new location */}
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Add New Location</h4>
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                     <input
                       type="text"
                       value={newLocationName}
                       onChange={(e) => setNewLocationName(e.target.value)}
                       placeholder="Location name (e.g. Main Airport)*"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="col-span-1 sm:col-span-5 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onKeyDown={(e) => e.key === 'Enter' && handleAddLocation()}
                     />
                     <input
@@ -2016,13 +2016,13 @@ const Setting = () => {
                       value={newLocationAddress}
                       onChange={(e) => setNewLocationAddress(e.target.value)}
                       placeholder="Address (optional)"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="col-span-1 sm:col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onKeyDown={(e) => e.key === 'Enter' && handleAddLocation()}
                     />
                     <button
                       onClick={handleAddLocation}
                       disabled={savingLocation || !newLocationName.trim()}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      className="col-span-1 sm:col-span-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FiPlus size={16} />
                       {savingLocation ? 'Adding...' : 'Add Location'}
