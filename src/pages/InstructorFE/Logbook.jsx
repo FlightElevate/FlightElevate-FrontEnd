@@ -530,15 +530,13 @@ const Logbook = () => {
             <FiDownload className="mr-2" />
             Export
           </button>
-          {!isAdminView && (
-            <button 
-              onClick={handleAddNew}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition"
-            >
-              <FiPlus className="mr-2" />
-              Add Entry
-            </button>
-          )}
+          <button 
+            onClick={handleAddNew}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition"
+          >
+            <FiPlus className="mr-2" />
+            Add Entry
+          </button>
         </div>
       </div>
 
@@ -872,14 +870,6 @@ const Logbook = () => {
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
-                        {isAdminView ? (
-                          <button
-                            onClick={() => handleEdit(logbook)}
-                            className="text-gray-600 hover:text-gray-900 p-1 flex items-center font-medium"
-                          >
-                            <FiEye className="mr-1" /> View
-                          </button>
-                        ) : (
                           <>
                             <button
                               onClick={() => handleEdit(logbook)}
@@ -894,7 +884,6 @@ const Logbook = () => {
                               <FiTrash2 className="mr-1" />
                             </button>
                           </>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -923,7 +912,7 @@ const Logbook = () => {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">
-                {isAdminView ? 'View Logbook Entry' : (editingLogbook ? 'Edit Logbook Entry' : 'Add Logbook Entry')}
+                {editingLogbook ? 'Edit Logbook Entry' : 'Add Logbook Entry'}
               </h2>
               <button
                 onClick={() => setShowEditModal(false)}
@@ -934,7 +923,7 @@ const Logbook = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <fieldset disabled={isAdminView} className="space-y-6">
+              <fieldset className="space-y-6">
 
               {/* ── Section 1: Aircraft (Figma cols 2-4) ── */}
               <div>
@@ -1236,17 +1225,15 @@ const Logbook = () => {
               </fieldset>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3 mt-8 -mx-6 -mb-6">
                 <button type="button" onClick={() => setShowEditModal(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
-                  {isAdminView ? 'Close' : 'Cancel'}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                  Cancel
                 </button>
-                {!isAdminView && (
-                  <button type="submit" disabled={loading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
-                    {loading ? 'Saving...' : (editingLogbook ? 'Update Entry' : 'Create Entry')}
-                  </button>
-                )}
+                <button type="submit" disabled={loading}
+                  className="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-50">
+                  {loading ? 'Saving...' : (editingLogbook ? 'Update Entry' : 'Create Entry')}
+                </button>
               </div>
             </form>
           </div>
