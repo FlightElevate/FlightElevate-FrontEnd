@@ -22,7 +22,10 @@ export const reservationService = {
     return await api.put(ENDPOINTS.RESERVATIONS.UPDATE(id), data);
   },
 
-  async deleteReservation(id) {
+  async deleteReservation(id, data = null) {
+    if (data) {
+      return await api.delete(ENDPOINTS.RESERVATIONS.DELETE(id), { data });
+    }
     return await api.delete(ENDPOINTS.RESERVATIONS.DELETE(id));
   },
 

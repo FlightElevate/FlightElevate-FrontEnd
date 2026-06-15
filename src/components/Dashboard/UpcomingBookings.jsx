@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FiSearch, FiMoreVertical } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import { lessonService } from "../../api/services/lessonService";
+import { reservationService } from "../../api/services/reservationService";
 
 const UpcomingBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -65,6 +67,61 @@ const UpcomingBookings = () => {
 
   const handleMenuToggle = (id) => {
     setOpenMenu(openMenu === id ? null : id);
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    setOpenMenu(null);
+    
+    const { value: reason } = await Swal.fire({
+      title: 'Cancel Booking',
+      input: 'textarea',
+      inputLabel: 'Reason for cancellation',
+      inputPlaceholder: 'Type your reason here...',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Continue',
+      inputValidator: (value) => {
+        if (!value || value.trim() === '') {
+          return 'You need to provide a reason!';
+        }
+      }
+    });
+
+    if (reason) {
+      const confirmResult = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to cancel this booking permanently.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, cancel it!'
+      });
+
+      if (confirmResult.isConfirmed) {
+        try {
+          // Pass reason if the backend supports it, otherwise just delete
+          await reservationService.deleteReservation(bookingId, { cancel_reason: reason });
+          
+          Swal.fire(
+            'Cancelled!',
+            'The booking has been successfully cancelled.',
+            'success'
+          );
+          
+          // Remove the booking from the list
+          setBookings(prev => prev.filter(b => b.id !== bookingId));
+        } catch (error) {
+          console.error("Cancellation error:", error);
+          Swal.fire(
+            'Error!',
+            error?.response?.data?.message || 'Failed to cancel the booking. Please try again.',
+            'error'
+          );
+        }
+      }
+    }
   };
 
   return (
@@ -165,8 +222,8 @@ const UpcomingBookings = () => {
                             Edit in Calendar
                           </button>
                           <button 
-                            onClick={(e) => { e.stopPropagation(); navigate(`/calendar?edit=${booking.id}`); }}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 rounded-b-lg"
+                            onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id); }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg font-medium"
                           >
                             Cancel Booking
                           </button>
