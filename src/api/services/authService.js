@@ -7,8 +7,7 @@ export const authService = {
     const response = await api.post(ENDPOINTS.AUTH.LOGIN, { email, password });
     
     
-    if (response.success && response.data.token) {
-      localStorage.setItem('auth_token', response.data.token);
+    if (response.success && response.data.user) {
       localStorage.setItem('user', JSON.stringify(response.data.user));
     }
     
@@ -20,8 +19,7 @@ export const authService = {
     const response = await api.post(ENDPOINTS.AUTH.REGISTER, data);
     
     
-    if (response.success && response.data.token) {
-      localStorage.setItem('auth_token', response.data.token);
+    if (response.success && response.data.user) {
       localStorage.setItem('user', JSON.stringify(response.data.user));
     }
     
@@ -33,7 +31,6 @@ export const authService = {
     await api.post(ENDPOINTS.AUTH.LOGOUT);
     
     
-    localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
   },
 
@@ -54,16 +51,14 @@ export const authService = {
     const response = await api.post(ENDPOINTS.AUTH.REFRESH);
     
     
-    if (response.success && response.data.token) {
-      localStorage.setItem('auth_token', response.data.token);
-    }
+    // The cookie is updated via the response headers, no local action needed
     
     return response;
   },
 
   
   isAuthenticated() {
-    return !!localStorage.getItem('auth_token');
+    return !!localStorage.getItem('user');
   },
 
   
@@ -74,7 +69,7 @@ export const authService = {
 
   
   getToken() {
-    return localStorage.getItem('auth_token');
+    return null; // Token is now managed securely via HttpOnly cookie
   },
 
   

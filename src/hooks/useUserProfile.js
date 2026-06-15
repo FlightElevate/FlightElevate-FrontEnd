@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { documentService } from '../api/services/documentService';
 import { lessonService } from '../api/services/lessonService';
+import { showDeleteConfirm } from '../utils/notifications';
 
 
 export const useUserProfile = (userId) => {
@@ -47,7 +48,8 @@ export const useUserProfile = (userId) => {
 
   
   const deleteDocument = async (documentId) => {
-    if (!window.confirm('Are you sure you want to delete this document?')) return false;
+    const confirmed = await showDeleteConfirm('this document');
+    if (!confirmed) return false;
     
     try {
       await documentService.deleteDocument(userId, documentId);

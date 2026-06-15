@@ -58,11 +58,7 @@ const Announcements = () => {
   };
 
   const handleDelete = async (id, index) => {
-    const confirmed = await showDeleteConfirm(
-      'Delete Announcement',
-      'Are you sure you want to delete this announcement?',
-      'Yes, delete'
-    );
+    const confirmed = await showDeleteConfirm('this announcement');
     if (!confirmed) return;
 
     setActionLoading(id);

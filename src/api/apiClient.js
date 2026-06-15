@@ -10,19 +10,10 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Token is now managed securely via HttpOnly cookie
     
     // Debug: Log FormData requests
     if (config.data instanceof FormData) {
-      console.log('Sending FormData:', {
-        url: config.url,
-        method: config.method,
-        hasAvatar: config.data.has('avatar'),
-        contentType: config.headers['Content-Type'],
-      });
       
       // Ensure Content-Type is not set for FormData (axios will set it with boundary)
       if (config.headers['Content-Type']) {
@@ -59,8 +50,7 @@ apiClient.interceptors.response.use(
       switch (status) {
         case 401:
           
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
+          // Token is managed by cookie, no need to clear localStorage
           
           const currentPath = window.location.pathname;
           if (currentPath !== '/' && currentPath !== '/login' && currentPath !== '/register') {
@@ -153,9 +143,6 @@ export const api = {
       if (!data.has('_method')) {
         data.append('_method', 'PUT');
       }
-      
-      // Debug: Verify FormData has avatar
-      console.log('PUT with FormData - has avatar:', data.has('avatar'));
       
       // Use POST instead of PUT for FormData (Laravel will handle _method)
       return apiClient.post(url, data, {

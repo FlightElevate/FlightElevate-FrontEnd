@@ -52,17 +52,6 @@ export const organizationService = {
         // Append logo file
         formData.append('logo_file', data.logo_file);
         
-        if (import.meta.env.DEV) {
-          console.log('Updating organization with FormData:', {
-            id,
-            name: data.name,
-            hasLogoFile: true,
-            fileName: data.logo_file.name,
-            fileSize: data.logo_file.size,
-            fileType: data.logo_file.type,
-          });
-        }
-        
         requestData = formData;
       } else {
         // Use regular JSON for non-file updates
@@ -73,14 +62,6 @@ export const organizationService = {
         if (data.status) requestData.status = data.status;
         if (data.verification_status) requestData.verification_status = data.verification_status;
         if (data.trial_ends_at) requestData.trial_ends_at = data.trial_ends_at;
-        
-        if (import.meta.env.DEV) {
-          console.log('Updating organization with JSON:', {
-            id,
-            ...requestData,
-            hasLogoFile: false,
-          });
-        }
       }
       
       // Use PUT which will handle FormData conversion to POST with _method=PUT

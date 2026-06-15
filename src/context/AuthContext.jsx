@@ -11,15 +11,43 @@ export const AuthProvider = ({ children }) => {
 
   
   useEffect(() => {
-    const token = authService.getToken();
-    const storedUser = authService.getUser();
-    
-    if (token && storedUser) {
-      setUser(storedUser);
-      setIsAuthenticated(true);
-    }
-    
-    setLoading(false);
+    const initAuth = async () => {
+      const hasUser = authService.isAuthenticated();
+      
+      if (hasUser) {
+        try {
+          const response = await authService.me();
+          if (response.success && response.data) {
+            setUser(response.data);
+            setIsAuthenticated(true);
+          } else {
+            // Invalid or expired token
+            authService.logout();
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } catch (error) {
+          console.error("Failed to authenticate session:", error);
+          // Clear if unauthorized
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            authService.logout();
+            setUser(null);
+            setIsAuthenticated(false);
+          } else {
+            // Network error fallback
+            const storedUser = authService.getUser();
+            if (storedUser) {
+              setUser(storedUser);
+              setIsAuthenticated(true);
+            }
+          }
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   

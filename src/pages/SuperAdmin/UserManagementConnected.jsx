@@ -4,6 +4,7 @@ import { MdFilterList } from "react-icons/md";
 import { HiDotsVertical } from "react-icons/hi";
 import { Link } from "react-router-dom";
 import { userService } from "../../api/services/userService";
+import { showDeleteConfirm, showSuccessToast, showErrorToast } from "../../utils/notifications";
 import Pagination from "../../components/Pagination";
 
 const UserManagementConnected = () => {
@@ -72,18 +73,19 @@ const UserManagementConnected = () => {
   };
 
   const handleDelete = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
+    const confirmed = await showDeleteConfirm('this user');
+    if (!confirmed) {
       return;
     }
 
     try {
       const response = await userService.deleteUser(userId);
       if (response.success) {
-        alert('User deleted successfully');
+        showSuccessToast('User deleted successfully');
         fetchUsers(); 
       }
     } catch (err) {
-      alert('Failed to delete user');
+      showErrorToast('Failed to delete user');
     }
   };
 

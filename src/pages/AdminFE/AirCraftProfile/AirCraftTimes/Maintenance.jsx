@@ -21,7 +21,7 @@ const getStatusDisplay = (status) => {
   const statusMap = {
     'open': 'Open',
     'ongoing': 'Ongoing',
-    'closed': 'Closed'
+    'closed': 'Needs Inservice'
   };
   return statusMap[status] || status;
 };
@@ -198,12 +198,12 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
         <table className="text-sm text-[#3D3D3D] border-collapse w-full">
           <thead className="bg-[#FAFAFA] text-left">
             <tr>
-              <th className="py-2 px-3 border border-gray-300">Aircraft Number</th>
+              <th className="py-2 px-3 border border-gray-300">Registration No</th>
               <th className="py-2 px-3 border border-gray-300">Status</th>
               <th className="py-2 px-3 border border-gray-300">Template Name</th>
-              <th className="py-2 px-3 border border-gray-300">Days Remaining</th>
-              <th className="py-2 px-3 border border-gray-300">Hours Remaining</th>
-              <th className="py-2 px-3 border border-gray-300">Cycles Remaining</th>
+              <th className="py-2 px-3 border border-gray-300">Calendar Sync</th>
+              <th className="py-2 px-3 border border-gray-300">Tach 1</th>
+              <th className="py-2 px-3 border border-gray-300">Cycles</th>
               <th className="py-2 px-3 border border-gray-300">Reference No.</th>
               <th className="py-2 px-3 border border-gray-300">Last Resolved</th>
               <th className="py-2 px-3 border border-gray-300 text-center">Action</th>
@@ -214,7 +214,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
             {maintenanceData.length > 0 ? (
               maintenanceData.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50 bg-white relative">
-                  <td className="py-2 px-3 border border-gray-300">{item.aircraft_name || 'N/A'}</td>
+                  <td className="py-2 px-3 border border-gray-300">{item.aircraft_registration || item.aircraft_name || 'N/A'}</td>
                   <td className="py-2 px-3 border border-gray-300">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusStyle(item.status)}`}>
                       {getStatusDisplay(item.status)}
@@ -308,13 +308,13 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                 >
                   <option value="open">Open</option>
                   <option value="ongoing">Ongoing</option>
-                  <option value="closed">Closed</option>
+                  <option value="closed">Needs Inservice</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Days Remaining</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Calendar Sync</label>
                   <input
                     type="number"
                     min="0"
@@ -324,7 +324,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hours Remaining</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tach 1</label>
                   <input
                     type="number"
                     step="0.01"
@@ -335,7 +335,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cycles Remaining</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cycles</label>
                   <input
                     type="number"
                     min="0"

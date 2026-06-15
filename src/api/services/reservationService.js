@@ -50,6 +50,10 @@ export const reservationService = {
     return await api.post(ENDPOINTS.RESERVATIONS.INVOICE_REFUND(id), data);
   },
 
+  async confirmPayment(id, data) {
+    return await api.post(ENDPOINTS.RESERVATIONS.INVOICE_CONFIRM(id), data);
+  },
+
   async fetchMetar(ids) {
     return await api.get(ENDPOINTS.WEATHER.METAR, { params: { ids } });
   },

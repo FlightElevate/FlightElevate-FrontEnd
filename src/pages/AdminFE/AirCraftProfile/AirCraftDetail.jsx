@@ -208,7 +208,7 @@ import ACDetails from "./ACDetails";
 import AirCraftTimes from "./AirCraftTimes/AirCraftTimes";
 import { calendarService } from "../../../api/services/calendarService";
 import { aircraftService } from "../../../api/services/aircraftService";
-import { showErrorToast } from "../../../utils/notifications";
+import { showSuccessToast, showErrorToast, showConfirmDialog } from "../../../utils/notifications";
 
 const AirCraftDetail = () => {
   const { id } = useParams();
@@ -291,6 +291,30 @@ const AirCraftDetail = () => {
     });
   };
 
+  const handleToggleService = async () => {
+    if (!aircraft) return;
+    const newStatus = aircraft.status === 'in_service' ? 'not_in_service' : 'in_service';
+    const actionText = newStatus === 'in_service' ? 'Return to Service' : 'Take Out of Service';
+    
+    const confirmed = await showConfirmDialog(
+      actionText,
+      `Are you sure you want to ${actionText.toLowerCase()}?`,
+      `Yes, ${actionText}`
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await aircraftService.updateAircraft(aircraft.id, { status: newStatus });
+      if (response.success) {
+        showSuccessToast(`Aircraft is now ${newStatus === 'in_service' ? 'in service' : 'out of service'}`);
+        fetchAircraftDetails();
+      }
+    } catch (err) {
+      console.error('Error toggling service status:', err);
+      showErrorToast(`Failed to ${actionText.toLowerCase()}`);
+    }
+  };
+
   
   const handleDateChange = (e) => {
     const newDate = e.target.value;
@@ -366,6 +390,14 @@ const AirCraftDetail = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {aircraft.status !== 'in_service' && (
+              <button 
+                onClick={handleToggleService}
+                className="text-sm text-white bg-green-600 rounded-lg px-4 py-2 hover:bg-green-700 transition"
+              >
+                Return to Service
+              </button>
+            )}
             <button 
               onClick={handleFindTime}
               className="text-sm text-gray-700 border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"

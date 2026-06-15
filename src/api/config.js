@@ -1,6 +1,6 @@
 
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const API_VERSION = 'v1';
 
 export const API_URL = `${API_BASE_URL}/api/${API_VERSION}`;
@@ -23,6 +23,7 @@ export const ENDPOINTS = {
   SETTINGS: {
     GET: '/settings',
     UPDATE: '/settings',
+    PAYMENT_HISTORY: '/settings/payment-history',
   },
 
   
@@ -105,21 +106,13 @@ export const ENDPOINTS = {
     INVOICE: (id) => `/reservations/${id}/invoice`,
     INVOICE_CHARGE: (id) => `/reservations/${id}/invoice/charge`,
     INVOICE_REFUND: (id) => `/reservations/${id}/invoice/refund`,
+    INVOICE_CONFIRM: (id) => `/reservations/${id}/invoice/confirm`,
   },
 
   WEATHER: {
     METAR: '/weather/metar',
   },
 
-  
-  LOGBOOKS: {
-    BASE: '/logbooks',
-    LIST: '/logbooks',
-    SHOW: (id) => `/logbooks/${id}`,
-    CREATE: '/logbooks',
-    UPDATE: (id) => `/logbooks/${id}`,
-    DELETE: (id) => `/logbooks/${id}`,
-  },
 
   
   SUPPORT: {
@@ -177,11 +170,6 @@ export const ENDPOINTS = {
     SHOW: (id) => `/activity-logs/${id}`,
   },
 
-  
-  DASHBOARD: {
-    STATS: '/dashboard/stats',
-    WIDGETS: '/dashboard/widgets',
-  },
 
   
   CALENDAR: {
@@ -193,16 +181,6 @@ export const ENDPOINTS = {
     CREATE: '/calendar/events',
   },
 
-  
-  INBOX: {
-    USER: '/chat/all',
-    GETCONVERSATIONS: '/chat/conversations',
-    CONVERSATION: '/chat/conversation',
-    MESSAGES: (conversationId) => `/chat/conversation/${conversationId}/messages`,
-    SHOW: (id) => `/inbox/messages/${id}`,
-    SEND: (conversationId) =>`/chat/conversation/${conversationId}/message`,
-    MARK_READ: (id) => `/inbox/messages/${id}/read`,
-  },
 
   
   ORGANIZATIONS: {

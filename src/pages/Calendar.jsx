@@ -17,6 +17,12 @@ import { FLIGHT_TYPES } from '../config/flightTypes';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 
+const getDefaultTime = () => {
+  const now = new Date();
+  const nextHour = (now.getHours() + 1) % 24;
+  return `${pad2(nextHour)}:00`;
+};
+
 const parseTimeParts = (t) => {
   if (t === undefined || t === null || t === '') return [0, 0];
   const parts = String(t).split(':');
@@ -86,6 +92,16 @@ const getEventSpanHours = (event, dateStr) => {
   return Math.min(24, Math.max(1, Math.ceil(durationMin / 60)));
 };
 
+const formatDateStr = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const Calendar = () => {
   const { user } = useAuth();
   const { isStudent, isSuperAdmin } = useRole();
@@ -109,11 +125,11 @@ const Calendar = () => {
   const [calendarViewMode, setCalendarViewMode] = useState('day'); // 'week' | 'day' | 'custom'
   const [customStartDate, setCustomStartDate] = useState(() => {
     const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return formatDateStr(d);
   });
   const [customEndDate, setCustomEndDate] = useState(() => {
     const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return formatDateStr(d);
   });
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
@@ -151,8 +167,8 @@ const Calendar = () => {
     flight_type: '',
     lesson_id: '',
     lesson_template_id: '',
-    lesson_date: '',
-    lesson_time: '',
+    lesson_date: formatDateStr(new Date()),
+    lesson_time: getDefaultTime(),
     duration_minutes: 60,
     notes: '',
     reservation_number: '',
@@ -711,14 +727,6 @@ const Calendar = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const formatDateStr = (date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   const fetchSchedule = async () => {
     setLoading(true);
     try {
@@ -1256,6 +1264,11 @@ const Calendar = () => {
   const handleReservationSubmit = async (e) => {
     e.preventDefault();
     
+    if (!reservationForm.duration_minutes || reservationForm.duration_minutes <= 0) {
+      showErrorToast('End date and time must be after start date and time.');
+      return;
+    }
+
     // Skip availability check in edit mode
     if (!isEditMode) {
     // Final availability check before submitting
@@ -1411,6 +1424,46 @@ const Calendar = () => {
     }
   };
 
+  const handleAddReservation = (date, aircraftId = null, studentId = null, hour = null) => {
+    setIsEditMode(false);
+    setEditingLesson(null);
+    setIsAircraftPreSelected(!!aircraftId);
+    
+    // Default time: if hour is provided, format it as HH:00. Otherwise, use getDefaultTime()
+    let defaultTime = getDefaultTime();
+    if (hour !== null && hour !== undefined) {
+      if (typeof hour === 'number') {
+        defaultTime = `${pad2(hour)}:00`;
+      } else if (typeof hour === 'string') {
+        defaultTime = hour;
+      }
+    }
+
+    setReservationForm({
+      student_id: isStudent() && user?.id ? String(user.id) : (studentId ? String(studentId) : ''),
+      instructor_id: '',
+      aircraft_id: aircraftId ? String(aircraftId) : '',
+      location_id: '',
+      flight_type: '',
+      lesson_id: '',
+      lesson_template_id: '',
+      lesson_date: date || formatDateStr(new Date()),
+      lesson_time: defaultTime,
+      duration_minutes: 60,
+      notes: '',
+      reservation_number: generateReservationNumber(),
+      acting_pic_user_id: isStudent() && user?.id ? String(user.id) : '',
+    });
+    setAvailabilityStatus({
+      student: null,
+      instructor: null,
+      aircraft: null,
+      checking: false,
+    });
+    setAvailabilityMessage('');
+    setShowNewReservationModal(true);
+  };
+
   if (loading) {
     // If modalOnly, show minimal loading (modal will handle its own loading)
     if (modalOnly) {
@@ -1456,8 +1509,7 @@ const Calendar = () => {
             </button>
             <button
               onClick={() => {
-                setIsAircraftPreSelected(false);
-                setShowNewReservationModal(true);
+                handleAddReservation(formatDateStr(new Date()));
               }}
               className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs sm:text-sm font-medium whitespace-nowrap"
             >
@@ -1678,7 +1730,7 @@ const Calendar = () => {
                                 key={idx} 
                                 className="border-r border-gray-200 h-full hover:bg-blue-50/40 cursor-pointer transition-colors group/slot" 
                                 style={{ width: 'calc(100% / 24)' }}
-                                onClick={() => handleAddReservation(formatDateStr(currentDate), aircraft.id, null, slot.time)}
+                                onClick={() => handleAddReservation(formatDateStr(currentDate), aircraft.id, null, slot.hour)}
                               >
                                 <div className="opacity-0 group-hover/slot:opacity-100 absolute inset-0 flex items-center justify-center pointer-events-none">
                                   <span className="text-[10px] text-blue-600 font-bold bg-white/80 px-1 rounded">+</span>
@@ -1776,7 +1828,7 @@ const Calendar = () => {
                                 key={idx} 
                                 className="border-r border-gray-200 h-full hover:bg-green-50/40 cursor-pointer transition-colors group/slot" 
                                 style={{ width: 'calc(100% / 24)' }}
-                                onClick={() => handleAddReservation(formatDateStr(currentDate), null, user.id, slot.time)}
+                                onClick={() => handleAddReservation(formatDateStr(currentDate), null, user.id, slot.hour)}
                               >
                                 <div className="opacity-0 group-hover/slot:opacity-100 absolute inset-0 flex items-center justify-center pointer-events-none">
                                   <span className="text-[10px] text-green-600 font-bold bg-white/80 px-1 rounded">+</span>
@@ -2029,12 +2081,23 @@ const Calendar = () => {
               </>
             )}
           </div>
-          <p className="text-xs text-gray-600">{safeDisplay(hoveredEvent.description, 'No description')}</p>
-          {(safeDisplay(hoveredEvent.location?.name, '') || safeDisplay(hoveredEvent.location_name, '')) ? (
-            <p className="text-xs text-gray-600 mt-1">
-              📍 {safeDisplay(hoveredEvent.location?.name || hoveredEvent.location_name)}
-            </p>
-          ) : null}
+          <div className="text-xs text-gray-600 mt-2 space-y-1">
+            {hoveredEvent.flight_type && (
+              <p><span className="font-semibold text-gray-500">Type:</span> {hoveredEvent.flight_type.replace('_', ' ')}</p>
+            )}
+            {hoveredEvent.status && (
+              <p><span className="font-semibold text-gray-500">Status:</span> {hoveredEvent.status}</p>
+            )}
+            {hoveredEvent.aircraft && (
+              <p><span className="font-semibold text-gray-500">Aircraft:</span> {hoveredEvent.aircraft.registration || hoveredEvent.aircraft.serial_number || hoveredEvent.aircraft.name}</p>
+            )}
+            {hoveredEvent.description && (
+              <p><span className="font-semibold text-gray-500">Notes:</span> {hoveredEvent.description}</p>
+            )}
+            {(safeDisplay(hoveredEvent.location?.name, '') || safeDisplay(hoveredEvent.location_name, '')) && (
+              <p>📍 {safeDisplay(hoveredEvent.location?.name || hoveredEvent.location_name)}</p>
+            )}
+          </div>
           <div className="mt-2 text-xs text-gray-500">
             {hoveredEvent.date && (
               <div className="mb-1 font-medium text-gray-700">
@@ -2796,7 +2859,7 @@ const Calendar = () => {
                         const d = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
                         if (isNaN(d.getTime())) return '';
                         d.setMinutes(d.getMinutes() + (reservationForm.duration_minutes || 60));
-                        return d.toISOString().split('T')[0];
+                        return formatDateStr(d);
                       })()}
                       onChange={(e) => {
                         const newEndDate = e.target.value;
@@ -2807,8 +2870,11 @@ const Calendar = () => {
                         const mm = String(oldEnd.getMinutes()).padStart(2, '0');
                         const newEnd = new Date(`${newEndDate}T${hh}:${mm}`);
                         if (!isNaN(newEnd.getTime())) {
-                          const diff = Math.round((newEnd.getTime() - start.getTime()) / 60000);
-                          setReservationForm({ ...reservationForm, duration_minutes: diff > 0 ? diff : 15 });
+                          let diff = Math.round((newEnd.getTime() - start.getTime()) / 60000);
+                          if (diff <= 0) {
+                            diff = 60; // Reset to 1 hour if invalid
+                          }
+                          setReservationForm({ ...reservationForm, duration_minutes: diff });
                         }
                       }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -2834,15 +2900,15 @@ const Calendar = () => {
                         if (!reservationForm.lesson_date || !reservationForm.lesson_time) return;
                         const start = new Date(`${reservationForm.lesson_date}T${reservationForm.lesson_time}`);
                         const oldEnd = new Date(start.getTime() + (reservationForm.duration_minutes || 60) * 60000);
-                        const oldEndDate = oldEnd.toISOString().split('T')[0];
+                        const oldEndDate = formatDateStr(oldEnd);
                         const newEnd = new Date(`${oldEndDate}T${newEndTime}`);
                         if (!isNaN(newEnd.getTime())) {
                           let diff = Math.round((newEnd.getTime() - start.getTime()) / 60000);
                           if (diff <= 0) {
-                             newEnd.setDate(newEnd.getDate() + 1);
-                             diff = Math.round((newEnd.getTime() - start.getTime()) / 60000);
+                            // Assume they meant the next day
+                            diff += 24 * 60;
                           }
-                          setReservationForm({ ...reservationForm, duration_minutes: diff > 0 ? diff : 15 });
+                          setReservationForm({ ...reservationForm, duration_minutes: diff });
                         }
                       }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"

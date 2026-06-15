@@ -46,7 +46,6 @@ const Setting = () => {
     file: null,
   });
   const [selectedFile, setSelectedFile] = useState(null);
-  const [paymentHistory, setPaymentHistory] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingDocId, setDeletingDocId] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
@@ -311,11 +310,13 @@ const Setting = () => {
             postal_code: settingsData.postal_code || '',
           });
           
-          
-          if (settingsData.password) {
-            setPasswordData(prev => ({
+          if (settingsData) {
+            const formattedDOB = settingsData.date_of_birth ? new Date(settingsData.date_of_birth).toISOString().split('T')[0] : '';
+            
+            setFormData(prev => ({
               ...prev,
-              current_password: settingsData.password,
+              ...settingsData,
+              date_of_birth: formattedDOB
             }));
           }
           
@@ -367,6 +368,9 @@ const Setting = () => {
     }
     if (activeTab === 'documents') {
       fetchDocuments();
+    }
+    if (activeTab === 'payment') {
+      fetchPaymentHistory();
     }
   }, [activeTab, user, isSuperAdmin]);
 
@@ -720,19 +724,28 @@ const Setting = () => {
         
         try {
           const settingsResponse = await settingsService.getSettings();
-          if (settingsResponse.success && settingsResponse.data) {
-            
-            const updatedUser = { ...user, password: settingsResponse.data.password };
+          if (settingsResponse.success) {
+            const updatedUser = { ...user };
             localStorage.setItem('user', JSON.stringify(updatedUser));
             
-            
-            if (settingsResponse.data.password) {
-              setPasswordData({
-                current_password: settingsResponse.data.password, 
-                new_password: '',
-                confirm_password: '',
-              });
-            }
+            setPasswordData({
+              current_password: '', 
+              new_password: '',
+              confirm_password: '',
+            });
+            setShowPasswords({
+              current: false,
+              new: false,
+              confirm: false
+            });
+          } else {
+            // Fallback
+            setPasswordData(prev => ({
+              ...prev,
+              current_password: '',
+              new_password: '',
+              confirm_password: '',
+            }));
           }
         } catch (settingsErr) {
           console.error('Error refreshing settings:', settingsErr);
@@ -917,17 +930,29 @@ const Setting = () => {
   };
 
   
-  const mockPayments = [
-    { id: 1, invoice: 'Piper 100', amount: '$600.37', date: '7/1/19', status: 'Paid' },
-    { id: 2, invoice: 'Piper 200', amount: '$718.36', date: '5/10/17', status: 'Paid' },
-    { id: 3, invoice: 'Piper 300', amount: '$446.61', date: '12/4/17', status: 'Not Paid' },
-    { id: 4, invoice: 'Piper 400', amount: '$356.54', date: '6/10/14', status: 'Paid' },
-    { id: 5, invoice: 'Piper 500', amount: '$450.54', date: '10/28/12', status: 'Not Paid' },
-  ];
+  // ── Payment history (real API) ─────────────────────────────────────────
+  const [paymentHistory, setPaymentHistory]     = useState([]);
+  const [loadingPayments, setLoadingPayments]   = useState(false);
+  const [selectedInvoice, setSelectedInvoice]   = useState(null); // for detail modal
 
-  const filteredPayments = mockPayments.filter(payment =>
-    payment.invoice.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.amount.toLowerCase().includes(searchTerm.toLowerCase())
+  const fetchPaymentHistory = async () => {
+    setLoadingPayments(true);
+    try {
+      const res = await settingsService.getPaymentHistory();
+      if (res.success) {
+        setPaymentHistory(res.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching payment history:', err);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  const filteredPayments = paymentHistory.filter(p =>
+    (p.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.aircraft_name  || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.flight_type    || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const tabs = [
@@ -1647,162 +1672,264 @@ const Setting = () => {
           {}
           {activeTab === 'payment' && (
             <div className="bg-white rounded-lg">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-                <h3 className="text-lg font-semibold text-gray-800">Payment History</h3>
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">Payment History</h3>
+                  <p className="text-sm text-gray-500 mt-0.5">All your flight reservation invoices</p>
+                </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                  <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg min-h-[44px] w-full sm:w-auto sm:min-w-[200px]">
-                    <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
+                  <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg min-h-[40px] w-full sm:w-auto sm:min-w-[220px]">
+                    <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={15} />
                     <input
                       type="text"
-                      placeholder="Search"
+                      placeholder="Search by invoice, aircraft, type…"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full min-w-0"
                     />
                   </div>
-                  <button className="flex items-center justify-center gap-2 border border-gray-200 bg-white px-3 py-2 rounded-lg text-sm text-gray-700 min-h-[44px] whitespace-nowrap">
-                    <MdFilterList className="w-5 h-5 flex-shrink-0" />
-                    <span>Filter</span>
-                  </button>
                 </div>
               </div>
 
-              {}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm text-left border-b border-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-gray-700 font-medium">Invoice Number</th>
-                      <th className="px-6 py-3 text-gray-700 font-medium">Amount</th>
-                      <th className="px-6 py-3 text-gray-700 font-medium">Date</th>
-                      <th className="px-6 py-3 text-gray-700 font-medium">Status</th>
-                      <th className="px-6 py-3 text-gray-700 font-medium">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPayments.map((payment) => (
-                      <tr key={payment.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-6 py-4">{payment.invoice}</td>
-                        <td className="px-6 py-4">{payment.amount}</td>
-                        <td className="px-6 py-4">{payment.date}</td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              payment.status === 'Paid'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}
-                          >
-                            {payment.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 relative">
-                          <div className="relative" ref={(el) => (paymentMenuRefs.current[payment.id] = el)}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPaymentMenuOpen(paymentMenuOpen === payment.id ? null : payment.id);
-                              }}
-                              className="text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                              <HiDotsVertical className="w-5 h-5" />
-                            </button>
-                            {paymentMenuOpen === payment.id && (
-                              <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPaymentMenuOpen(null);
-                                    
-                                    showSuccessToast('View payment details');
-                                  }}
-                                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
-                                >
-                                  View Details
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPaymentMenuOpen(null);
-                                    
-                                    showSuccessToast('Downloading invoice...');
-                                  }}
-                                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
-                                >
-                                  Download Invoice
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* Loading */}
+              {loadingPayments && (
+                <div className="flex justify-center items-center py-16">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-blue-600" />
+                </div>
+              )}
 
-              {}
-              <div className="md:hidden space-y-3">
-                {filteredPayments.map((payment) => (
-                  <div key={payment.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-800 truncate">{payment.invoice}</h4>
-                        <p className="text-sm text-gray-600">{payment.amount}</p>
-                      </div>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ml-2 ${
-                          payment.status === 'Paid'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {payment.status}
-                      </span>
+              {/* Empty state */}
+              {!loadingPayments && filteredPayments.length === 0 && (
+                <div className="text-center py-16 border border-dashed border-gray-200 rounded-xl">
+                  <div className="text-4xl mb-3">🧾</div>
+                  <h4 className="text-sm font-semibold text-gray-600">No invoices found</h4>
+                  <p className="text-xs text-gray-400 mt-1">Your flight lesson invoices will appear here once billed.</p>
+                </div>
+              )}
+
+              {/* Summary cards */}
+              {!loadingPayments && paymentHistory.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  {[
+                    {
+                      label: 'Total Invoices',
+                      value: paymentHistory.length,
+                      color: 'bg-blue-50 text-blue-600',
+                    },
+                    {
+                      label: 'Paid',
+                      value: paymentHistory.filter(p => p.status_raw === 'paid').length,
+                      color: 'bg-[#E1FAEA] text-[#016626]',
+                    },
+                    {
+                      label: 'Pending',
+                      value: paymentHistory.filter(p => p.status_raw === 'sent').length,
+                      color: 'bg-yellow-50 text-yellow-700',
+                    },
+                    {
+                      label: 'Total Spent',
+                      value: '$' + paymentHistory.filter(p => p.status_raw === 'paid').reduce((s, p) => s + p.total, 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+                      color: 'bg-purple-50 text-purple-700',
+                    },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="border border-gray-200 rounded-xl p-3.5">
+                      <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-md mb-2 ${color}`}>{label}</span>
+                      <p className="text-xl font-bold text-gray-900">{value}</p>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">{payment.date}</span>
-                      <div className="relative" ref={(el) => (paymentMenuRefs.current[`mobile-${payment.id}`] = el)}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPaymentMenuOpen(paymentMenuOpen === `mobile-${payment.id}` ? null : `mobile-${payment.id}`);
-                          }}
-                          className="text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <HiDotsVertical className="w-5 h-5" />
-                        </button>
-                            {paymentMenuOpen === `mobile-${payment.id}` && (
-                          <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                  ))}
+                </div>
+              )}
+
+              {/* Desktop table */}
+              {!loadingPayments && filteredPayments.length > 0 && (
+                <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-xl">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        {['Invoice #', 'Aircraft', 'Flight Type', 'Date', 'Hobbs', 'Total', 'Method', 'Status', ''].map(h => (
+                          <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredPayments.map((payment) => (
+                        <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3.5 font-mono text-xs font-semibold text-blue-600">{payment.invoice_number}</td>
+                          <td className="px-4 py-3.5">
+                            <div className="font-semibold text-gray-800 text-xs">{payment.aircraft_tail}</div>
+                            <div className="text-gray-400 text-xs">{payment.aircraft_name}</div>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-gray-600">{payment.flight_type}</td>
+                          <td className="px-4 py-3.5 text-xs text-gray-500 whitespace-nowrap">{payment.date}</td>
+                          <td className="px-4 py-3.5 text-xs text-gray-600">{payment.hobbs_block_time?.toFixed(1)} hrs</td>
+                          <td className="px-4 py-3.5">
+                            <span className="text-sm font-bold text-gray-900">${payment.total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-gray-500 capitalize">{payment.charge_method}</td>
+                          <td className="px-4 py-3.5">
+                            <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                              payment.status === 'Paid'     ? 'bg-[#E1FAEA] text-[#016626]' :
+                              payment.status === 'Pending'  ? 'bg-yellow-50 text-yellow-700' :
+                              payment.status === 'Refunded' ? 'bg-purple-50 text-purple-700' :
+                                                              'bg-gray-100 text-gray-600'
+                            }`}>{payment.status}</span>
+                          </td>
+                          <td className="px-4 py-3.5">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPaymentMenuOpen(null);
-                                
-                                showSuccessToast('View payment details');
-                              }}
-                              className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                              onClick={() => setSelectedInvoice(payment)}
+                              className="text-xs text-blue-600 hover:underline font-medium whitespace-nowrap"
                             >
-                              View Details
+                              View Invoice
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPaymentMenuOpen(null);
-                                
-                                showSuccessToast('Downloading invoice...');
-                              }}
-                              className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
-                            >
-                              Download Invoice
-                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Mobile cards */}
+              {!loadingPayments && filteredPayments.length > 0 && (
+                <div className="md:hidden space-y-3">
+                  {filteredPayments.map((payment) => (
+                    <div
+                      key={payment.id}
+                      className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => setSelectedInvoice(payment)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="font-mono text-xs font-bold text-blue-600">{payment.invoice_number}</span>
+                          <p className="text-sm font-semibold text-gray-800 mt-0.5">{payment.aircraft_tail} · {payment.flight_type}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{payment.date}</p>
+                        </div>
+                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                          payment.status === 'Paid'     ? 'bg-[#E1FAEA] text-[#016626]' :
+                          payment.status === 'Pending'  ? 'bg-yellow-50 text-yellow-700' :
+                          payment.status === 'Refunded' ? 'bg-purple-50 text-purple-700' :
+                                                          'bg-gray-100 text-gray-600'
+                        }`}>{payment.status}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <span className="text-xs text-gray-400">{payment.hobbs_block_time?.toFixed(1)} hrs · {payment.charge_method}</span>
+                        <span className="text-base font-bold text-gray-900">${payment.total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Invoice Detail Modal */}
+              {selectedInvoice && (
+                <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl max-w-md w-full overflow-hidden">
+                    {/* Modal header */}
+                    <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100">
+                      <div>
+                        <p className="text-xs font-mono font-bold text-blue-600">{selectedInvoice.invoice_number}</p>
+                        <h3 className="text-base font-bold text-gray-900 mt-0.5">{selectedInvoice.aircraft_tail} · {selectedInvoice.flight_type}</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">{selectedInvoice.date}</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedInvoice(null)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                      >
+                        <FiEye size={16} className="hidden" />
+                        <span className="text-lg leading-none">×</span>
+                      </button>
+                    </div>
+
+                    {/* Line items */}
+                    <div className="px-6 py-4 space-y-1">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Line Items</p>
+
+                      {/* Aircraft */}
+                      <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                        <div>
+                          <p className="text-sm text-gray-700">Aircraft ({selectedInvoice.hobbs_block_time?.toFixed(1)} hrs × ${selectedInvoice.aircraft_rate?.toFixed(0)}/hr)</p>
+                          <p className="text-xs text-gray-400">Hobbs block time</p>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">${selectedInvoice.aircraft_charge?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+
+                      {/* Instruction */}
+                      {(selectedInvoice.instruction_dual_hours > 0 || selectedInvoice.instruction_ground_hours > 0) && (
+                        <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                          <div>
+                            <p className="text-sm text-gray-700">Instruction ({((selectedInvoice.instruction_dual_hours || 0) + (selectedInvoice.instruction_ground_hours || 0)).toFixed(1)} hrs × ${selectedInvoice.instructor_rate?.toFixed(0)}/hr)</p>
+                            <p className="text-xs text-gray-400">Dual: {selectedInvoice.instruction_dual_hours?.toFixed(1)} hrs · Ground: {selectedInvoice.instruction_ground_hours?.toFixed(1)} hrs</p>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">${selectedInvoice.instructor_charge?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+
+                      {/* Subtotal / Tax / Total */}
+                      <div className="pt-3 space-y-1.5">
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>Subtotal</span>
+                          <span>${selectedInvoice.subtotal?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>Tax ({selectedInvoice.tax_percent?.toFixed(1)}%)</span>
+                          <span>${selectedInvoice.tax_amount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
+                          <span>Total</span>
+                          <span>${selectedInvoice.total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      </div>
+
+                      {/* Meta */}
+                      <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400">Payment Method</span>
+                          <span className="text-gray-700 font-medium">{selectedInvoice.charge_method}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400">Status</span>
+                          <span className={`font-bold ${
+                            selectedInvoice.status === 'Paid'     ? 'text-[#016626]' :
+                            selectedInvoice.status === 'Pending'  ? 'text-yellow-700' :
+                            selectedInvoice.status === 'Refunded' ? 'text-purple-700' : 'text-gray-700'
+                          }`}>{selectedInvoice.status}</span>
+                        </div>
+                        {selectedInvoice.paid_at && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Paid On</span>
+                            <span className="text-gray-700">{selectedInvoice.paid_at}</span>
+                          </div>
+                        )}
+                        {selectedInvoice.is_refunded && (
+                          <div className="mt-2 p-2.5 bg-purple-50 border border-purple-100 rounded-lg">
+                            <p className="text-xs font-semibold text-purple-700">Refunded: ${selectedInvoice.refund_amount?.toFixed(2)}</p>
+                            {selectedInvoice.refund_reason && (
+                              <p className="text-xs text-purple-500 mt-0.5">{selectedInvoice.refund_reason}</p>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {/* Footer */}
+                    <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+                      <button
+                        onClick={() => { showSuccessToast('Invoice download started…'); }}
+                        className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline"
+                      >
+                        Download PDF
+                      </button>
+                      <button
+                        onClick={() => setSelectedInvoice(null)}
+                        className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           )}
 

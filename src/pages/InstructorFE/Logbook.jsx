@@ -298,7 +298,7 @@ const Logbook = () => {
   };
 
   const handleDelete = async (id) => {
-    const confirmed = await showDeleteConfirm('Are you sure you want to delete this logbook entry?');
+    const confirmed = await showDeleteConfirm('this logbook entry');
     if (!confirmed) return;
 
     try {

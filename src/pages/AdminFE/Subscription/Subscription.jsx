@@ -1,433 +1,651 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { subscriptionPlanService } from "../../../api/services/subscriptionPlanService";
 import { aircraftService } from "../../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast } from "../../../utils/notifications";
-import { FiCheck, FiDollarSign, FiCheckCircle, FiX, FiDownload } from "react-icons/fi";
+import {
+  FiCheck, FiDollarSign, FiDownload, FiX, FiLoader,
+  FiMail, FiChevronDown, FiChevronRight, FiZap,
+  FiShield, FiClock, FiUsers, FiTrendingUp, FiStar,
+} from "react-icons/fi";
+import { MdFlight } from "react-icons/md";
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
+const fmt = (n) => {
+  if (n >= 1000) return "$" + (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + "k";
+  return "$" + n.toLocaleString();
+};
+
+// ─── FAQ Item ──────────────────────────────────────────────────────────────
+const FaqItem = ({ question, answer }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      onClick={() => setOpen(!open)}
+      className={`border rounded-xl cursor-pointer transition-all duration-200 overflow-hidden ${
+        open
+          ? "border-blue-200 bg-blue-50/40 shadow-sm"
+          : "border-gray-200 bg-white hover:border-blue-200 hover:bg-gray-50/50"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3 px-5 py-4">
+        <span className="text-sm font-semibold text-gray-800">{question}</span>
+        <div
+          className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+            open ? "bg-blue-100 text-blue-600 rotate-180" : "bg-gray-100 text-gray-400"
+          }`}
+        >
+          <FiChevronDown size={13} />
+        </div>
+      </div>
+      {open && (
+        <div className="px-5 pb-4">
+          <div className="w-full h-px bg-blue-100 mb-3" />
+          <p className="text-sm text-gray-500 leading-relaxed">{answer}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Billing Modal ─────────────────────────────────────────────────────────
+const BillingModal = ({ invoices, onClose }) => (
+  <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl max-w-xl w-full overflow-hidden">
+      <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+            <FiDownload size={16} className="text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-gray-900">Billing History</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Your past subscription invoices</p>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+        >
+          <FiX size={16} />
+        </button>
+      </div>
+
+      <div className="p-6">
+        {invoices.length > 0 ? (
+          <div className="space-y-2">
+            {invoices.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+                    <FiDollarSign size={13} className="text-gray-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{item.number}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{item.date}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-gray-900">{item.amount}</span>
+                  <span
+                    className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                      item.status?.toLowerCase() === "paid"
+                        ? "bg-[#E1FAEA] text-[#016626]"
+                        : "bg-yellow-50 text-yellow-700"
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                  {item.pdf_url && item.pdf_url !== "#" ? (
+                    <a
+                      href={item.pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      <FiDownload size={14} />
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => showSuccessToast(`${item.number} downloaded!`)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      <FiDownload size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+              <FiDownload size={20} className="text-gray-400" />
+            </div>
+            <p className="text-sm font-semibold text-gray-600">No billing history</p>
+            <p className="text-xs text-gray-400 mt-1">Your invoices will appear here after billing.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Stat Pill ─────────────────────────────────────────────────────────────
+const StatPill = ({ icon: Icon, label, value, color = "blue" }) => {
+  const colors = {
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    green: "bg-[#E1FAEA] text-[#016626] border-green-100",
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+  };
+  return (
+    <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colors[color]}`}>
+        <Icon size={17} />
+      </div>
+      <div>
+        <p className="text-xs text-gray-400 font-medium">{label}</p>
+        <p className="text-base font-bold text-gray-900 mt-0.5">{value}</p>
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN COMPONENT ────────────────────────────────────────────────────────
 const Subscription = () => {
+  const BASE_PRICE = 13;
+
   const [plans, setPlans] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState(null); 
-  const [aircraftCount, setAircraftCount] = useState(0);
-  const [selectedAircraftCount, setSelectedAircraftCount] = useState(1);
-  const [showBillingHistory, setShowBillingHistory] = useState(false);
+  const [subscribing, setSubscribing] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [showBillingHistory, setShowBillingHistory] = useState(false);
+  const [annual, setAnnual] = useState(false);
+  const [fleet, setFleet] = useState(6);
 
-  useEffect(() => {
-    initData();
-  }, []);
+  const planPrice = plans.length > 0 ? parseFloat(plans[0].price) : BASE_PRICE;
+  const perAc = +(planPrice * (annual ? 0.8 : 1)).toFixed(2);
+  const totalCost = Math.round(perAc * fleet);
 
-  const initData = async () => {
+  const initData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch available plans first
-      await fetchPlans();
-
-      // Check if there's an active subscription
-      const subResponse = await subscriptionPlanService.getCurrentSubscription();
-      if (subResponse && subResponse.success && subResponse.data) {
-        setCurrentSubscription(subResponse.data);
+      const planRes = await subscriptionPlanService.getSubscriptionPlans();
+      if (planRes?.success) {
+        const list = Array.isArray(planRes.data)
+          ? planRes.data
+          : Array.isArray(planRes.data?.data)
+          ? planRes.data.data
+          : [];
+        setPlans(list);
       }
-
-      // Fetch aircraft count dynamically
-      const acResponse = await aircraftService.getAircraft();
-      if (acResponse && acResponse.success) {
-        const acList = acResponse.data?.data || (Array.isArray(acResponse.data) ? acResponse.data : []);
-        const count = acList.length;
-        setAircraftCount(count);
-        setSelectedAircraftCount(Math.max(1, count));
+      const subRes = await subscriptionPlanService.getCurrentSubscription();
+      if (subRes?.success && subRes.data) setCurrentSubscription(subRes.data);
+      const acRes = await aircraftService.getAircraft();
+      if (acRes?.success) {
+        const acList = acRes.data?.data || (Array.isArray(acRes.data) ? acRes.data : []);
+        setFleet(Math.max(1, acList.length));
       }
-
-      // Fetch billing history from backend
-      const billingResponse = await subscriptionPlanService.getBillingHistory();
-      if (billingResponse && billingResponse.success) {
-        setInvoices(billingResponse.data || []);
-      }
+      const billRes = await subscriptionPlanService.getBillingHistory();
+      if (billRes?.success) setInvoices(billRes.data || []);
     } catch (err) {
-      console.error('Error initializing subscription data:', err);
+      console.error("Subscription init:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchPlans = async () => {
-    try {
-      const response = await subscriptionPlanService.getSubscriptionPlans();
-      if (response && response.success) {
-        let plansList = [];
-        if (Array.isArray(response.data)) {
-          plansList = response.data;
-        } else if (response.data && Array.isArray(response.data.data)) {
-          plansList = response.data.data;
-        }
-        setPlans(plansList);
-      }
-    } catch (err) {
-      console.error('Error fetching plans:', err);
-    }
-  };
+  useEffect(() => { initData(); }, [initData]);
 
   const handleSubscribe = async (planId) => {
     setSubscribing(planId);
     try {
-      const response = await subscriptionPlanService.subscribe(planId, selectedAircraftCount);
-      if (response.success) {
-        if (response.data && response.data.checkout_url) {
-          showSuccessToast('Redirecting to Stripe checkout...');
-          setTimeout(() => {
-            window.location.href = response.data.checkout_url;
-          }, 1200);
+      const res = await subscriptionPlanService.subscribe(planId, fleet);
+      if (res?.success) {
+        if (res.data?.checkout_url) {
+          showSuccessToast("Redirecting to Stripe checkout…");
+          setTimeout(() => { window.location.href = res.data.checkout_url; }, 1200);
         } else {
-          showSuccessToast('Successfully subscribed to plan!');
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
+          showSuccessToast("Successfully subscribed!");
+          setTimeout(() => window.location.reload(), 1500);
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to subscribe');
+      showErrorToast(err?.response?.data?.message || "Failed to subscribe");
     } finally {
       setSubscribing(null);
     }
   };
 
-  const handleBillingHistoryClick = async () => {
+  const handleBillingHistory = async () => {
     try {
-      const response = await subscriptionPlanService.getBillingPortal();
-      if (response && response.success && response.data?.url) {
-        showSuccessToast('Redirecting to Stripe Billing Portal...');
-        setTimeout(() => {
-          window.location.href = response.data.url;
-        }, 1200);
+      const res = await subscriptionPlanService.getBillingPortal();
+      if (res?.success && res.data?.url) {
+        showSuccessToast("Redirecting to Stripe Billing Portal…");
+        setTimeout(() => { window.location.href = res.data.url; }, 1200);
         return;
       }
-    } catch (err) {
-      console.log('Stripe billing portal not active or not a Stripe customer yet. Falling back.');
-    }
-
-    // Fallback: Fetch simulated history from backend
+    } catch { /* fallthrough */ }
     try {
-      const billingResponse = await subscriptionPlanService.getBillingHistory();
-      if (billingResponse && billingResponse.success) {
-        setInvoices(billingResponse.data || []);
-      }
-    } catch (err) {
-      console.error('Error fetching simulated billing history:', err);
-    }
+      const billRes = await subscriptionPlanService.getBillingHistory();
+      if (billRes?.success) setInvoices(billRes.data || []);
+    } catch { /* ignore */ }
     setShowBillingHistory(true);
-  };
-
-  const handleChangePlanClick = async () => {
-    try {
-      const response = await subscriptionPlanService.getBillingPortal();
-      if (response && response.success && response.data?.url) {
-        showSuccessToast('Redirecting to Stripe Customer Portal to change plan...');
-        setTimeout(() => {
-          window.location.href = response.data.url;
-        }, 1200);
-        return;
-      }
-    } catch (err) {
-      console.log('Stripe customer portal not active or not a Stripe customer yet. Falling back.');
-    }
-
-    // Fallback: Drop down to local plan selection grid
-    setCurrentSubscription(null);
-    fetchPlans();
   };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center py-48">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 border-t-blue-600" />
+          <p className="text-sm text-gray-400">Loading subscription…</p>
+        </div>
       </div>
     );
   }
 
-  // Active Subscription Dashboard View (Modern Stripe-Style Portal)
+  const features = [
+    { icon: MdFlight,    text: "Per-aircraft billing — active fleet only" },
+    { icon: FiUsers,     text: "Unlimited users & instructors" },
+    { icon: FiZap,       text: "Full lessons & reservation management" },
+    { icon: FiShield,    text: "Digital logbook with flight tracking" },
+    { icon: FiTrendingUp,text: "Aircraft profiles & maintenance records" },
+    { icon: FiStar,      text: "Role-based access & permissions" },
+    { icon: FiMail,      text: "Announcements & messaging center" },
+    { icon: FiClock,     text: "Calendar & scheduling tools" },
+  ];
+
+  const faqs = [
+    {
+      q: "How does per-aircraft pricing work?",
+      a: "You're billed based on the number of active aircraft in your fleet. Add or remove aircraft any time — your bill adjusts at the next billing cycle.",
+    },
+    {
+      q: "Can I change my fleet size mid-cycle?",
+      a: "Yes. Additions are prorated for the remaining days in the billing period, and removals reflect in the next cycle.",
+    },
+    {
+      q: "Is there a free trial?",
+      a: "We offer a 14-day free trial. No credit card required. You'll only be charged if you continue after the trial ends.",
+    },
+    {
+      q: "What does annual billing save me?",
+      a: "Annual billing gives you a flat 20% discount on the per-aircraft rate. Toggle above to see the updated pricing instantly.",
+    },
+  ];
+
+  // ── ACTIVE SUBSCRIPTION VIEW ───────────────────────────────────────────────
   if (currentSubscription) {
+    const perAcActive =
+      currentSubscription.aircraft_count > 0
+        ? (parseFloat(currentSubscription.price) / currentSubscription.aircraft_count).toFixed(0)
+        : parseFloat(currentSubscription.price).toFixed(0);
+    const renewDate = currentSubscription.ends_at
+      ? new Date(currentSubscription.ends_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+      : "—";
+
     return (
-      <div className="py-6 md:mt-5 mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl animate-in fade-in duration-700">
-        <div className="mb-8 border-b border-slate-100 pb-6">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Subscription</h2>
-          <p className="mt-1 text-sm text-slate-500 font-medium">Manage your active plan and organization resources.</p>
-        </div>
+      <div className="md:mt-5 mx-auto">
+        <div className="bg-white shadow-xl rounded-xl overflow-hidden">
 
-        {/* Unified Modern SaaS Card */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-3">
-          
-          {/* Left Section (Plan Details) - Spans 2 columns on larger screens */}
-          <div className="p-8 md:col-span-2 flex flex-col justify-between">
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F4F6]">
             <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{currentSubscription.plan_title}</h3>
-                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50 flex items-center uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
-                  Active Plan
-                </span>
-              </div>
-              
-              <p className="text-sm text-slate-500 font-medium mb-6">
-                Billed Monthly • <span className="text-slate-900 font-bold">${parseFloat(currentSubscription.price / Math.max(1, currentSubscription.aircraft_count)).toFixed(0)}</span> / aircraft / month
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900">Subscription</h2>
+              <p className="text-sm text-gray-400 mt-0.5">Manage your active plan</p>
+            </div>
+            <button
+              onClick={handleBillingHistory}
+              className="flex items-center gap-2 border border-gray-200 bg-white px-3.5 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+            >
+              <FiDownload size={14} />
+              Billing History
+            </button>
+          </div>
 
-              {/* Dynamic Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Aircraft Fleet</span>
-                  <p className="text-lg font-bold text-slate-800 mt-1">{currentSubscription.aircraft_count} added</p>
-                </div>
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">User Seats</span>
-                  <p className="text-lg font-bold text-slate-800 mt-1">
-                    {currentSubscription.max_users === 0 ? 'Unlimited' : `${currentSubscription.max_users} seats`}
+          <div className="p-6 space-y-6">
+
+            {/* ── Banner ── */}
+            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-[#1a3a6e] to-[#2563eb] p-6">
+              {/* bg decorations */}
+              <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5" />
+              <div className="absolute -right-2 -bottom-10 w-28 h-28 rounded-full bg-white/5" />
+              <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[100px] opacity-[0.06] pointer-events-none select-none leading-none">✈</span>
+
+              <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/15 text-white border border-white/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                      Active Plan
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-1">
+                    {currentSubscription.plan_title}
+                  </h3>
+                  <p className="text-sm text-white/70">
+                    ${perAcActive} / aircraft / month · Auto-renews{" "}
+                    <span className="text-white font-semibold">{renewDate}</span>
                   </p>
                 </div>
-              </div>
-
-              {/* Integrated Renewal Notice Banner */}
-              <div className="bg-blue-50/50 border border-blue-100/60 rounded-xl p-4 flex items-center space-x-3 mb-6">
-                <FiDollarSign className="w-5 h-5 text-blue-700 flex-shrink-0" />
-                <p className="text-xs text-blue-800 font-medium leading-relaxed">
-                  Your plan is scheduled to automatically renew on <span className="font-bold underline">{new Date(currentSubscription.ends_at).toLocaleDateString()}</span>.
-                </p>
+                <div className="flex gap-3">
+                  <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-center backdrop-blur-sm">
+                    <p className="text-2xl font-bold text-white">{currentSubscription.aircraft_count}</p>
+                    <p className="text-xs text-white/60 mt-0.5">Aircraft</p>
+                  </div>
+                  <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-center backdrop-blur-sm">
+                    <p className="text-2xl font-bold text-white">
+                      {currentSubscription.max_users === 0 ? "∞" : currentSubscription.max_users}
+                    </p>
+                    <p className="text-xs text-white/60 mt-0.5">Seats</p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Actions Footer */}
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button 
-                onClick={handleChangePlanClick}
-                className="px-5 py-2.5 text-sm font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-xl transition-all shadow-md shadow-blue-700/10 hover:scale-[1.01] active:scale-[0.99]"
-              >
-                Change Plan
-              </button>
-              <button 
-                onClick={handleBillingHistoryClick}
-                className="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors"
-              >
-                Billing History
-              </button>
+            {/* ── Stat pills ── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatPill icon={MdFlight}    label="Fleet Size"   value={`${currentSubscription.aircraft_count} aircraft`} color="blue" />
+              <StatPill icon={FiUsers}     label="User Seats"   value={currentSubscription.max_users === 0 ? "Unlimited" : `${currentSubscription.max_users} seats`} color="green" />
+              <StatPill icon={FiDollarSign} label="Per Aircraft" value={`$${perAcActive}/mo`} color="purple" />
+              <StatPill icon={FiClock}     label="Renews On"    value={new Date(currentSubscription.ends_at || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric" })} color="amber" />
             </div>
-          </div>
 
-          {/* Right Section (Features Checklist) - Spans 1 column on larger screens */}
-          <div className="bg-slate-50/70 p-8 border-t md:border-t-0 md:border-l border-slate-150 flex flex-col justify-center">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-5">Included in your plan</h4>
-            <ul className="space-y-4">
-              {[
-                'Unlimited Flight Logs',
-                'Instructor Oversight',
-                'Fleet Maintenance',
-                'Digital Logbooks',
-                'Student Dashboard'
-              ].map((feature, idx) => (
-                <li key={idx} className="flex items-center text-sm font-semibold text-slate-600">
-                  <FiCheck className="text-emerald-500 mr-2.5 w-4.5 h-4.5 flex-shrink-0" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
+            {/* ── Included features ── */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50/70">
+                <FiCheck size={14} className="text-blue-600" />
+                <h4 className="text-sm font-semibold text-gray-700">Included in your plan</h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-px bg-gray-100">
+                {["Unlimited Flight Logs", "Instructor Oversight", "Fleet Maintenance", "Digital Logbooks", "Student Dashboard", "Role-Based Access"].map((f) => (
+                  <div key={f} className="flex items-center gap-2.5 px-5 py-3 bg-white">
+                    <span className="w-5 h-5 rounded-full bg-[#E1FAEA] flex items-center justify-center flex-shrink-0">
+                      <FiCheck size={10} className="text-[#016626]" />
+                    </span>
+                    <span className="text-sm text-gray-700 font-medium">{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
-          
         </div>
+
+        {showBillingHistory && (
+          <BillingModal invoices={invoices} onClose={() => setShowBillingHistory(false)} />
+        )}
       </div>
     );
   }
 
-  // Plans List View (Original Normal Design)
+  // ── NO SUBSCRIPTION – PLAN SELECTION ─────────────────────────────────────
+  const firstPlan = plans[0] || null;
+  const sliderPct = ((fleet - 1) / 49) * 100;
+
   return (
-    <div className="py-6 md:mt-5 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-          Subscription Plans
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Choose the plan that fits your organization's needs. Scale your operations efficiently.
-        </p>
-      </div>
+    <div className="md:mt-5 mx-auto">
+      <div className="bg-white shadow-xl rounded-xl overflow-hidden">
 
-      {plans.length === 0 ? (
-        <div className="text-center py-16 bg-white border border-gray-200 rounded-xl">
-          <FiDollarSign className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No active plans available</h3>
-          <p className="mt-1 text-sm text-gray-500">Please check back later or contact support.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col"
+        {/* ── Header ── */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-4 border-b border-[#F3F4F6] gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Subscription Plan</h2>
+            <p className="text-sm text-gray-400 mt-0.5">Per-aircraft pricing — scale as your fleet grows.</p>
+          </div>
+          {/* Toggle */}
+          <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setAnnual(false)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                !annual ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
-              <div className="p-6 flex-1">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-xl font-bold text-gray-900">{plan.title}</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
-                    Monthly
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-gray-500 line-clamp-2 h-10">
-                  {plan.description || "Comprehensive aviation management solution."}
-                </p>
-                
-                <div className="mt-6 flex items-baseline">
-                  <span className="text-4xl font-extrabold text-gray-900">${parseFloat(plan.price).toFixed(0)}</span>
-                  <span className="ml-1 text-sm font-medium text-gray-500">/aircraft/mo</span>
-                </div>
-
-                {/* Dynamic Real-time Calculator & Slider */}
-                <div className="mt-5 p-4 rounded-xl bg-gray-50 border border-gray-150 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-gray-500">Fleet Size Limit</label>
-                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-black">
-                      {selectedAircraftCount} Aircraft
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    value={selectedAircraftCount}
-                    onChange={(e) => setSelectedAircraftCount(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-700"
-                  />
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                    <span className="text-[11px] font-bold text-gray-500">Realtime Cost:</span>
-                    <span className="text-base font-black text-blue-700 font-mono">
-                      ${(parseFloat(plan.price) * selectedAircraftCount).toFixed(0)}/mo
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-5 space-y-3.5">
-                  <div className="flex items-center text-sm text-gray-700">
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center mr-3">
-                      <FiCheck className="w-3 h-3 text-blue-700" />
-                    </div>
-                    <span className="font-medium">Per Aircraft ({aircraftCount} added)</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-700">
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center mr-3">
-                      <FiCheck className="w-3 h-3 text-blue-700" />
-                    </div>
-                    <span className="font-medium">{plan.max_users === 0 ? 'Unlimited' : plan.max_users} Users</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="px-6 pb-6 mt-auto">
-                <button
-                  onClick={() => handleSubscribe(plan.id)}
-                  disabled={subscribing !== null}
-                  className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-bold rounded-lg text-white bg-blue-700 hover:bg-blue-800 transition-colors disabled:opacity-50 shadow-md shadow-blue-700/10"
-                >
-                  {subscribing === plan.id ? (
-                    <svg className="animate-spin h-5 w-5 mr-2 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    `Subscribe for $${(parseFloat(plan.price) * selectedAircraftCount).toFixed(0)}/mo`
-                  )}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {/* Ultra-Modern Billing History Modal */}
-      {showBillingHistory && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-5 border-b border-slate-100">
-              <div>
-                <h3 className="text-lg font-black text-slate-900">Billing History</h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">View and download your past subscription invoices.</p>
-              </div>
-              <button 
-                onClick={() => setShowBillingHistory(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 pb-3">
-                      <th className="text-[10px] font-black uppercase tracking-wider text-slate-400 pb-3">Date</th>
-                      <th className="text-[10px] font-black uppercase tracking-wider text-slate-400 pb-3">Invoice</th>
-                      <th className="text-[10px] font-black uppercase tracking-wider text-slate-400 pb-3">Amount</th>
-                      <th className="text-[10px] font-black uppercase tracking-wider text-slate-400 pb-3 text-center">Status</th>
-                      <th className="text-[10px] font-black uppercase tracking-wider text-slate-400 pb-3 text-right">Receipt</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoices.length > 0 ? (
-                      invoices.map((item, idx) => (
-                        <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                          <td className="text-xs font-semibold text-slate-650 py-4">{item.date}</td>
-                          <td className="text-xs font-bold text-slate-800 py-4">{item.number}</td>
-                          <td className="text-xs font-black text-slate-900 py-4 font-mono">{item.amount}</td>
-                          <td className="py-4 text-center">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              item.status.toLowerCase() === 'paid' 
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/30' 
-                                : 'bg-amber-50 text-amber-700 border border-amber-200/30'
-                            }`}>
-                              {item.status}
-                            </span>
-                          </td>
-                          <td className="py-4 text-right">
-                            {item.pdf_url && item.pdf_url !== '#' ? (
-                              <a 
-                                href={item.pdf_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
-                              >
-                                <FiDownload className="w-4 h-4" />
-                              </a>
-                            ) : (
-                              <button 
-                                onClick={() => showSuccessToast(`${item.number} receipt downloaded successfully!`)}
-                                className="inline-flex p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
-                              >
-                                <FiDownload className="w-4 h-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="text-center py-8 text-xs text-slate-400 font-medium">
-                          No invoice history found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-slate-50/50 px-6 py-4 flex justify-end border-t border-slate-100">
-              <button 
-                onClick={() => setShowBillingHistory(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-            </div>
+              Monthly
+            </button>
+            <button
+              onClick={() => setAnnual(true)}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                annual ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Annual
+              <span className="bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-none">
+                −20%
+              </span>
+            </button>
           </div>
         </div>
+
+        <div className="p-5 space-y-5">
+
+          {/* ── Fleet Calculator ── */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0f2241] to-[#1e4fc2] p-5">
+            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[100px] opacity-[0.05] pointer-events-none select-none leading-none">✈</span>
+            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5">
+              <div className="min-w-[120px]">
+                <p className="text-xs font-medium text-white/50 uppercase tracking-widest mb-1">Fleet Size</p>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-4xl font-extrabold text-white leading-none">{fleet}</span>
+                  <span className="text-sm text-white/60">aircraft</span>
+                </div>
+              </div>
+
+              <div className="flex-1 w-full min-w-[180px]">
+                <div className="flex justify-between text-xs text-white/50 mb-2.5 font-medium">
+                  <span>1 aircraft</span>
+                  <span>50 aircraft</span>
+                </div>
+                <input
+                  type="range" min="1" max="50" value={fleet}
+                  onChange={(e) => setFleet(parseInt(e.target.value))}
+                  className="w-full h-2 rounded-full outline-none cursor-pointer"
+                  style={{
+                    appearance: "none",
+                    background: `linear-gradient(to right, #93c5fd ${sliderPct}%, rgba(255,255,255,0.15) ${sliderPct}%)`,
+                    accentColor: "#93c5fd",
+                  }}
+                />
+                <div className="flex justify-between text-xs text-white/40 mt-1.5">
+                  <span>Drag to set fleet size</span>
+                  <span>{fleet} × ${perAc} = {fmt(totalCost)}/mo</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 flex-shrink-0">
+                <div className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-center min-w-[80px]">
+                  <p className="text-2xl font-bold text-white">{fleet}</p>
+                  <p className="text-xs text-white/50 mt-0.5">Aircraft</p>
+                </div>
+                <div className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-center min-w-[90px]">
+                  <p className="text-2xl font-bold text-white">{fmt(totalCost)}</p>
+                  <p className="text-xs text-white/50 mt-0.5">Total/mo</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Plan Card + Right Panel ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+            {/* LEFT – Plan Card */}
+            <div className="lg:col-span-2 flex flex-col rounded-2xl border-2 border-blue-600 overflow-hidden shadow-lg shadow-blue-500/10">
+              {/* colored top bar */}
+              <div className="h-1.5 bg-gradient-to-r from-blue-400 to-blue-600" />
+
+              <div className="flex flex-col flex-1 p-5 gap-4">
+                {/* badges */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
+                    Standard Plan
+                  </span>
+                  {annual && (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-green-500 text-white">
+                      Save 20%
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-400 font-medium mb-1">Starting from</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-5xl font-extrabold text-gray-900 leading-none tracking-tight">
+                      ${perAc}
+                    </span>
+                    <div className="ml-1">
+                      <p className="text-xs text-gray-500 font-medium leading-tight">per aircraft</p>
+                      <p className="text-xs text-gray-400 leading-tight">per month</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* separator */}
+                <div className="w-full h-px bg-gray-100" />
+
+                {/* cost box */}
+                <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 font-medium">Your fleet total</span>
+                    <span className="text-xs text-blue-600 font-semibold bg-blue-100 px-2 py-0.5 rounded-md">
+                      {fleet} aircraft
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-extrabold text-blue-600">{fmt(totalCost)}</span>
+                    <span className="text-sm text-blue-400 font-medium">/mo</span>
+                  </div>
+                  {annual && (
+                    <p className="text-xs text-green-600 font-medium mt-1.5">
+                      💰 Saving {fmt(Math.round(planPrice * fleet * 0.2 * 12))} / year
+                    </p>
+                  )}
+                </div>
+
+                {/* billing row */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">{annual ? "Billed annually" : "Billed monthly"}</span>
+                  <span className="text-gray-400">Cancel any time</span>
+                </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => firstPlan && handleSubscribe(firstPlan.id)}
+                  disabled={subscribing !== null || !firstPlan}
+                  className="mt-auto w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-600/25 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {subscribing
+                    ? <><FiLoader size={15} className="animate-spin" /> Processing…</>
+                    : firstPlan
+                    ? <>Get Started — {fmt(totalCost)}/mo</>
+                    : "Contact Support"
+                  }
+                </button>
+
+                <p className="text-center text-xs text-gray-400">
+                  🔒 Secure payment via Stripe
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT – Features + Breakdown stacked */}
+            <div className="lg:col-span-3 flex flex-col gap-5">
+
+              {/* Features Grid */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50">
+                  <FiStar size={14} className="text-blue-600" />
+                  <h4 className="text-sm font-semibold text-gray-800">Everything included</h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-100">
+                  {features.map(({ icon: Icon, text }) => (
+                    <div key={text} className="flex items-center gap-3 px-5 py-3.5 bg-white hover:bg-gray-50/70 transition-colors">
+                      <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <Icon size={13} className="text-blue-600" />
+                      </span>
+                      <span className="text-sm text-gray-700">{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Billing Breakdown */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50">
+                  <FiDollarSign size={14} className="text-blue-600" />
+                  <h4 className="text-sm font-semibold text-gray-800">Billing Breakdown</h4>
+                </div>
+                <div className="px-5 divide-y divide-gray-50">
+                  {[
+                    { label: "Price per aircraft", value: `$${perAc}/mo` },
+                    { label: "Fleet size", value: `${fleet} aircraft` },
+                    { label: "Billing cycle", value: annual ? "Annual" : "Monthly" },
+                    { label: "Discount applied", value: annual ? "20% off" : "None", accent: annual },
+                  ].map(({ label, value, accent }) => (
+                    <div key={label} className="flex justify-between items-center py-3">
+                      <span className="text-sm text-gray-500">{label}</span>
+                      <span className={`text-sm font-semibold ${accent ? "text-green-600" : "text-gray-800"}`}>
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center py-4">
+                    <span className="text-sm font-bold text-gray-900">Total due monthly</span>
+                    <span className="text-xl font-extrabold text-blue-600">{fmt(totalCost)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="border-t border-[#F3F4F6]" />
+
+          {/* ── FAQ ── */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1 h-4 rounded-full bg-blue-600" />
+              <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Frequently Asked</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {faqs.map(({ q, a }) => <FaqItem key={q} question={q} answer={a} />)}
+            </div>
+          </div>
+
+          {/* ── Help Banner ── */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1a3a6e] to-[#2563eb] p-5 flex flex-col sm:flex-row items-center gap-4">
+            <div className="absolute -right-6 -bottom-8 w-32 h-32 rounded-full bg-white/5" />
+            <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 text-xl">
+              💬
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <p className="text-base font-bold text-white">Have questions about your plan?</p>
+              <p className="text-sm text-white/65 mt-0.5">Our aviation specialists are ready to help you get started.</p>
+            </div>
+            <button className="flex items-center gap-2 px-4 py-2.5 bg-white/15 border border-white/25 text-white text-sm font-semibold rounded-xl hover:bg-white/25 transition-colors whitespace-nowrap flex-shrink-0">
+              <FiMail size={14} />
+              Send a Message
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {showBillingHistory && (
+        <BillingModal invoices={invoices} onClose={() => setShowBillingHistory(false)} />
       )}
     </div>
   );

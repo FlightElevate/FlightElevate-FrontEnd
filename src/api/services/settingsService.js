@@ -16,5 +16,13 @@ export const settingsService = {
   async updateSettingsWithFile(formData) {
     return await api.put(ENDPOINTS.SETTINGS.UPDATE, formData);
   },
+
+  /**
+   * GET /settings/payment-history
+   * Returns the authenticated student's reservation invoices.
+   */
+  async getPaymentHistory() {
+    return await api.get(ENDPOINTS.SETTINGS.PAYMENT_HISTORY);
+  },
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiArrowLeft, FiTrash2, FiAlertTriangle, FiCheckCircle,
   FiClock, FiMapPin, FiUser, FiTool, FiFileText, FiDollarSign,
@@ -99,6 +99,7 @@ const ReservationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [reservation, setReservation] = useState(null);
@@ -142,6 +143,29 @@ const ReservationDetail = () => {
   }, [id]);
 
   useEffect(() => { loadDetail(); }, [loadDetail]);
+
+  useEffect(() => {
+    const checkPaymentSuccess = async () => {
+      const success = searchParams.get('payment_success') === 'true';
+      const sessionId = searchParams.get('session_id');
+      if (success && sessionId) {
+        setActionLoading(true);
+        try {
+          await reservationService.confirmPayment(id, { session_id: sessionId });
+          showSuccess('Payment processed successfully!');
+          // Remove query params from browser URL bar without reloading
+          window.history.replaceState({}, document.title, window.location.pathname);
+          // Reload details
+          loadDetail();
+        } catch (err) {
+          showError(err?.message ?? err?.response?.data?.message ?? 'Payment verification failed');
+        } finally {
+          setActionLoading(false);
+        }
+      }
+    };
+    checkPaymentSuccess();
+  }, [searchParams, id, loadDetail]);
 
   useEffect(() => {
     if (activeTab !== 'dispatch' || reservation?.dispatched_at) return;
@@ -196,7 +220,21 @@ const ReservationDetail = () => {
   }, [activeTab, reservation, invoice, id]);
 
   const showSuccess = (msg) => { setActionSuccess(msg); setTimeout(() => setActionSuccess(null), 4000); };
-  const showError = (msg) => { setActionError(msg); setTimeout(() => setActionError(null), 5000); };
+  const showError = (err) => { 
+    let msg = 'An error occurred';
+    if (typeof err === 'string') {
+      msg = err;
+    } else {
+      if (err?.response?.data?.errors) {
+        const firstError = Object.values(err.response.data.errors)[0];
+        msg = Array.isArray(firstError) ? firstError[0] : firstError;
+      } else {
+        msg = err?.message ?? err?.response?.data?.message ?? 'An error occurred';
+      }
+    }
+    setActionError(msg); 
+    setTimeout(() => setActionError(null), 5000); 
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
   // DELETE
@@ -209,7 +247,7 @@ const ReservationDetail = () => {
       await reservationService.deleteReservation(id);
       navigate('/calendar', { replace: true });
     } catch (err) {
-      showError(err?.message ?? err?.response?.data?.message ?? 'Delete failed');
+      showError(err);
     } finally {
       setActionLoading(false);
     }
@@ -249,7 +287,7 @@ const ReservationDetail = () => {
       showSuccess('Reservation dispatched successfully!');
       setActiveTab('checkin');
     } catch (err) {
-      showError(err?.message ?? err?.response?.data?.message ?? 'Dispatch failed');
+      showError(err);
     } finally {
       setActionLoading(false);
     }
@@ -323,7 +361,7 @@ const ReservationDetail = () => {
       showSuccess('Check-in complete! Logbook entries have been generated.');
       setActiveTab('overview');
     } catch (err) {
-      showError(err?.message ?? err?.response?.data?.message ?? 'Check-in failed');
+      showError(err);
     } finally {
       setActionLoading(false);
     }
@@ -368,7 +406,7 @@ const ReservationDetail = () => {
       setInvoice(data);
       showSuccess('Invoice saved!');
     } catch (err) {
-      showError(err?.message ?? err?.response?.data?.message ?? 'Save failed');
+      showError(err);
     } finally {
       setActionLoading(false);
     }
@@ -384,10 +422,17 @@ const ReservationDetail = () => {
       }
       const res = await reservationService.chargeInvoice(id, payload);
       const data = res?.data?.data ?? res?.data ?? res;
+      if (data?.checkout_url) {
+        showSuccess('Redirecting to Stripe checkout...');
+        setTimeout(() => {
+          window.location.href = data.checkout_url;
+        }, 1000);
+        return;
+      }
       setInvoice(data);
       showSuccess(`Payment charged via ${chargeMethod}!`);
     } catch (err) {
-      showError(err?.message ?? err?.response?.data?.message ?? 'Charge failed');
+      showError(err);
     } finally {
       setActionLoading(false);
     }
@@ -405,7 +450,7 @@ const ReservationDetail = () => {
       setInvoice(data);
       showSuccess('Refund issued successfully!');
     } catch (err) {
-      showError(err?.message ?? err?.response?.data?.message ?? 'Refund failed');
+      showError(err);
     } finally {
       setActionLoading(false);
     }
@@ -948,20 +993,6 @@ const ReservationDetail = () => {
         {/* ── INVOICE TAB ── */}
         {activeTab === 'invoice' && (
           <div className="space-y-6">
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-12 text-center">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FiDollarSign size={32} />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Invoice Coming Soon</h2>
-              <p className="text-gray-500 max-w-sm mx-auto">
-                The invoicing and payment system is currently being finalized. 
-                You will be able to manage billing directly from here very soon.
-              </p>
-            </div>
-
-            {/* Original content preserved for future launch */}
-            {false && (
-              <div>
                 {!invoice ? (
                   <div className="bg-gray-100 border border-gray-200 rounded-xl p-12 text-center">
                     <FiDollarSign size={48} className="text-gray-300 mx-auto mb-4" />
@@ -1101,8 +1132,6 @@ const ReservationDetail = () => {
                     )}
                   </div>
                 )}
-              </div>
-            )}
           </div>
         )}
 
