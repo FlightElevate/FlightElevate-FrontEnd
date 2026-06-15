@@ -297,10 +297,12 @@ const Setting = () => {
           const settingsData = response.data;
           
           const nameParts = (settingsData.name || '').split(' ');
+          const formattedDOB = settingsData.date_of_birth ? new Date(settingsData.date_of_birth).toISOString().split('T')[0] : '';
+          
           setProfileData({
             first_name: nameParts[0] || '',
             last_name: nameParts.slice(1).join(' ') || '',
-            date_of_birth: settingsData.date_of_birth || '',
+            date_of_birth: formattedDOB,
             gender: settingsData.gender || '',
             email: settingsData.email || '',
             phone: settingsData.phone || '',
@@ -309,16 +311,6 @@ const Setting = () => {
             city: settingsData.city || '',
             postal_code: settingsData.postal_code || '',
           });
-          
-          if (settingsData) {
-            const formattedDOB = settingsData.date_of_birth ? new Date(settingsData.date_of_birth).toISOString().split('T')[0] : '';
-            
-            setFormData(prev => ({
-              ...prev,
-              ...settingsData,
-              date_of_birth: formattedDOB
-            }));
-          }
           
           
           if (settingsData.avatar) {
