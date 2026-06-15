@@ -1523,7 +1523,7 @@ const Setting = () => {
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-semibold text-gray-700 mb-3">Upload File</label>
-                      <div className="relative border-2 border-dashed border-gray-200 rounded-2xl p-8 hover:border-blue-400 transition-colors bg-white group cursor-pointer text-center">
+                      <div className={`relative border-2 border-dashed border-gray-200 rounded-2xl ${selectedFile ? 'p-2' : 'p-8'} hover:border-blue-400 transition-all duration-300 bg-white group cursor-pointer text-center`}>
                         <input
                           type="file"
                           name="file"
@@ -1532,11 +1532,24 @@ const Setting = () => {
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
                         <div className="flex flex-col items-center">
-                          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                            <FiCamera className="w-6 h-6" />
-                          </div>
+                          {selectedFile && selectedFile.type.startsWith('image/') ? (
+                            <img 
+                              src={URL.createObjectURL(selectedFile)} 
+                              alt="Document Preview" 
+                              className="w-full max-h-[400px] object-contain rounded-xl mb-3 shadow-sm bg-gray-50"
+                            />
+                          ) : selectedFile && selectedFile.type === 'application/pdf' ? (
+                            <div className="w-full h-32 mb-3 bg-gray-50 flex flex-col items-center justify-center rounded-lg border border-gray-200 p-4">
+                              <span className="text-red-500 font-bold text-3xl mb-2">PDF</span>
+                              <span className="text-sm text-gray-600">{selectedFile.name}</span>
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                              <FiCamera className="w-6 h-6" />
+                            </div>
+                          )}
                           <p className="text-sm font-medium text-gray-700">
-                            {selectedFile ? selectedFile.name : "Click or drag to upload document"}
+                            {selectedFile ? 'Change document' : "Click or drag to upload document"}
                           </p>
                           <p className="text-xs text-gray-400 mt-1">PDF, PNG, JPG, or DOC (Max 5MB)</p>
                         </div>
