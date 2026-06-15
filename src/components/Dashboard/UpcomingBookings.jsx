@@ -1,12 +1,52 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FiSearch, FiMoreVertical } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { lessonService } from "../../api/services/lessonService";
 
 const UpcomingBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openMenu, setOpenMenu] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const menuRefs = useRef({});
+  const navigate = useNavigate();
 
-  
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const response = await lessonService.getReservations({
+          per_page: 5,
+          status: 'pending'
+        });
+        if (response.success) {
+          const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+          
+          const formattedBookings = list.map(item => {
+            const dateObj = new Date(item.reservation_date || item.start_time || new Date());
+            const firstStudent = item.students?.[0] || item.student;
+            const studentName = firstStudent ? (firstStudent.name || `${firstStudent.first_name || ''} ${firstStudent.last_name || ''}`) : 'N/A';
+            
+            return {
+              id: item.id,
+              date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              time: dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+              student: studentName.trim() || 'N/A',
+              aircraft: item.aircraft?.registration || item.aircraft?.model || 'N/A',
+              flightType: item.type || item.lesson_type || 'Flight'
+            };
+          });
+          
+          setBookings(formattedBookings);
+        }
+      } catch (err) {
+        console.error('Error fetching upcoming bookings', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBookings();
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (openMenu !== null && menuRefs.current[openMenu] && !menuRefs.current[openMenu].contains(event.target)) {
@@ -16,34 +56,6 @@ const UpcomingBookings = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenu]);
-
-  
-  const bookings = [
-    {
-      id: 1,
-      date: "Jun 15",
-      time: "9 AM",
-      student: "Guy Hawkins",
-      aircraft: "JK600",
-      flightType: "Loremipsum",
-    },
-    {
-      id: 2,
-      date: "Jun 16",
-      time: "10 AM",
-      student: "Jane Smith",
-      aircraft: "JK601",
-      flightType: "Training",
-    },
-    {
-      id: 3,
-      date: "Jun 17",
-      time: "2 PM",
-      student: "John Doe",
-      aircraft: "JK602",
-      flightType: "Practice",
-    },
-  ];
 
   const filteredBookings = bookings.filter((booking) =>
     booking.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -100,7 +112,13 @@ const UpcomingBookings = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredBookings.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="text-center py-8 text-gray-500 text-sm">
+                  Loading bookings...
+                </td>
+              </tr>
+            ) : filteredBookings.length > 0 ? (
               filteredBookings.map((booking) => (
                 <tr
                   key={booking.id}
@@ -118,7 +136,7 @@ const UpcomingBookings = () => {
                   <td className="py-4 px-4 text-sm text-gray-700">
                     {booking.aircraft}
                   </td>
-                  <td className="py-4 px-4 text-sm text-gray-700">
+                  <td className="py-4 px-4 text-sm text-gray-700 capitalize">
                     {booking.flightType}
                   </td>
                   <td className="py-4 px-4">
@@ -135,19 +153,19 @@ const UpcomingBookings = () => {
                       {openMenu === booking.id && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                           <button 
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/reservations/${booking.id}`); }}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg"
                           >
                             View Details
                           </button>
                           <button 
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/calendar?edit=${booking.id}`); }}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           >
-                            Edit
+                            Edit in Calendar
                           </button>
                           <button 
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/calendar?edit=${booking.id}`); }}
                             className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 rounded-b-lg"
                           >
                             Cancel Booking
