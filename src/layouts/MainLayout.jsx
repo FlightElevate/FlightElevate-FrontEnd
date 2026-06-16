@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import TrialBanner from '../components/TrialBanner';
 import { useAuth } from '../context/AuthContext';
 
 const MainLayout = () => {
@@ -25,7 +26,7 @@ const MainLayout = () => {
       const isOnSupportPage = location.pathname.startsWith('/support');
 
       if (!hasActiveSub && !isTrialActive && !isOnSubscriptionPage && !isOnSupportPage) {
-        navigate('/subscription', { replace: true });
+        navigate('/subscription-required', { replace: true });
       }
     }
   }, [user, isSuperAdmin, navigate, location.pathname]);
@@ -35,6 +36,7 @@ const MainLayout = () => {
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
       <div className="flex flex-col flex-1" style={{ overflowX: 'hidden', overflowY: 'hidden', minWidth: 0 }}>
+        <TrialBanner />
         <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
         <main className="flex-1 p-4 bg-gray-50" style={{ overflowX: 'visible', overflowY: 'auto', minWidth: 0, maxWidth: '100%' }}>

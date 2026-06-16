@@ -81,8 +81,26 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, r
     );
   }
 
+  // Subscription guard — only for Admin-role users with an organization
+  // SuperAdmins and users without an org (e.g., newly invited students) bypass this
+  const isAdminUser = user?.roles?.some(r => {
+    const roleName = typeof r === 'string' ? r : r?.name;
+    return roleName === 'Admin';
+  });
+  const isSuperAdminUser = user?.roles?.some(r => {
+    const roleName = typeof r === 'string' ? r : r?.name;
+    return roleName === 'Super Admin';
+  });
+
+  if (isAdminUser && !isSuperAdminUser && user?.organization_id) {
+    const hasActiveSub = user.has_active_subscription;
+    const isTrialActive = user.is_trial_active;
+    if (!hasActiveSub && !isTrialActive) {
+      return <Navigate to="/subscription-required" replace />;
+    }
+  }
+
   return children;
 };
 
 export default ProtectedRoute;
-

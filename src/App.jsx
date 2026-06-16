@@ -39,6 +39,7 @@ import Logbook from "./pages/InstructorFE/Logbook";
 import ReservationDetail from "./pages/ReservationDetail";
 import UserPolicy from "./pages/UserPolicy";
 import AdminSubscription from "./pages/AdminFE/Subscription/Subscription";
+import SubscriptionRequired from "./pages/SubscriptionRequired";
 
 const App = () => {
   return (
@@ -50,6 +51,7 @@ const App = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/user-policy" element={<UserPolicy />} />
+        <Route path="/subscription-required" element={<SubscriptionRequired />} />
         
         {}
         <Route element={
