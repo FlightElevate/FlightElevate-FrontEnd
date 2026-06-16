@@ -65,8 +65,8 @@ apiClient.interceptors.response.use(
           // Handle subscription required redirection
           if (data?.subscription_required) {
             const currentPath = window.location.pathname;
-            if (currentPath !== '/subscription') {
-              window.location.href = '/subscription';
+            if (currentPath !== '/subscription-required') {
+              window.location.href = '/subscription-required';
             }
           }
           
