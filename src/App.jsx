@@ -40,6 +40,7 @@ import ReservationDetail from "./pages/ReservationDetail";
 import UserPolicy from "./pages/UserPolicy";
 import AdminSubscription from "./pages/AdminFE/Subscription/Subscription";
 import SubscriptionRequired from "./pages/SubscriptionRequired";
+import CheckoutPage from "./pages/CheckoutPage";
 
 const App = () => {
   return (
@@ -52,6 +53,11 @@ const App = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/user-policy" element={<UserPolicy />} />
         <Route path="/subscription-required" element={<SubscriptionRequired />} />
+        <Route path="/checkout/:planId" element={
+          <ProtectedRoute>
+            <CheckoutPage />
+          </ProtectedRoute>
+        } />
         
         {}
         <Route element={

@@ -44,24 +44,7 @@ const SubscriptionRequired = () => {
   }, []);
 
   const handleSubscribe = async (planId, price) => {
-    setSubscribing(planId);
-    try {
-      // Flat fee — always pass quantity 1
-      const response = await subscriptionPlanService.subscribe(planId, 1);
-      if (response.success && response.data?.checkout_url) {
-        window.location.href = response.data.checkout_url;
-      } else if (response.success) {
-        showSuccessToast('Subscription activated!');
-        await refreshUser();
-        navigate('/dashboard');
-      } else {
-        showErrorToast(response.message || 'Failed to subscribe');
-      }
-    } catch (err) {
-      showErrorToast(err?.message || 'Failed to process subscription');
-    } finally {
-      setSubscribing(null);
-    }
+    navigate(`/checkout/${planId}`);
   };
 
   const isExpiredTrial = user && !user.has_active_subscription && !user.is_trial_active && user.trial_ends_at;

@@ -529,16 +529,18 @@ const Users = () => {
                               >
                                 View
                               </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenDropdownId(null);
-                                  handleBlockUser(user.id, user.name, user.status);
-                                }}
-                                className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
-                              >
-                                {user.status === 'blocked' ? 'Unblock' : 'Block'}
-                              </button>
+                              {!isSuperAdmin(user.roles) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenDropdownId(null);
+                                    handleBlockUser(user.id, user.name, user.status);
+                                  }}
+                                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px]"
+                                >
+                                  {user.status === 'blocked' ? 'Unblock' : 'Block'}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -707,6 +709,7 @@ const UserRow = React.memo(({
             userId={user.id}
             userName={user.name}
             status={user.status}
+            isSuperAdminUser={isSuperAdmin(user.roles)}
             isOpen={isDropdownOpen}
             onToggle={onDropdownToggle}
             onBlock={onBlock}
@@ -730,6 +733,7 @@ const UserActionsDropdown = React.forwardRef(({
   userId,
   userName,
   status,
+  isSuperAdminUser,
   isOpen,
   onToggle,
   onBlock,
@@ -751,14 +755,16 @@ const UserActionsDropdown = React.forwardRef(({
         >
           Profile
         </Link>
-        <button
-          className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-            status === 'blocked' ? 'text-green-600' : 'text-red-600'
-          }`}
-          onClick={onBlock}
-        >
-          {status === 'blocked' ? 'Unblock' : 'Block'}
-        </button>
+        {!isSuperAdminUser && (
+          <button
+            className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+              status === 'blocked' ? 'text-green-600' : 'text-red-600'
+            }`}
+            onClick={onBlock}
+          >
+            {status === 'blocked' ? 'Unblock' : 'Block'}
+          </button>
+        )}
       </div>
     )}
   </div>

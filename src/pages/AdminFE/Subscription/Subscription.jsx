@@ -196,25 +196,7 @@ const Subscription = () => {
   useEffect(() => { initData(); }, [initData]);
 
   const handleSubscribe = async (planId) => {
-    setSubscribing(planId);
-    try {
-      const res = await subscriptionPlanService.subscribe(planId, 1);
-      if (res?.success) {
-        if (res.data?.checkout_url) {
-          showSuccessToast("Redirecting to Stripe checkout…");
-          setTimeout(() => { window.location.href = res.data.checkout_url; }, 1200);
-        } else {
-          showSuccessToast("Successfully subscribed!");
-          setTimeout(() => window.location.reload(), 1500);
-        }
-      } else {
-        showErrorToast(res?.message || "Failed to subscribe");
-      }
-    } catch (err) {
-      showErrorToast(err?.response?.data?.message || "Failed to subscribe");
-    } finally {
-      setSubscribing(null);
-    }
+    navigate(`/checkout/${planId}`);
   };
 
   const handleBillingHistory = async () => {
