@@ -20,9 +20,8 @@ const MainLayout = () => {
       const hasActiveSub = !!user.has_active_subscription;
       
       const backendTrialActive = !!user.is_trial_active;
-      const clientTrialActive = user.trial_ends_at
-        ? new Date(user.trial_ends_at) > new Date()
-        : false;
+      const safeDateStr = user.trial_ends_at ? (user.trial_ends_at.includes('T') ? user.trial_ends_at : user.trial_ends_at.replace(' ', 'T') + 'Z') : null;
+      const clientTrialActive = safeDateStr ? new Date(safeDateStr) > new Date() : false;
       const isTrialActive = backendTrialActive || clientTrialActive;
       
       // If trial is expired and no active subscription, redirect to subscription page

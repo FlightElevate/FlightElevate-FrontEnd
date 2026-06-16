@@ -11,16 +11,18 @@ const TrialBanner = () => {
     // Only show for Admin users in trial period
     if (!user) return null;
     if (hasRole('Super Admin')) return null;
+    if (user.has_active_subscription) return null; // hide if they bought a subscription
     if (!user.trial_ends_at) return null;
 
     const backendTrialActive = !!user.is_trial_active;
-    const clientTrialActive = new Date(user.trial_ends_at) > new Date();
+    const safeDateStr = user.trial_ends_at.includes('T') ? user.trial_ends_at : user.trial_ends_at.replace(' ', 'T') + 'Z';
+    const clientTrialActive = new Date(safeDateStr) > new Date();
     const isTrialActive = backendTrialActive || clientTrialActive;
 
     if (!isTrialActive) return null;
 
     const today = new Date();
-    const trialEnd = new Date(user.trial_ends_at);
+    const trialEnd = new Date(safeDateStr);
     const diffMs = trialEnd - today;
     const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
