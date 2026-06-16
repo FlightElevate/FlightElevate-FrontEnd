@@ -206,7 +206,8 @@ const CheckoutPage = () => {
                 planId={planId} 
                 onSuccess={async () => {
                   await refreshUser();
-                  navigate('/dashboard');
+                  // Hard redirect to dashboard to completely flush context and clear trial banners
+                  window.location.href = '/dashboard';
                 }} 
               />
             </Elements>
