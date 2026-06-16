@@ -17,8 +17,19 @@ const CheckoutForm = ({ planId, onSuccess }) => {
 
     setLoading(true);
 
+    // Trigger form validation and wallet collection
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      showErrorToast(submitError.message || 'Please fill out all required fields.');
+      setLoading(false);
+      return;
+    }
+
     const { error, setupIntent } = await stripe.confirmSetup({
       elements,
+      confirmParams: {
+        return_url: window.location.origin + '/dashboard',
+      },
       redirect: 'if_required'
     });
 
