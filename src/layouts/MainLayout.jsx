@@ -17,8 +17,13 @@ const MainLayout = () => {
 
     // Check if user has an organization and if the trial has expired
     if (user?.organization_id) {
-      const hasActiveSub = user.has_active_subscription;
-      const isTrialActive = user.is_trial_active;
+      const hasActiveSub = !!user.has_active_subscription;
+      
+      const backendTrialActive = !!user.is_trial_active;
+      const clientTrialActive = user.trial_ends_at
+        ? new Date(user.trial_ends_at) > new Date()
+        : false;
+      const isTrialActive = backendTrialActive || clientTrialActive;
       
       // If trial is expired and no active subscription, redirect to subscription page
       // Unless they are already on the subscription page or support page

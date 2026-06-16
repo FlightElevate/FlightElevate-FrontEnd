@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { subscriptionPlanService } from "../../../api/services/subscriptionPlanService";
-import { aircraftService } from "../../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast } from "../../../utils/notifications";
 import {
   FiCheck, FiDollarSign, FiDownload, FiX, FiLoader,
@@ -164,20 +163,12 @@ const StatPill = ({ icon: Icon, label, value, color = "blue" }) => {
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────
 const Subscription = () => {
-  const BASE_PRICE = 13;
-
   const [plans, setPlans] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [showBillingHistory, setShowBillingHistory] = useState(false);
-  const [annual, setAnnual] = useState(false);
-  const [fleet, setFleet] = useState(6);
-
-  const planPrice = plans.length > 0 ? parseFloat(plans[0].price) : BASE_PRICE;
-  const perAc = +(planPrice * (annual ? 0.8 : 1)).toFixed(2);
-  const totalCost = Math.round(perAc * fleet);
 
   const initData = useCallback(async () => {
     setLoading(true);
@@ -189,15 +180,10 @@ const Subscription = () => {
           : Array.isArray(planRes.data?.data)
           ? planRes.data.data
           : [];
-        setPlans(list);
+        setPlans(list.filter(p => p.status === 'active'));
       }
       const subRes = await subscriptionPlanService.getCurrentSubscription();
       if (subRes?.success && subRes.data) setCurrentSubscription(subRes.data);
-      const acRes = await aircraftService.getAircraft();
-      if (acRes?.success) {
-        const acList = acRes.data?.data || (Array.isArray(acRes.data) ? acRes.data : []);
-        setFleet(Math.max(1, acList.length));
-      }
       const billRes = await subscriptionPlanService.getBillingHistory();
       if (billRes?.success) setInvoices(billRes.data || []);
     } catch (err) {
@@ -212,7 +198,7 @@ const Subscription = () => {
   const handleSubscribe = async (planId) => {
     setSubscribing(planId);
     try {
-      const res = await subscriptionPlanService.subscribe(planId, fleet);
+      const res = await subscriptionPlanService.subscribe(planId, 1);
       if (res?.success) {
         if (res.data?.checkout_url) {
           showSuccessToast("Redirecting to Stripe checkout…");
@@ -221,6 +207,8 @@ const Subscription = () => {
           showSuccessToast("Successfully subscribed!");
           setTimeout(() => window.location.reload(), 1500);
         }
+      } else {
+        showErrorToast(res?.message || "Failed to subscribe");
       }
     } catch (err) {
       showErrorToast(err?.response?.data?.message || "Failed to subscribe");
@@ -257,41 +245,38 @@ const Subscription = () => {
   }
 
   const features = [
-    { icon: MdFlight,    text: "Per-aircraft billing — active fleet only" },
-    { icon: FiUsers,     text: "Unlimited users & instructors" },
-    { icon: FiZap,       text: "Full lessons & reservation management" },
-    { icon: FiShield,    text: "Digital logbook with flight tracking" },
-    { icon: FiTrendingUp,text: "Aircraft profiles & maintenance records" },
-    { icon: FiStar,      text: "Role-based access & permissions" },
-    { icon: FiMail,      text: "Announcements & messaging center" },
-    { icon: FiClock,     text: "Calendar & scheduling tools" },
+    { icon: MdFlight,     text: "Unlimited aircraft in your fleet" },
+    { icon: FiUsers,      text: "Unlimited users & instructors" },
+    { icon: FiZap,        text: "Full lessons & reservation management" },
+    { icon: FiShield,     text: "Digital logbook with flight tracking" },
+    { icon: FiTrendingUp, text: "Aircraft profiles & maintenance records" },
+    { icon: FiStar,       text: "Role-based access & permissions" },
+    { icon: FiMail,       text: "Announcements & messaging center" },
+    { icon: FiClock,      text: "Calendar & scheduling tools" },
   ];
 
   const faqs = [
     {
-      q: "How does per-aircraft pricing work?",
-      a: "You're billed based on the number of active aircraft in your fleet. Add or remove aircraft any time — your bill adjusts at the next billing cycle.",
-    },
-    {
-      q: "Can I change my fleet size mid-cycle?",
-      a: "Yes. Additions are prorated for the remaining days in the billing period, and removals reflect in the next cycle.",
+      q: "What is included in my plan?",
+      a: "Your plan gives you access to all FlightElevate features — reservations, logbooks, maintenance, student management, and more — with no limits on aircraft or users.",
     },
     {
       q: "Is there a free trial?",
-      a: "We offer a 14-day free trial. No credit card required. You'll only be charged if you continue after the trial ends.",
+      a: "Yes! Every new account gets a 14-day free trial. No credit card required. You'll only be charged if you subscribe after the trial ends.",
     },
     {
-      q: "What does annual billing save me?",
-      a: "Annual billing gives you a flat 20% discount on the per-aircraft rate. Toggle above to see the updated pricing instantly.",
+      q: "Can I add unlimited aircraft?",
+      a: "Absolutely. Your flat monthly fee covers your entire organization regardless of fleet size. Add as many aircraft as you need.",
+    },
+    {
+      q: "How do I cancel?",
+      a: "You can cancel at any time. Your access continues until the end of the current billing period. No hidden fees or penalties.",
     },
   ];
 
   // ── ACTIVE SUBSCRIPTION VIEW ───────────────────────────────────────────────
   if (currentSubscription) {
-    const perAcActive =
-      currentSubscription.aircraft_count > 0
-        ? (parseFloat(currentSubscription.price) / currentSubscription.aircraft_count).toFixed(0)
-        : parseFloat(currentSubscription.price).toFixed(0);
+    const planPrice = parseFloat(currentSubscription.price || 0).toFixed(2);
     const renewDate = currentSubscription.ends_at
       ? new Date(currentSubscription.ends_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
       : "—";
@@ -319,7 +304,6 @@ const Subscription = () => {
 
             {/* ── Banner ── */}
             <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-[#1a3a6e] to-[#2563eb] p-6">
-              {/* bg decorations */}
               <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5" />
               <div className="absolute -right-2 -bottom-10 w-28 h-28 rounded-full bg-white/5" />
               <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[100px] opacity-[0.06] pointer-events-none select-none leading-none">✈</span>
@@ -336,14 +320,14 @@ const Subscription = () => {
                     {currentSubscription.plan_title}
                   </h3>
                   <p className="text-sm text-white/70">
-                    ${perAcActive} / aircraft / month · Auto-renews{" "}
+                    ${planPrice}/month · Auto-renews{" "}
                     <span className="text-white font-semibold">{renewDate}</span>
                   </p>
                 </div>
                 <div className="flex gap-3">
                   <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-center backdrop-blur-sm">
-                    <p className="text-2xl font-bold text-white">{currentSubscription.aircraft_count}</p>
-                    <p className="text-xs text-white/60 mt-0.5">Aircraft</p>
+                    <p className="text-2xl font-bold text-white">${planPrice}</p>
+                    <p className="text-xs text-white/60 mt-0.5">Per Month</p>
                   </div>
                   <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-center backdrop-blur-sm">
                     <p className="text-2xl font-bold text-white">
@@ -356,11 +340,10 @@ const Subscription = () => {
             </div>
 
             {/* ── Stat pills ── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatPill icon={MdFlight}    label="Fleet Size"   value={`${currentSubscription.aircraft_count} aircraft`} color="blue" />
-              <StatPill icon={FiUsers}     label="User Seats"   value={currentSubscription.max_users === 0 ? "Unlimited" : `${currentSubscription.max_users} seats`} color="green" />
-              <StatPill icon={FiDollarSign} label="Per Aircraft" value={`$${perAcActive}/mo`} color="purple" />
-              <StatPill icon={FiClock}     label="Renews On"    value={new Date(currentSubscription.ends_at || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric" })} color="amber" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <StatPill icon={FiDollarSign} label="Monthly Fee"  value={`$${planPrice}/mo`}      color="blue" />
+              <StatPill icon={FiUsers}      label="User Seats"   value={currentSubscription.max_users === 0 ? "Unlimited" : `${currentSubscription.max_users} seats`} color="green" />
+              <StatPill icon={FiClock}      label="Renews On"    value={new Date(currentSubscription.ends_at || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} color="amber" />
             </div>
 
             {/* ── Included features ── */}
@@ -370,7 +353,7 @@ const Subscription = () => {
                 <h4 className="text-sm font-semibold text-gray-700">Included in your plan</h4>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-px bg-gray-100">
-                {["Unlimited Flight Logs", "Instructor Oversight", "Fleet Maintenance", "Digital Logbooks", "Student Dashboard", "Role-Based Access"].map((f) => (
+                {["Unlimited Flight Logs", "Unlimited Aircraft", "Instructor Oversight", "Fleet Maintenance", "Digital Logbooks", "Student Dashboard", "Role-Based Access", "Calendar & Scheduling", "Announcements"].map((f) => (
                   <div key={f} className="flex items-center gap-2.5 px-5 py-3 bg-white">
                     <span className="w-5 h-5 rounded-full bg-[#E1FAEA] flex items-center justify-center flex-shrink-0">
                       <FiCheck size={10} className="text-[#016626]" />
@@ -392,9 +375,6 @@ const Subscription = () => {
   }
 
   // ── NO SUBSCRIPTION – PLAN SELECTION ─────────────────────────────────────
-  const firstPlan = plans[0] || null;
-  const sliderPct = ((fleet - 1) / 49) * 100;
-
   return (
     <div className="md:mt-5 mx-auto">
       <div className="bg-white shadow-xl rounded-xl overflow-hidden">
@@ -402,213 +382,136 @@ const Subscription = () => {
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-4 border-b border-[#F3F4F6] gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Subscription Plan</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Per-aircraft pricing — scale as your fleet grows.</p>
-          </div>
-          {/* Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
-            <button
-              onClick={() => setAnnual(false)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                !annual ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setAnnual(true)}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                annual ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Annual
-              <span className="bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-none">
-                −20%
-              </span>
-            </button>
+            <h2 className="text-xl font-semibold text-gray-900">Choose a Plan</h2>
+            <p className="text-sm text-gray-400 mt-0.5">Flat monthly fee — unlimited aircraft, unlimited growth.</p>
           </div>
         </div>
 
         <div className="p-5 space-y-5">
 
-          {/* ── Fleet Calculator ── */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0f2241] to-[#1e4fc2] p-5">
-            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[100px] opacity-[0.05] pointer-events-none select-none leading-none">✈</span>
-            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5">
-              <div className="min-w-[120px]">
-                <p className="text-xs font-medium text-white/50 uppercase tracking-widest mb-1">Fleet Size</p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl font-extrabold text-white leading-none">{fleet}</span>
-                  <span className="text-sm text-white/60">aircraft</span>
-                </div>
-              </div>
-
-              <div className="flex-1 w-full min-w-[180px]">
-                <div className="flex justify-between text-xs text-white/50 mb-2.5 font-medium">
-                  <span>1 aircraft</span>
-                  <span>50 aircraft</span>
-                </div>
-                <input
-                  type="range" min="1" max="50" value={fleet}
-                  onChange={(e) => setFleet(parseInt(e.target.value))}
-                  className="w-full h-2 rounded-full outline-none cursor-pointer"
-                  style={{
-                    appearance: "none",
-                    background: `linear-gradient(to right, #93c5fd ${sliderPct}%, rgba(255,255,255,0.15) ${sliderPct}%)`,
-                    accentColor: "#93c5fd",
-                  }}
-                />
-                <div className="flex justify-between text-xs text-white/40 mt-1.5">
-                  <span>Drag to set fleet size</span>
-                  <span>{fleet} × ${perAc} = {fmt(totalCost)}/mo</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2 flex-shrink-0">
-                <div className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-center min-w-[80px]">
-                  <p className="text-2xl font-bold text-white">{fleet}</p>
-                  <p className="text-xs text-white/50 mt-0.5">Aircraft</p>
-                </div>
-                <div className="bg-white/10 border border-white/15 rounded-xl px-4 py-3 text-center min-w-[90px]">
-                  <p className="text-2xl font-bold text-white">{fmt(totalCost)}</p>
-                  <p className="text-xs text-white/50 mt-0.5">Total/mo</p>
-                </div>
-              </div>
+          {/* ── Plan Cards Grid ── */}
+          {plans.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <p className="text-base font-medium">No active plans available.</p>
+              <p className="text-sm mt-1">Please contact support to get access.</p>
             </div>
-          </div>
+          ) : (
+            <div className={`grid gap-5 ${plans.length === 1 ? 'grid-cols-1 max-w-md mx-auto' : plans.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+              {plans.map((plan, idx) => {
+                const isPopular = plans.length > 1 && idx === Math.floor(plans.length / 2);
+                const planFeatures = plan.para
+                  ? plan.para.split(/[|\n]/).map(f => f.trim()).filter(Boolean)
+                  : [];
+                const isLoading = subscribing === plan.id;
 
-          {/* ── Plan Card + Right Panel ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+                return (
+                  <div
+                    key={plan.id}
+                    className={`relative flex flex-col rounded-2xl border-2 overflow-hidden transition-all duration-200 ${
+                      isPopular
+                        ? 'border-blue-600 shadow-lg shadow-blue-500/15'
+                        : 'border-gray-200 hover:border-blue-200'
+                    }`}
+                  >
+                    {isPopular && (
+                      <div className="bg-blue-600 text-center py-1.5">
+                        <span className="text-xs font-bold text-white tracking-wide flex items-center justify-center gap-1.5">
+                          <FiStar size={10} /> MOST POPULAR
+                        </span>
+                      </div>
+                    )}
+                    <div className="h-1 bg-gradient-to-r from-blue-400 to-blue-600" />
 
-            {/* LEFT – Plan Card */}
-            <div className="lg:col-span-2 flex flex-col rounded-2xl border-2 border-blue-600 overflow-hidden shadow-lg shadow-blue-500/10">
-              {/* colored top bar */}
-              <div className="h-1.5 bg-gradient-to-r from-blue-400 to-blue-600" />
+                    <div className="flex flex-col flex-1 p-5 gap-4">
+                      {/* Title */}
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{plan.title}</h3>
+                        {plan.description && (
+                          <p className="text-sm text-gray-400 mt-1 leading-relaxed">{plan.description}</p>
+                        )}
+                      </div>
 
-              <div className="flex flex-col flex-1 p-5 gap-4">
-                {/* badges */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
-                    Standard Plan
+                      {/* Price */}
+                      <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
+                        <p className="text-xs text-gray-400 font-medium mb-1">Monthly fee</p>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-extrabold text-blue-600 leading-none">
+                            ${parseFloat(plan.price).toFixed(2)}
+                          </span>
+                          <span className="text-sm text-blue-400 font-medium">/month</span>
+                        </div>
+                        {plan.setup_fee > 0 && (
+                          <p className="text-xs text-gray-400 mt-1.5">
+                            + ${parseFloat(plan.setup_fee).toFixed(2)} one-time setup fee
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Limits */}
+                      <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">
+                          <MdFlight size={12} />
+                          {plan.max_aircraft === 0 ? 'Unlimited aircraft' : `Up to ${plan.max_aircraft} aircraft`}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">
+                          <FiUsers size={11} />
+                          {plan.max_users === 0 ? 'Unlimited users' : `Up to ${plan.max_users} users`}
+                        </span>
+                      </div>
+
+                      {/* Features from DB */}
+                      {planFeatures.length > 0 && (
+                        <ul className="space-y-2">
+                          {planFeatures.map((feat, fi) => (
+                            <li key={fi} className="flex items-start gap-2.5 text-sm text-gray-600">
+                              <span className="w-4 h-4 rounded-full bg-[#E1FAEA] flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <FiCheck size={9} className="text-[#016626]" />
+                              </span>
+                              {feat}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {/* CTA */}
+                      <button
+                        onClick={() => handleSubscribe(plan.id)}
+                        disabled={isLoading}
+                        className={`mt-auto w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                          isPopular
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/25'
+                            : 'bg-gray-900 hover:bg-gray-800 text-white'
+                        }`}
+                      >
+                        {isLoading
+                          ? <><FiLoader size={15} className="animate-spin" /> Processing…</>
+                          : <><FiZap size={14} /> Get Started — ${parseFloat(plan.price).toFixed(2)}/mo</>
+                        }
+                      </button>
+                      <p className="text-center text-xs text-gray-400">🔒 Secure payment via Stripe</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Features ── */}
+          <div className="border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50">
+              <FiStar size={14} className="text-blue-600" />
+              <h4 className="text-sm font-semibold text-gray-800">Everything included in every plan</h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-px bg-gray-100">
+              {features.map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3 px-5 py-3.5 bg-white hover:bg-gray-50/70 transition-colors">
+                  <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <Icon size={13} className="text-blue-600" />
                   </span>
-                  {annual && (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-green-500 text-white">
-                      Save 20%
-                    </span>
-                  )}
+                  <span className="text-sm text-gray-700">{text}</span>
                 </div>
-
-                <div>
-                  <p className="text-xs text-gray-400 font-medium mb-1">Starting from</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-extrabold text-gray-900 leading-none tracking-tight">
-                      ${perAc}
-                    </span>
-                    <div className="ml-1">
-                      <p className="text-xs text-gray-500 font-medium leading-tight">per aircraft</p>
-                      <p className="text-xs text-gray-400 leading-tight">per month</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* separator */}
-                <div className="w-full h-px bg-gray-100" />
-
-                {/* cost box */}
-                <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500 font-medium">Your fleet total</span>
-                    <span className="text-xs text-blue-600 font-semibold bg-blue-100 px-2 py-0.5 rounded-md">
-                      {fleet} aircraft
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-blue-600">{fmt(totalCost)}</span>
-                    <span className="text-sm text-blue-400 font-medium">/mo</span>
-                  </div>
-                  {annual && (
-                    <p className="text-xs text-green-600 font-medium mt-1.5">
-                      💰 Saving {fmt(Math.round(planPrice * fleet * 0.2 * 12))} / year
-                    </p>
-                  )}
-                </div>
-
-                {/* billing row */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">{annual ? "Billed annually" : "Billed monthly"}</span>
-                  <span className="text-gray-400">Cancel any time</span>
-                </div>
-
-                {/* CTA */}
-                <button
-                  onClick={() => firstPlan && handleSubscribe(firstPlan.id)}
-                  disabled={subscribing !== null || !firstPlan}
-                  className="mt-auto w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-600/25 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {subscribing
-                    ? <><FiLoader size={15} className="animate-spin" /> Processing…</>
-                    : firstPlan
-                    ? <>Get Started — {fmt(totalCost)}/mo</>
-                    : "Contact Support"
-                  }
-                </button>
-
-                <p className="text-center text-xs text-gray-400">
-                  🔒 Secure payment via Stripe
-                </p>
-              </div>
+              ))}
             </div>
-
-            {/* RIGHT – Features + Breakdown stacked */}
-            <div className="lg:col-span-3 flex flex-col gap-5">
-
-              {/* Features Grid */}
-              <div className="border border-gray-200 rounded-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50">
-                  <FiStar size={14} className="text-blue-600" />
-                  <h4 className="text-sm font-semibold text-gray-800">Everything included</h4>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-100">
-                  {features.map(({ icon: Icon, text }) => (
-                    <div key={text} className="flex items-center gap-3 px-5 py-3.5 bg-white hover:bg-gray-50/70 transition-colors">
-                      <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                        <Icon size={13} className="text-blue-600" />
-                      </span>
-                      <span className="text-sm text-gray-700">{text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Billing Breakdown */}
-              <div className="border border-gray-200 rounded-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50">
-                  <FiDollarSign size={14} className="text-blue-600" />
-                  <h4 className="text-sm font-semibold text-gray-800">Billing Breakdown</h4>
-                </div>
-                <div className="px-5 divide-y divide-gray-50">
-                  {[
-                    { label: "Price per aircraft", value: `$${perAc}/mo` },
-                    { label: "Fleet size", value: `${fleet} aircraft` },
-                    { label: "Billing cycle", value: annual ? "Annual" : "Monthly" },
-                    { label: "Discount applied", value: annual ? "20% off" : "None", accent: annual },
-                  ].map(({ label, value, accent }) => (
-                    <div key={label} className="flex justify-between items-center py-3">
-                      <span className="text-sm text-gray-500">{label}</span>
-                      <span className={`text-sm font-semibold ${accent ? "text-green-600" : "text-gray-800"}`}>
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between items-center py-4">
-                    <span className="text-sm font-bold text-gray-900">Total due monthly</span>
-                    <span className="text-xl font-extrabold text-blue-600">{fmt(totalCost)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
           </div>
 
           {/* ── Divider ── */}
@@ -652,3 +555,5 @@ const Subscription = () => {
 };
 
 export default Subscription;
+
+

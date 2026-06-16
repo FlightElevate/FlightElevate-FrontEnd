@@ -93,8 +93,16 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, r
   });
 
   if (isAdminUser && !isSuperAdminUser && user?.organization_id) {
-    const hasActiveSub = user.has_active_subscription;
-    const isTrialActive = user.is_trial_active;
+    const hasActiveSub = !!user.has_active_subscription;
+
+    // Double-check trial status: use backend flag first, then verify against trial_ends_at date
+    const backendTrialActive = !!user.is_trial_active;
+    const clientTrialActive = user.trial_ends_at
+      ? new Date(user.trial_ends_at) > new Date()
+      : false;
+    const isTrialActive = backendTrialActive || clientTrialActive;
+
+    // Only block if BOTH subscription is inactive AND trial has expired
     if (!hasActiveSub && !isTrialActive) {
       return <Navigate to="/subscription-required" replace />;
     }
