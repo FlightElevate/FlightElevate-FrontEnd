@@ -91,11 +91,11 @@ const CheckoutPage = () => {
   }
 
   const appearance = {
-    theme: 'night',
+    theme: 'stripe',
     variables: {
-      colorPrimary: '#3b82f6',
-      colorBackground: '#1e293b',
-      colorText: '#f8fafc',
+      colorPrimary: '#2563eb', // Blue-600
+      colorBackground: '#ffffff',
+      colorText: '#1e293b', // Slate-800
       colorDanger: '#ef4444',
       fontFamily: 'Inter, system-ui, sans-serif',
       spacingUnit: '4px',
@@ -103,103 +103,103 @@ const CheckoutPage = () => {
     },
     rules: {
       '.Input': {
-        borderColor: '#334155',
-        backgroundColor: '#0f172a',
+        borderColor: '#e2e8f0', // Slate-200
+        backgroundColor: '#f8fafc', // Slate-50
         boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
       },
       '.Input:focus': {
-        borderColor: '#3b82f6',
+        borderColor: '#3b82f6', // Blue-500
         boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
       },
       '.Label': {
-        color: '#94a3b8',
-        fontWeight: '500',
+        color: '#475569', // Slate-600
+        fontWeight: '600',
         marginBottom: '6px',
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1120] flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
       
       {/* Left Panel - Order Summary & Branding */}
-      <div className="w-full md:w-5/12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-8 md:p-16 flex flex-col justify-between relative overflow-hidden">
+      <div className="w-full md:w-5/12 bg-white border-r border-slate-200 p-8 md:p-16 flex flex-col justify-between relative overflow-hidden">
         
         {/* Background glow effects */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
-          <div className="absolute top-40 -right-40 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob"></div>
+          <div className="absolute top-40 -right-40 w-96 h-96 bg-blue-50 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-2000"></div>
         </div>
 
         <div className="relative z-10">
           <button 
             onClick={() => navigate(-1)}
-            className="group flex items-center gap-2 text-sm font-semibold text-blue-400 hover:text-white transition-colors mb-12"
+            className="group flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors mb-12"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
               <FiArrowLeft />
             </div>
             Back to Dashboard
           </button>
 
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-bold uppercase tracking-widest mb-6">
               <FiShield size={12} /> Secure Checkout
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight leading-tight">
-              Upgrade your <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">FlightElevate</span>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight leading-tight">
+              Upgrade your <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">FlightElevate</span>
             </h1>
-            <p className="text-slate-400 text-lg mb-12 max-w-sm leading-relaxed">
+            <p className="text-slate-600 text-lg mb-12 max-w-sm leading-relaxed">
               Unlock powerful management tools and elevate your aviation business today.
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+        <div className="relative z-10 bg-white border border-slate-200 rounded-3xl p-8 shadow-xl shadow-slate-200/50">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Order Summary</p>
           <div className="flex justify-between items-end mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-white mb-1">{plan?.title || 'Premium Subscription'}</h2>
-              <p className="text-sm text-slate-400">Billed monthly</p>
+              <h2 className="text-2xl font-bold text-slate-900 mb-1">{plan?.title || 'Premium Subscription'}</h2>
+              <p className="text-sm text-slate-500">Billed monthly</p>
             </div>
             <div className="text-right">
-              <span className="text-3xl font-extrabold text-white">${parseFloat(plan?.price || 0).toFixed(2)}</span>
+              <span className="text-3xl font-extrabold text-slate-900">${parseFloat(plan?.price || 0).toFixed(2)}</span>
               <span className="text-slate-500 text-sm font-medium">/mo</span>
             </div>
           </div>
           
           <div className="space-y-4 mb-6">
-            <div className="flex items-center gap-3 text-slate-300">
-              <FiCheckCircle className="text-blue-400" /> 
+            <div className="flex items-center gap-3 text-slate-700">
+              <FiCheckCircle className="text-blue-600" /> 
               <span>Instant account activation</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-300">
-              <FiCheckCircle className="text-blue-400" /> 
+            <div className="flex items-center gap-3 text-slate-700">
+              <FiCheckCircle className="text-blue-600" /> 
               <span>Cancel anytime, no hidden fees</span>
             </div>
           </div>
 
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent my-6 opacity-30"></div>
+          <div className="h-px w-full bg-slate-200 my-6"></div>
           
-          <div className="flex justify-between items-center text-white">
-            <span className="font-semibold text-slate-300">Total Due Today</span>
-            <span className="text-xl font-bold text-blue-400">${parseFloat(plan?.price || 0).toFixed(2)}</span>
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-slate-700">Total Due Today</span>
+            <span className="text-xl font-bold text-blue-600">${parseFloat(plan?.price || 0).toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* Right Panel - Checkout Form */}
-      <div className="w-full md:w-7/12 flex items-center justify-center p-8 md:p-12 relative">
+      <div className="w-full md:w-7/12 flex items-center justify-center p-8 md:p-12 relative bg-slate-50">
         <div className="w-full max-w-lg">
           <div className="mb-8 text-center md:text-left">
-            <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Payment Details</h2>
-            <p className="text-slate-400">Enter your card details to complete the subscription.</p>
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">Payment Details</h2>
+            <p className="text-slate-500">Enter your card details to complete the subscription.</p>
           </div>
           
-          <div className="bg-[#1e293b] border border-slate-700/50 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-2xl shadow-slate-200/60 relative overflow-hidden">
             {/* Glossy top highlight */}
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
             
             <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
               <CheckoutForm 
@@ -212,11 +212,11 @@ const CheckoutPage = () => {
             </Elements>
           </div>
 
-          <div className="mt-8 flex items-center justify-center gap-6 opacity-40 grayscale pointer-events-none">
+          <div className="mt-8 flex items-center justify-center gap-6 opacity-60 grayscale pointer-events-none">
             {/* Subtle logos to imply security */}
-            <span className="font-bold text-white text-lg tracking-tighter">stripe</span>
-            <div className="h-4 w-px bg-slate-600"></div>
-            <span className="font-semibold text-white text-sm">PCI DSS Compliant</span>
+            <span className="font-bold text-slate-800 text-lg tracking-tighter">stripe</span>
+            <div className="h-4 w-px bg-slate-300"></div>
+            <span className="font-semibold text-slate-600 text-sm">PCI DSS Compliant</span>
           </div>
         </div>
       </div>
