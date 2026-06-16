@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { subscriptionPlanService } from "../../../api/services/subscriptionPlanService";
 import { showSuccessToast, showErrorToast } from "../../../utils/notifications";
 import {
@@ -163,6 +164,7 @@ const StatPill = ({ icon: Icon, label, value, color = "blue" }) => {
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────
 const Subscription = () => {
+  const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
