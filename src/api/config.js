@@ -19,6 +19,14 @@ export const ENDPOINTS = {
     SWITCH_ORGANIZATION: '/auth/switch-organization',
   },
 
+  INBOX: {
+    USER: '/chat/all',
+    GETCONVERSATIONS: '/chat/conversations',
+    CONVERSATION: '/chat/conversation',
+    MESSAGES: (id) => `/chat/conversation/${id}/messages`,
+    SEND: (id) => `/chat/conversation/${id}/message`,
+  },
+
   
   SETTINGS: {
     GET: '/settings',
