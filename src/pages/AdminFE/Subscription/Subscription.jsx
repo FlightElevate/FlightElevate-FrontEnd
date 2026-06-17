@@ -480,53 +480,7 @@ const Subscription = () => {
             </div>
           )}
 
-          {/* ── Features ── */}
-          <div className="border border-gray-200 rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50">
-              <FiStar size={14} className="text-blue-600" />
-              <h4 className="text-sm font-semibold text-gray-800">Everything included in every plan</h4>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-px bg-gray-100">
-              {features.map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-center gap-3 px-5 py-3.5 bg-white hover:bg-gray-50/70 transition-colors">
-                  <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <Icon size={13} className="text-blue-600" />
-                  </span>
-                  <span className="text-sm text-gray-700">{text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* ── Divider ── */}
-          <div className="border-t border-[#F3F4F6]" />
-
-          {/* ── FAQ ── */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-1 h-4 rounded-full bg-blue-600" />
-              <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Frequently Asked</h4>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {faqs.map(({ q, a }) => <FaqItem key={q} question={q} answer={a} />)}
-            </div>
-          </div>
-
-          {/* ── Help Banner ── */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1a3a6e] to-[#2563eb] p-5 flex flex-col sm:flex-row items-center gap-4">
-            <div className="absolute -right-6 -bottom-8 w-32 h-32 rounded-full bg-white/5" />
-            <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 text-xl">
-              💬
-            </div>
-            <div className="flex-1 text-center sm:text-left">
-              <p className="text-base font-bold text-white">Have questions about your plan?</p>
-              <p className="text-sm text-white/65 mt-0.5">Our aviation specialists are ready to help you get started.</p>
-            </div>
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-white/15 border border-white/25 text-white text-sm font-semibold rounded-xl hover:bg-white/25 transition-colors whitespace-nowrap flex-shrink-0">
-              <FiMail size={14} />
-              Send a Message
-            </button>
-          </div>
 
         </div>
       </div>
