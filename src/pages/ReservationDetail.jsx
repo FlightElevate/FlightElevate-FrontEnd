@@ -320,8 +320,8 @@ const ReservationDetail = () => {
     instruction_xc_hours: '',
     instruction_night_hours: '',
     instruction_instrument_hours: '',
-    instruction_cirrus_flight_tyq_hours: '',
-    instruction_cirrus_ground_tyq_hours: '',
+    route_from: '',
+    route_to: '',
     landings_day: '',
     landings_night: '',
     checkin_notes: '',
@@ -348,8 +348,8 @@ const ReservationDetail = () => {
         instruction_xc_hours: checkinForm.instruction_xc_hours ? parseFloat(checkinForm.instruction_xc_hours) : null,
         instruction_night_hours: checkinForm.instruction_night_hours ? parseFloat(checkinForm.instruction_night_hours) : null,
         instruction_instrument_hours: checkinForm.instruction_instrument_hours ? parseFloat(checkinForm.instruction_instrument_hours) : null,
-        instruction_cirrus_flight_tyq_hours: checkinForm.instruction_cirrus_flight_tyq_hours ? parseFloat(checkinForm.instruction_cirrus_flight_tyq_hours) : null,
-        instruction_cirrus_ground_tyq_hours: checkinForm.instruction_cirrus_ground_tyq_hours ? parseFloat(checkinForm.instruction_cirrus_ground_tyq_hours) : null,
+        route_from: checkinForm.route_from || null,
+        route_to: checkinForm.route_to || null,
         landings_day: checkinForm.landings_day ? parseInt(checkinForm.landings_day) : 0,
         landings_night: checkinForm.landings_night ? parseInt(checkinForm.landings_night) : 0,
         checkin_notes: checkinForm.checkin_notes || null,
@@ -841,8 +841,8 @@ const ReservationDetail = () => {
                           instruction_xc_hours: reservation.instruction_xc_hours != null ? String(reservation.instruction_xc_hours) : '',
                           instruction_night_hours: reservation.instruction_night_hours != null ? String(reservation.instruction_night_hours) : '',
                           instruction_instrument_hours: reservation.instruction_instrument_hours != null ? String(reservation.instruction_instrument_hours) : '',
-                          instruction_cirrus_flight_tyq_hours: reservation.instruction_cirrus_flight_tyq_hours != null ? String(reservation.instruction_cirrus_flight_tyq_hours) : '',
-                          instruction_cirrus_ground_tyq_hours: reservation.instruction_cirrus_ground_tyq_hours != null ? String(reservation.instruction_cirrus_ground_tyq_hours) : '',
+                          route_from: reservation.route_from || '',
+                          route_to: reservation.route_to || '',
                           landings_day: reservation.landings_day != null ? String(reservation.landings_day) : '',
                           landings_night: reservation.landings_night != null ? String(reservation.landings_night) : '',
                           checkin_notes: reservation.checkin_notes || '',
@@ -872,8 +872,8 @@ const ReservationDetail = () => {
                   <Field label="Cross Country" value={reservation.instruction_xc_hours ? `${reservation.instruction_xc_hours} hrs` : null} />
                   <Field label="Night" value={reservation.instruction_night_hours ? `${reservation.instruction_night_hours} hrs` : null} />
                   <Field label="Instrument" value={reservation.instruction_instrument_hours ? `${reservation.instruction_instrument_hours} hrs` : null} />
-                  <Field label="Cirrus Flight TYQ" value={reservation.instruction_cirrus_flight_tyq_hours ? `${reservation.instruction_cirrus_flight_tyq_hours} hrs` : null} />
-                  <Field label="Cirrus Ground TYQ" value={reservation.instruction_cirrus_ground_tyq_hours ? `${reservation.instruction_cirrus_ground_tyq_hours} hrs` : null} />
+                  <Field label="From" value={reservation.route_from} />
+                  <Field label="To" value={reservation.route_to} />
                   <Field label="Day Landings" value={reservation.landings_day} />
                   <Field label="Night Landings" value={reservation.landings_night} />
                 </div>
@@ -910,8 +910,8 @@ const ReservationDetail = () => {
                     <Input label="Cross Country" type="number" step="0.1" min="0" value={checkinForm.instruction_xc_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_xc_hours: e.target.value }))} placeholder="0" />
                     <Input label="Night" type="number" step="0.1" min="0" value={checkinForm.instruction_night_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_night_hours: e.target.value }))} placeholder="0" />
                     <Input label="Instrument" type="number" step="0.1" min="0" value={checkinForm.instruction_instrument_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_instrument_hours: e.target.value }))} placeholder="0" />
-                    <Input label="Cirrus Flight TYQ" type="number" step="0.1" min="0" value={checkinForm.instruction_cirrus_flight_tyq_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_cirrus_flight_tyq_hours: e.target.value }))} placeholder="0" />
-                    <Input label="Cirrus Ground TYQ" type="number" step="0.1" min="0" value={checkinForm.instruction_cirrus_ground_tyq_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_cirrus_ground_tyq_hours: e.target.value }))} placeholder="0" />
+                    <Input label="From" type="text" value={checkinForm.route_from} onChange={e => setCheckinForm(f => ({ ...f, route_from: e.target.value }))} placeholder="e.g. KJFK" />
+                    <Input label="To" type="text" value={checkinForm.route_to} onChange={e => setCheckinForm(f => ({ ...f, route_to: e.target.value }))} placeholder="e.g. KLAX" />
                     <Input label="Day Landings" type="number" min="0" value={checkinForm.landings_day} onChange={e => setCheckinForm(f => ({ ...f, landings_day: e.target.value }))} placeholder="0" />
                     <Input label="Night Landings" type="number" min="0" value={checkinForm.landings_night} onChange={e => setCheckinForm(f => ({ ...f, landings_night: e.target.value }))} placeholder="0" />
                   </div>
