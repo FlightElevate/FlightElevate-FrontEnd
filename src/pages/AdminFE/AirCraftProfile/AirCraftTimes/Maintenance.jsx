@@ -399,7 +399,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Calendar Sync</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Days Remaining</label>
                   <input
                     type="number"
                     min="0"
@@ -409,7 +409,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tach 1</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hours Remaining</label>
                   <input
                     type="number"
                     step="0.01"
