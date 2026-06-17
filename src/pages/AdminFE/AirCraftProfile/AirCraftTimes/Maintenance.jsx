@@ -167,9 +167,67 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
     return `${parseFloat(hours).toFixed(2)} hours`;
   };
 
-  const formatDays = (days) => {
+  const getDaysStatus = (days) => {
+    if (days === null || days === undefined || days === '') return null;
+    const d = parseInt(days);
+    if (d < 0) return 'overdue';
+    if (d <= 60) return 'due_soon';
+    return 'on_track';
+  };
+
+  const getHoursStatus = (hours) => {
+    if (hours === null || hours === undefined || hours === '') return null;
+    const h = parseFloat(hours);
+    if (h < 0) return 'overdue';
+    if (h <= 10) return 'due_soon';
+    return 'on_track';
+  };
+
+  const getBadgeStyle = (status) => {
+    switch (status) {
+      case 'overdue': return 'bg-red-100 text-red-700';
+      case 'due_soon': return 'bg-yellow-100 text-yellow-700';
+      case 'on_track': return 'bg-green-100 text-green-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getEstimatedDate = (days) => {
+    if (days === null || days === undefined || days === '') return 'Remaining';
+    const date = new Date();
+    date.setDate(date.getDate() + parseInt(days));
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const renderDaysCell = (days) => {
     if (days === null || days === undefined || days === '') return '--';
-    return days.toString();
+    const status = getDaysStatus(days);
+    return (
+      <div className="flex flex-col gap-1">
+        <span className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(status)}`}>
+          {days} days
+        </span>
+        <span className="text-xs text-gray-500">
+          {getEstimatedDate(days)}
+        </span>
+      </div>
+    );
+  };
+
+  const renderHoursCell = (hours) => {
+    if (hours === null || hours === undefined || hours === '') return '--';
+    const status = getHoursStatus(hours);
+    const textBelow = parseFloat(hours) < 0 ? 'Overdue' : 'Remaining';
+    return (
+      <div className="flex flex-col gap-1">
+        <span className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(status)}`}>
+          {parseFloat(hours).toFixed(2)} hours
+        </span>
+        <span className="text-xs text-gray-500">
+          {textBelow}
+        </span>
+      </div>
+    );
   };
 
   if (loading) {
@@ -182,57 +240,62 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
 
   return (
     <div className="space-y-4">
-      {}
-      <div className="flex justify-end">
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-        >
-          <FiPlus size={18} />
-          Add Maintenance Record
-        </button>
+      {/* Top Actions */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-800">Maintenance Schedule</h2>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            <FiPlus size={18} />
+            Add Maintenance Record
+          </button>
+        </div>
       </div>
 
-      {}
-      <div className="overflow-x-auto">
+      {/* Table */}
+      <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
         <table className="text-sm text-[#3D3D3D] border-collapse w-full">
           <thead className="bg-[#FAFAFA] text-left">
             <tr>
-              <th className="py-2 px-3 border border-gray-300">Registration No</th>
-              <th className="py-2 px-3 border border-gray-300">Status</th>
-              <th className="py-2 px-3 border border-gray-300">Template Name</th>
-              <th className="py-2 px-3 border border-gray-300">Calendar Sync</th>
-              <th className="py-2 px-3 border border-gray-300">Tach 1</th>
-              <th className="py-2 px-3 border border-gray-300">Cycles</th>
-              <th className="py-2 px-3 border border-gray-300">Reference No.</th>
-              <th className="py-2 px-3 border border-gray-300">Last Resolved</th>
-              <th className="py-2 px-3 border border-gray-300 text-center">Action</th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600">Registration No</th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600">Status</th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600">Template Name</th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600">
+                <div className="flex flex-col">
+                  <span>Days Remaining</span>
+                  <span className="text-xs font-normal text-gray-400">Next Due Date ⓘ</span>
+                </div>
+              </th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600">
+                <div className="flex flex-col">
+                  <span>Hours Remaining</span>
+                  <span className="text-xs font-normal text-gray-400">Next Due Time ⓘ</span>
+                </div>
+              </th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600">Reference No.</th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600">Last Resolved</th>
+              <th className="py-3 px-4 border-b border-gray-200 font-semibold text-gray-600 text-center">Action</th>
             </tr>
           </thead>
 
           <tbody>
             {maintenanceData.length > 0 ? (
               maintenanceData.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 bg-white relative">
-                  <td className="py-2 px-3 border border-gray-300">{item.aircraft_registration || item.aircraft_name || 'N/A'}</td>
-                  <td className="py-2 px-3 border border-gray-300">
+                <tr key={item.id} className="hover:bg-gray-50 border-b border-gray-100 relative">
+                  <td className="py-3 px-4">{item.aircraft_registration || item.aircraft_name || 'N/A'}</td>
+                  <td className="py-3 px-4">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusStyle(item.status)}`}>
                       {getStatusDisplay(item.status)}
                     </span>
                   </td>
-                  <td className="py-2 px-3 border border-gray-300">{item.template_name}</td>
-                  <td className="py-2 px-3 border border-gray-300">{formatDays(item.days_remaining)}</td>
-                  <td
-                    className={`py-2 px-3 border border-gray-300 ${
-                      item.hours_remaining && parseFloat(item.hours_remaining) < 10 ? "text-[#CF0000] font-medium" : ""
-                    }`}
-                  >
-                    {formatHours(item.hours_remaining)}
-                  </td>
-                  <td className="py-2 px-3 border border-gray-300">{formatDays(item.cycles_remaining)}</td>
-                  <td className="py-2 px-3 border border-gray-300">{item.reference_no || '--'}</td>
-                  <td className="py-2 px-3 border border-gray-300">{formatDate(item.last_resolved)}</td>
-                  <td className="py-2 px-3 border border-gray-300 text-center relative">
+                  <td className="py-3 px-4">{item.template_name}</td>
+                  <td className="py-3 px-4">{renderDaysCell(item.days_remaining)}</td>
+                  <td className="py-3 px-4">{renderHoursCell(item.hours_remaining)}</td>
+                  <td className="py-3 px-4">{item.reference_no || '--'}</td>
+                  <td className="py-3 px-4">{formatDate(item.last_resolved)}</td>
+                  <td className="py-3 px-4 text-center relative">
                     <button
                       onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
                       className="p-1 hover:bg-gray-100 rounded cursor-pointer"
@@ -262,13 +325,35 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
               ))
             ) : (
               <tr>
-                <td colSpan="9" className="text-center py-4 text-gray-500">
+                <td colSpan="8" className="text-center py-8 text-gray-500">
                   No maintenance records found.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Legend Footer */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-8 mt-4 shadow-sm text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <span className="text-gray-700 font-medium">On Track</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+          <div className="flex flex-col">
+            <span className="text-gray-700 font-medium">Due Soon</span>
+            <span className="text-gray-500 text-xs">(≤ 60 days or ≤ 10 hrs)</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+          <div className="flex flex-col">
+            <span className="text-gray-700 font-medium">Overdue</span>
+            <span className="text-gray-500 text-xs">(&lt; 0 days or &lt; 0 hrs)</span>
+          </div>
+        </div>
       </div>
 
       {}
