@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiArrowLeft, FiTrash2, FiAlertTriangle, FiCheckCircle,
   FiClock, FiMapPin, FiUser, FiTool, FiFileText, FiDollarSign,
-  FiBook, FiSend, FiRefreshCw, FiLoader, FiPrinter, FiCalendar,
+  FiBook, FiSend, FiRefreshCw, FiLoader, FiPrinter, FiCalendar, FiCreditCard, FiX,
 } from 'react-icons/fi';
 import { reservationService } from '../api/services/reservationService';
 import { useAuth } from '../context/AuthContext';
@@ -86,7 +86,7 @@ const TABS = [
   { id: 'overview', label: 'Overview', icon: FiFileText },
   { id: 'dispatch', label: 'Dispatch', icon: FiSend },
   { id: 'checkin', label: 'Check-In', icon: FiCheckCircle },
-  { id: 'invoice', label: 'Invoice', icon: FiDollarSign, hidden: true },
+  { id: 'invoice', label: 'Invoice', icon: FiDollarSign },
   { id: 'logsession', label: 'Log Session', icon: FiBook },
   { id: 'delete', label: 'Delete', icon: FiTrash2 },
   { id: 'calendar', label: 'Calendar Sync', icon: FiCalendar },
@@ -116,6 +116,7 @@ const ReservationDetail = () => {
   const [metarLoading, setMetarLoading] = useState(false);
   const [metarDisplay, setMetarDisplay] = useState('');
   const [stripePaymentMethodId, setStripePaymentMethodId] = useState('');
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Editing states
   const [isEditingDispatch, setIsEditingDispatch] = useState(false);
@@ -143,6 +144,13 @@ const ReservationDetail = () => {
   }, [id]);
 
   useEffect(() => { loadDetail(); }, [loadDetail]);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && TABS.some(t => t.id === tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const checkPaymentSuccess = async () => {
@@ -375,6 +383,31 @@ const ReservationDetail = () => {
   const [refundForm, setRefundForm] = useState({ refund_amount: '', refund_reason: '' });
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [showChargeDialog, setShowChargeDialog] = useState(false);
+
+  const getBlockTime = () => {
+    if (!reservation) return 0;
+    const hobbsBlock = parseFloat(reservation.hobbs_block_time) || 0;
+    const tachBlock = parseFloat(reservation.tach_block_time) || 0;
+    if (hobbsBlock > 0) return hobbsBlock;
+    if (tachBlock > 0) return tachBlock;
+    return (parseFloat(reservation.duration_minutes) || 60) / 60;
+  };
+
+  const calculateEstimatedTotal = () => {
+    const aircraftRate = parseFloat(invoiceForm.aircraft_rate) || 0;
+    const blockTime = getBlockTime();
+    const aircraftCharge = blockTime * aircraftRate;
+
+    const dualHours = parseFloat(invoiceForm.instruction_dual_hours) || 0;
+    const groundHours = parseFloat(invoiceForm.instruction_ground_hours) || 0;
+    const instructorRate = parseFloat(invoiceForm.instructor_rate) || 0;
+    const instructorCharge = (dualHours + groundHours) * instructorRate;
+
+    const subtotal = aircraftCharge + instructorCharge;
+    const taxPercent = parseFloat(invoiceForm.tax_percent) || 0;
+    const taxAmount = subtotal * taxPercent / 100;
+    return subtotal + taxAmount;
+  };
 
   useEffect(() => {
     if (invoice) {
@@ -885,82 +918,139 @@ const ReservationDetail = () => {
             ) : canCheckin || isEditingCheckin ? (
               // Check-in form
               <Section title={isEditingCheckin ? "Edit Check-In Info" : "Check-In After Flight"} icon={FiCheckCircle}>
-                <p className="text-sm text-gray-500 mb-4">{isEditingCheckin ? "Correct post-flight readings below." : "Record post-flight readings. Logbook and invoice will be auto-generated."}</p>
-                {reservation.hobbs_out && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 bg-blue-50 border border-blue-100 rounded-lg p-3">
-                    <div><span className="text-xs text-blue-600 font-medium">Hobbs Out: </span><span className="text-sm font-bold">{reservation.hobbs_out}</span></div>
-                    <div><span className="text-xs text-blue-600 font-medium">Engine 1 Tach Out: </span><span className="text-sm font-bold">{reservation.tach_out}</span></div>
-                    {reservation.tach_2_out != null && <div><span className="text-xs text-blue-600 font-medium">Engine 2 Tach Out: </span><span className="text-sm font-bold">{reservation.tach_2_out}</span></div>}
+                <p className="text-sm text-gray-500 mb-6">{isEditingCheckin ? "Correct post-flight readings below." : "Record post-flight readings. Logbook and invoice will be auto-generated."}</p>
+                
+                {/* Visual Block Time Widgets */}
+                {((checkinForm.hobbs_in && reservation.hobbs_out) || 
+                  (checkinForm.tach_in && reservation.tach_out != null) || 
+                  (checkinForm.tach_2_in && reservation.tach_2_out != null)) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    {checkinForm.hobbs_in && reservation.hobbs_out && (
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                        <div className="p-3 bg-blue-500 text-white rounded-xl">
+                          <FiClock size={20} />
+                        </div>
+                        <div>
+                          <div className="text-xs text-blue-600 font-semibold uppercase tracking-wider">Hobbs Block Time</div>
+                          <div className="text-2xl font-black text-blue-900 mt-0.5">
+                            {Math.max(0, parseFloat(checkinForm.hobbs_in) - parseFloat(reservation.hobbs_out)).toFixed(1)} <span className="text-sm font-bold">hrs</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {checkinForm.tach_in && reservation.tach_out != null && (
+                      <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                        <div className="p-3 bg-emerald-500 text-white rounded-xl">
+                          <FiTool size={20} />
+                        </div>
+                        <div>
+                          <div className="text-xs text-emerald-600 font-semibold uppercase tracking-wider">Engine 1 Tach</div>
+                          <div className="text-2xl font-black text-emerald-900 mt-0.5">
+                            {Math.max(0, parseFloat(checkinForm.tach_in) - parseFloat(reservation.tach_out)).toFixed(1)} <span className="text-sm font-bold">hrs</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {checkinForm.tach_2_in && reservation.tach_2_out != null && (
+                      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                        <div className="p-3 bg-purple-500 text-white rounded-xl">
+                          <FiTool size={20} />
+                        </div>
+                        <div>
+                          <div className="text-xs text-purple-600 font-semibold uppercase tracking-wider">Engine 2 Tach</div>
+                          <div className="text-2xl font-black text-purple-900 mt-0.5">
+                            {Math.max(0, parseFloat(checkinForm.tach_2_in) - parseFloat(reservation.tach_2_out)).toFixed(1)} <span className="text-sm font-bold">hrs</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+
                 <form onSubmit={async (e) => {
                   await handleCheckin(e);
                   setIsEditingCheckin(false);
-                }} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Hobbs In" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
-                    <Input label="Engine 1 Tach In" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
-                    {reservation.tach_2_out != null && (
-                      <Input label="Engine 2 Tach In" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
+                }} className="space-y-6">
+                  {/* Group 1: Meter Readings */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+                      <FiClock size={14} className="text-blue-500" /> 1. Meter Readings (Hobbs / Tach)
+                    </h4>
+                    {reservation.hobbs_out && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 bg-slate-50 border border-slate-200/60 rounded-xl p-3 text-xs text-slate-600">
+                        <div><span className="font-semibold text-slate-500">Hobbs Out: </span><span className="font-bold text-slate-800">{reservation.hobbs_out}</span></div>
+                        <div><span className="font-semibold text-slate-500">Engine 1 Tach Out: </span><span className="font-bold text-slate-800">{reservation.tach_out}</span></div>
+                        {reservation.tach_2_out != null && <div><span className="font-semibold text-slate-500">Engine 2 Tach Out: </span><span className="font-bold text-slate-800">{reservation.tach_2_out}</span></div>}
+                      </div>
                     )}
-                    <Input label="Dual Instruction Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_dual_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} placeholder="e.g. 1.5" />
-                    <Input label="Ground Instruction Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_ground_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} placeholder="e.g. 0.5" />
-                    <Input label="Multi-Engine Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_multi_engine_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_multi_engine_hours: e.target.value }))} placeholder="e.g. 0.0" />
-                    <Input label="Solo Flight" type="number" step="0.1" min="0" value={checkinForm.instruction_solo_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_solo_hours: e.target.value }))} placeholder="0" />
-                    <Input label="Cross Country" type="number" step="0.1" min="0" value={checkinForm.instruction_xc_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_xc_hours: e.target.value }))} placeholder="0" />
-                    <Input label="Night" type="number" step="0.1" min="0" value={checkinForm.instruction_night_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_night_hours: e.target.value }))} placeholder="0" />
-                    <Input label="Instrument" type="number" step="0.1" min="0" value={checkinForm.instruction_instrument_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_instrument_hours: e.target.value }))} placeholder="0" />
-                    <Input label="From" type="text" value={checkinForm.route_from} onChange={e => setCheckinForm(f => ({ ...f, route_from: e.target.value }))} placeholder="e.g. KJFK" />
-                    <Input label="To" type="text" value={checkinForm.route_to} onChange={e => setCheckinForm(f => ({ ...f, route_to: e.target.value }))} placeholder="e.g. KLAX" />
-                    <Input label="Day Landings" type="number" min="0" value={checkinForm.landings_day} onChange={e => setCheckinForm(f => ({ ...f, landings_day: e.target.value }))} placeholder="0" />
-                    <Input label="Night Landings" type="number" min="0" value={checkinForm.landings_night} onChange={e => setCheckinForm(f => ({ ...f, landings_night: e.target.value }))} placeholder="0" />
-                  </div>
-                  {/* Live block time preview */}
-                  {checkinForm.hobbs_in && reservation.hobbs_out && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
-                      <span className="text-gray-500">Hobbs Block Time: </span>
-                      <span className="font-bold text-gray-900">
-                        {Math.max(0, parseFloat(checkinForm.hobbs_in) - parseFloat(reservation.hobbs_out)).toFixed(1)} hrs
-                      </span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Input label="Hobbs In" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
+                      <Input label="Engine 1 Tach In" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
+                      {reservation.tach_2_out != null && (
+                        <Input label="Engine 2 Tach In" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
+                      )}
                     </div>
-                  )}
-                  {checkinForm.tach_in && reservation.tach_out != null && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
-                      <span className="text-gray-500">Engine 1 Tach Block Time: </span>
-                      <span className="font-bold text-gray-900">
-                        {Math.max(0, parseFloat(checkinForm.tach_in) - parseFloat(reservation.tach_out)).toFixed(1)} hrs
-                      </span>
-                    </div>
-                  )}
-                  {checkinForm.tach_2_in && reservation.tach_2_out != null && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
-                      <span className="text-gray-500">Engine 2 Tach Block Time: </span>
-                      <span className="font-bold text-gray-900">
-                        {Math.max(0, parseFloat(checkinForm.tach_2_in) - parseFloat(reservation.tach_2_out)).toFixed(1)} hrs
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Squawks (one per line)</label>
-                    <textarea
-                      rows={3}
-                      value={checkinForm.squawks_text}
-                      onChange={(e) => setCheckinForm((f) => ({ ...f, squawks_text: e.target.value }))}
-                      placeholder="Describe any aircraft squawks…"
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Check-In Notes</label>
-                    <textarea
-                      rows={3}
-                      value={checkinForm.checkin_notes}
-                      onChange={e => setCheckinForm(f => ({ ...f, checkin_notes: e.target.value }))}
-                      placeholder="Any post-flight notes..."
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
+
+                  {/* Group 2: Instruction & Flight Logbook Hours */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+                      <FiBook size={14} className="text-purple-500" /> 2. Instruction & Flight Logbook Hours
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Input label="Dual Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_dual_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} placeholder="e.g. 1.5" />
+                      <Input label="Ground Hours" type="number" step="0.1" min="0" value={checkinForm.instruction_ground_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} placeholder="e.g. 0.5" />
+                      <Input label="Multi-Engine" type="number" step="0.1" min="0" value={checkinForm.instruction_multi_engine_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_multi_engine_hours: e.target.value }))} placeholder="e.g. 0.0" />
+                      <Input label="Solo Flight" type="number" step="0.1" min="0" value={checkinForm.instruction_solo_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_solo_hours: e.target.value }))} placeholder="0" />
+                      <Input label="Cross Country" type="number" step="0.1" min="0" value={checkinForm.instruction_xc_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_xc_hours: e.target.value }))} placeholder="0" />
+                      <Input label="Night" type="number" step="0.1" min="0" value={checkinForm.instruction_night_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_night_hours: e.target.value }))} placeholder="0" />
+                      <Input label="Instrument" type="number" step="0.1" min="0" value={checkinForm.instruction_instrument_hours} onChange={e => setCheckinForm(f => ({ ...f, instruction_instrument_hours: e.target.value }))} placeholder="0" />
+                    </div>
                   </div>
-                  <div className="flex justify-end gap-3">
+
+                  {/* Group 3: Route & Landings */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+                      <FiMapPin size={14} className="text-emerald-500" /> 3. Route & Landings
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Input label="From" type="text" value={checkinForm.route_from} onChange={e => setCheckinForm(f => ({ ...f, route_from: e.target.value }))} placeholder="e.g. KJFK" />
+                      <Input label="To" type="text" value={checkinForm.route_to} onChange={e => setCheckinForm(f => ({ ...f, route_to: e.target.value }))} placeholder="e.g. KLAX" />
+                      <Input label="Day Landings" type="number" min="0" value={checkinForm.landings_day} onChange={e => setCheckinForm(f => ({ ...f, landings_day: e.target.value }))} placeholder="0" />
+                      <Input label="Night Landings" type="number" min="0" value={checkinForm.landings_night} onChange={e => setCheckinForm(f => ({ ...f, landings_night: e.target.value }))} placeholder="0" />
+                    </div>
+                  </div>
+
+                  {/* Group 4: Squawks & Notes */}
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
+                      <FiFileText size={14} className="text-amber-500" /> 4. Squawks & Flight Notes
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Squawks (one per line)</label>
+                        <textarea
+                          rows={3}
+                          value={checkinForm.squawks_text}
+                          onChange={(e) => setCheckinForm((f) => ({ ...f, squawks_text: e.target.value }))}
+                          placeholder="Describe any aircraft squawks…"
+                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Check-In Notes</label>
+                        <textarea
+                          rows={3}
+                          value={checkinForm.checkin_notes}
+                          onChange={e => setCheckinForm(f => ({ ...f, checkin_notes: e.target.value }))}
+                          placeholder="Any post-flight notes..."
+                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
                     {isEditingCheckin && (
                       <button
                         type="button"
@@ -970,7 +1060,7 @@ const ReservationDetail = () => {
                         Cancel
                       </button>
                     )}
-                    <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
+                    <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
                       {actionLoading ? <FiLoader size={14} className="animate-spin" /> : <FiCheckCircle size={14} />}
                       {isEditingCheckin ? 'Update Check-In' : 'Complete Check-In'}
                     </button>
@@ -1013,14 +1103,22 @@ const ReservationDetail = () => {
                           <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
                             <FiCheckCircle size={14} /> Paid via {invoice.payment_method} on {new Date(invoice.updated_at).toLocaleString()}
                           </div>
-                          {isAdmin && (
+                          <div className="flex gap-2">
                             <button
-                              onClick={() => setIsEditingInvoice(true)}
-                              className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                              onClick={() => window.print()}
+                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200"
                             >
-                              Edit Invoice
+                              <FiPrinter size={14} /> Print
                             </button>
-                          )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => setIsEditingInvoice(true)}
+                                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
+                              >
+                                Edit Invoice
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-gray-100">
                           <Field label="Aircraft Rate" value={`$${invoice.aircraft_rate}`} />
@@ -1066,12 +1164,19 @@ const ReservationDetail = () => {
                           <div className="flex justify-between items-center bg-blue-50 rounded-lg p-4 border border-blue-100">
                             <div>
                               <div className="text-xs text-blue-600 font-medium uppercase">Estimated Total</div>
-                              <div className="text-xl font-bold text-blue-900">${((parseFloat(invoiceForm.aircraft_rate || 0) * (reservation.hobbs_block_time || 0)) + (parseFloat(invoiceForm.instruction_dual_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0)) + (parseFloat(invoiceForm.instruction_ground_hours || 0) * parseFloat(invoiceForm.instructor_rate || 0))).toFixed(2)}</div>
+                              <div className="text-xl font-bold text-blue-900">${calculateEstimatedTotal().toFixed(2)}</div>
                             </div>
                             <div className="flex gap-3">
                               {(isEditingInvoice || invoice.status === 'draft') && invoice.id && (
                                 <button type="button" onClick={() => setIsEditingInvoice(false)} className="px-5 py-2 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">Cancel</button>
                               )}
+                              <button 
+                                type="button" 
+                                onClick={() => setShowPreviewModal(true)} 
+                                className="px-5 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5 font-medium"
+                              >
+                                <FiFileText size={14} /> Preview Invoice
+                              </button>
                               <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50">
                                 {actionLoading ? <FiLoader className="animate-spin" /> : <FiDollarSign size={14} />}
                                 {isEditingInvoice ? 'Update Invoice' : 'Save Invoice Draft'}
@@ -1084,31 +1189,66 @@ const ReservationDetail = () => {
                     
                     {/* --- PAYMENT OPTIONS (only if not paid) --- */}
                     {invoice.status !== 'paid' && !isEditingInvoice && (
-                      <Section title="Issue Payment" icon={FiDollarSign}>
+                      <Section title="Payment Type" icon={FiDollarSign}>
                         <div className="flex flex-col md:flex-row gap-6">
-                          <div className="flex-1 space-y-4">
-                            <div className="flex flex-col gap-2">
-                              <label className="text-sm font-semibold text-gray-700">Method:</label>
-                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                {['card', 'cash', 'check', 'account'].map(m => (
-                                  <button key={m} onClick={() => setChargeMethod(m)} className={`px-4 py-2 rounded-lg border text-sm font-medium capitalize transition-all ${chargeMethod === m ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
-                                    {m}
-                                  </button>
-                                ))}
+                          <div className="flex-1 space-y-6">
+                            <div className="flex flex-col gap-3">
+                              <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Select Payment Method</label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {[
+                                  { id: 'card', label: 'Terminal', desc: 'Pay with card terminal', icon: FiCreditCard, color: 'from-blue-500/10 to-indigo-500/10 border-blue-500 text-blue-700' },
+                                  { id: 'cash', label: 'Cash', desc: 'Physical cash received', icon: FiDollarSign, color: 'from-green-500/10 to-emerald-500/10 border-green-500 text-green-700' },
+                                  { id: 'check', label: 'Check', desc: 'Physical check payment', icon: FiFileText, color: 'from-amber-500/10 to-orange-500/10 border-amber-500 text-amber-700' },
+                                  { id: 'account', label: 'Wallet', desc: 'Debit student wallet balance', icon: FiUser, color: 'from-purple-500/10 to-fuchsia-500/10 border-purple-500 text-purple-700' }
+                                ].map(m => {
+                                  const isSelected = chargeMethod === m.id;
+                                  const Icon = m.icon;
+                                  return (
+                                    <button 
+                                      key={m.id} 
+                                      type="button"
+                                      onClick={() => setChargeMethod(m.id)} 
+                                      className={`relative flex flex-col text-left p-5 rounded-2xl border-2 transition-all duration-300 transform hover:-translate-y-0.5 ${
+                                        isSelected 
+                                          ? `border-slate-800 bg-gradient-to-br ${m.color.split(' ')[0]} shadow-md` 
+                                          : 'border-slate-100 bg-white text-slate-600 hover:border-slate-300 hover:shadow-sm'
+                                      }`}
+                                    >
+                                      <div className={`p-2.5 rounded-xl w-fit mb-3 transition-colors ${isSelected ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-500'}`}>
+                                        <Icon size={20} />
+                                      </div>
+                                      <span className="font-bold text-slate-800 text-sm leading-snug">{m.label}</span>
+                                      <span className="text-xs text-slate-400 mt-1 leading-tight">{m.desc}</span>
+                                      {isSelected && (
+                                        <span className="absolute top-4 right-4 flex h-3.5 w-3.5">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-slate-800"></span>
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </div>
-                            {chargeMethod === 'card' && (
-                              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Stripe Payment Method ID</label>
-                                <input type="text" value={stripePaymentMethodId} onChange={e => setStripePaymentMethodId(e.target.value)} placeholder="pm_..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
+
+                            {chargeMethod === 'account' && reservation.students?.length > 0 && (
+                              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Wallet Balance Details</span>
+                                {reservation.students.map(student => (
+                                  <div key={student.id} className="flex justify-between items-center text-sm text-slate-700 bg-white border border-slate-100 rounded-xl px-4 py-3 shadow-xs">
+                                    <span className="font-bold text-slate-850">{student.name} — Wallet Balance</span>
+                                    <span className="font-black font-mono text-base text-green-600">${Number(student.account_balance || 0).toFixed(2)}</span>
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
-                          <div className="md:w-64 bg-gray-900 rounded-xl p-6 text-white text-center flex flex-col justify-center shadow-lg border border-gray-800">
-                            <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Total to Charge</div>
-                            <div className="text-3xl font-bold mb-4">${invoice.total?.toFixed(2)}</div>
-                            <button onClick={() => setShowChargeDialog(true)} disabled={actionLoading} className="w-full py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-lg font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50">
-                              {actionLoading ? <FiLoader className="animate-spin mx-auto" /> : 'Charge Customer'}
+                          <div className="md:w-72 bg-gradient-to-br from-slate-900 to-slate-850 rounded-2xl p-6 text-white text-center flex flex-col justify-center shadow-xl border border-slate-700/50">
+                            <div className="text-sm text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Due</div>
+                            <div className="text-4xl font-black mb-6 tracking-tight text-white">${Number(invoice.total || 0).toFixed(2)}</div>
+                            <button onClick={() => setShowChargeDialog(true)} disabled={actionLoading} className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/35 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                              {actionLoading ? <FiLoader className="animate-spin" /> : <FiCheckCircle size={18} />}
+                              Confirm Payment
                             </button>
                           </div>
                         </div>
@@ -1318,6 +1458,240 @@ const ReservationDetail = () => {
                   className="px-4 py-2 rounded-lg text-white text-sm font-medium bg-red-600 hover:bg-red-700 shadow-sm transition-colors"
                 >
                   Proceed with Dispatch
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showPreviewModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh] border border-slate-100">
+              {/* Modal Header */}
+              <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <FiDollarSign className="text-blue-400 animate-pulse" size={20} />
+                  <h3 className="font-bold text-base sm:text-lg">Invoice Preview</h3>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setShowPreviewModal(false)} 
+                  className="text-slate-400 hover:text-white transition-colors"
+                >
+                  <FiX size={24} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto bg-slate-50 flex-1 space-y-4 sm:space-y-6">
+                {/* Invoice Sheet */}
+                <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-8 space-y-6 text-[#2D3748]">
+                  {/* Header: Logo + Invoice ID */}
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-8 h-8 text-[#2B4C8C]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L21 16z"/>
+                      </svg>
+                      <span className="text-xl font-bold tracking-tight text-[#1A365D]">FlightElevate</span>
+                    </div>
+                    <div className="text-right text-xs sm:text-sm text-slate-500">
+                      Invoice # <span className="font-bold text-slate-800">FE-{reservation?.id + 2000 || '2029'}</span>
+                    </div>
+                  </div>
+
+                  {/* Title & Date */}
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <h1 className="text-3xl font-extrabold text-[#1A365D] tracking-tight">INVOICE</h1>
+                    </div>
+                    <div className="text-right text-xs sm:text-sm space-y-0.5">
+                      <div><span className="text-slate-400">Ref. No </span><span className="font-bold text-slate-850">#{reservation?.reservation_no}</span></div>
+                      <div><span className="text-slate-400">Invoice Date: </span><span className="font-bold text-slate-800">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Metadata Box with light gray background and dividing vertical line */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-50 border border-slate-200/60 rounded-xl overflow-hidden divide-y md:divide-y-0 md:divide-x divide-slate-200 text-xs sm:text-sm">
+                    <div className="p-4 space-y-2">
+                      <div className="flex justify-between"><span className="text-slate-400">Reference Number:</span> <span className="font-bold text-slate-700">{reservation?.reservation_no}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Invoice Date:</span> <span className="font-bold text-slate-700">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Pilot:</span> <span className="font-bold text-slate-750">{reservation?.students?.[0]?.name || 'N/A'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Location:</span> <span className="font-bold text-slate-700">{reservation?.location?.name || 'Anytown, USA \\ 5321'}</span></div>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <div className="flex justify-between"><span className="text-slate-400">Pilot:</span> <span className="font-bold text-slate-700">{reservation?.students?.[0]?.name || 'N/A'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Instructor:</span> <span className="font-bold text-slate-700">{reservation?.instructors?.[0]?.name || 'None'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Aircraft:</span> <span className="font-bold text-slate-700">{reservation?.aircraft ? `${reservation.aircraft.registration} / ${reservation.aircraft.name}` : 'N/A'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Location:</span> <span className="font-bold text-slate-700">{reservation?.location?.name || 'Anytown Municipal Airport'}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Hobbs / Times Readings Block */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 border border-slate-200 rounded-xl overflow-hidden text-xs sm:text-sm divide-y md:divide-y-0 md:divide-x divide-slate-200 bg-white">
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Hobbs Time Start:</span>
+                        <span className="font-bold text-slate-800 flex items-center gap-1">
+                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
+                          {reservation?.hobbs_out || '0.0'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">End Time:</span>
+                        <span className="font-bold text-slate-800 flex items-center gap-1">
+                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
+                          {checkinForm?.hobbs_in || reservation?.hobbs_in || '0.0'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Check-in Time:</span>
+                        <span className="font-bold text-slate-800 flex items-center gap-1">
+                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
+                          {reservation?.checked_in_at ? new Date(reservation.checked_in_at).toLocaleString() : new Date().toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Check-out Time:</span>
+                        <span className="font-bold text-slate-800 flex items-center gap-1">
+                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
+                          {reservation?.dispatched_at ? new Date(reservation.dispatched_at).toLocaleString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Line Items Table with Blue Header */}
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-[#2B4C8C] text-white">
+                          <th className="py-3 px-4 font-bold uppercase tracking-wider">Description</th>
+                          <th className="py-3 px-4 text-center font-bold uppercase tracking-wider">Rate</th>
+                          <th className="py-3 px-4 text-center font-bold uppercase tracking-wider">Hours / Qty</th>
+                          <th className="py-3 px-4 text-right font-bold uppercase tracking-wider">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
+                        {/* Aircraft Line Item */}
+                        {parseFloat(invoiceForm.aircraft_rate) > 0 && (
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="py-3.5 px-4">
+                              <span className="font-bold block text-slate-800">Aircraft Rental ({reservation?.aircraft?.name || 'Cessna 172'})</span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-semibold text-slate-600">${parseFloat(invoiceForm.aircraft_rate).toFixed(2)}/hr</td>
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-800">{getBlockTime().toFixed(1)}</td>
+                            <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">${(getBlockTime() * parseFloat(invoiceForm.aircraft_rate)).toFixed(2)}</td>
+                          </tr>
+                        )}
+
+                        {/* Dual Instruction Line Item */}
+                        {parseFloat(invoiceForm.instruction_dual_hours) > 0 && (
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="py-3.5 px-4">
+                              <span className="font-bold block text-slate-800">Flight Instruction</span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-semibold text-slate-600">${parseFloat(invoiceForm.instructor_rate).toFixed(2)}/hr</td>
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-800">{parseFloat(invoiceForm.instruction_dual_hours).toFixed(1)}</td>
+                            <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">${(parseFloat(invoiceForm.instruction_dual_hours) * parseFloat(invoiceForm.instructor_rate)).toFixed(2)}</td>
+                          </tr>
+                        )}
+
+                        {/* Ground Instruction Line Item */}
+                        {parseFloat(invoiceForm.instruction_ground_hours) > 0 && (
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="py-3.5 px-4">
+                              <span className="font-bold block text-slate-800">Ground Instruction</span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-semibold text-slate-600">${parseFloat(invoiceForm.instructor_rate).toFixed(2)}/hr</td>
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-800">{parseFloat(invoiceForm.instruction_ground_hours).toFixed(1)}</td>
+                            <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">${(parseFloat(invoiceForm.instruction_ground_hours) * parseFloat(invoiceForm.instructor_rate)).toFixed(2)}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Summary Rows Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                    {/* Left: Refunds & Adjustments */}
+                    <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 space-y-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Refunds &amp; Adjustments</span>
+                      <span className="text-xs text-slate-500 font-semibold">None</span>
+                    </div>
+
+                    {/* Right: Subtotal, Tax Breakdown */}
+                    <div className="space-y-2.5 text-xs sm:text-sm">
+                      <div className="flex justify-between text-slate-500 font-medium">
+                        <span>Subtotal:</span>
+                        <span className="font-bold text-slate-800">
+                          ${(
+                            (getBlockTime() * (parseFloat(invoiceForm.aircraft_rate) || 0)) +
+                            ((parseFloat(invoiceForm.instruction_dual_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0)) +
+                            ((parseFloat(invoiceForm.instruction_ground_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0))
+                          ).toFixed(2)}
+                        </span>
+                      </div>
+                      {parseFloat(invoiceForm.tax_percent) > 0 && (
+                        <div className="flex justify-between text-slate-500 font-medium">
+                          <span>State Tax ({parseFloat(invoiceForm.tax_percent)}%):</span>
+                          <span className="font-bold text-slate-800">
+                            ${(
+                              ((getBlockTime() * (parseFloat(invoiceForm.aircraft_rate) || 0)) +
+                              ((parseFloat(invoiceForm.instruction_dual_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0)) +
+                              ((parseFloat(invoiceForm.instruction_ground_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0))) *
+                              parseFloat(invoiceForm.tax_percent) / 100
+                            ).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Bold Estimated Total */}
+                      <div className="flex justify-between border-t border-slate-200 pt-2.5 text-sm sm:text-base font-extrabold text-slate-900 bg-slate-50/50 p-2.5 rounded-lg">
+                        <span>Estimated Total:</span>
+                        <span className="font-black text-[#1A365D]">${calculateEstimatedTotal().toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Invoice Notes (if present) */}
+                  {invoiceForm.notes && (
+                    <div className="bg-slate-50/50 border border-slate-150 rounded-xl p-4 text-xs text-slate-500 leading-relaxed">
+                      <span className="font-bold text-slate-700 block mb-1">Invoice Notes:</span>
+                      {invoiceForm.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer Banner representing Final Total */}
+              <div className="bg-[#2B4C8C] text-white flex justify-end items-center px-6 py-4 text-xl sm:text-2xl font-black">
+                <span className="mr-3 text-xs sm:text-sm text-slate-200 uppercase tracking-widest font-bold">Final Total:</span>
+                ${calculateEstimatedTotal().toFixed(2)}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                <button 
+                  type="button" 
+                  onClick={() => setShowPreviewModal(false)} 
+                  className="px-4 sm:px-5 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+                >
+                  Back to Edit
+                </button>
+                <button 
+                  type="button" 
+                  onClick={async (e) => {
+                    await handleSaveInvoice(e);
+                    setShowPreviewModal(false);
+                    setIsEditingInvoice(false);
+                  }} 
+                  disabled={actionLoading} 
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all shadow-md hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center gap-2 text-sm"
+                >
+                  {actionLoading ? <FiLoader className="animate-spin" /> : <FiCheckCircle size={16} />}
+                  Generate &amp; Save Invoice
                 </button>
               </div>
             </div>

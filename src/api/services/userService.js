@@ -41,5 +41,13 @@ export const userService = {
   async updateProfile(data) {
     return await api.put(ENDPOINTS.USERS.UPDATE_PROFILE, data);
   },
+
+  async walletDeposit(id, data) {
+    return await api.post(`users/${id}/wallet/deposit`, data);
+  },
+
+  async getWalletTransactions(id) {
+    return await api.get(`users/${id}/wallet/transactions`);
+  },
 };
 

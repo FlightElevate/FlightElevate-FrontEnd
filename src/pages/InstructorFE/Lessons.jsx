@@ -1302,6 +1302,17 @@ const InstructorLessons = () => {
                                   Add Feedback
                                 </button>
                               )}
+                              {!showLessons && (isAdmin || isSuperAdmin) && lesson.status === 'completed' && (
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    navigate(`/reservations/${lesson.id}?tab=invoice`);
+                                  }}
+                                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-blue-600 font-semibold"
+                                >
+                                  Generate Invoice
+                                </button>
+                              )}
                               {showLessons && (isAdmin || isSuperAdmin) && (
                                 <>
                                   <button
@@ -1552,7 +1563,7 @@ const InstructorLessons = () => {
                           onClick={() => setOpenMenuId(openMenuId === lesson.id ? null : lesson.id)}
                         />
                         {openMenuId === lesson.id && (
-                          <div className="absolute right-0 top-8 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                          <div className="absolute right-0 top-8 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
                             <button
                               onClick={() => {
                                 setOpenMenuId(null);
@@ -1562,16 +1573,66 @@ const InstructorLessons = () => {
                             >
                               View
                             </button>
+                            {!showLessons && lesson.status === 'pending' && isLessonStartTimePassed(lesson) && (
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleStartSession(lesson.id);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-blue-600 font-semibold animate-pulse"
+                              >
+                                Start Reservation
+                              </button>
+                            )}
+                            {!showLessons && lesson.status === 'ongoing' && isLessonEndTimePassed(lesson) && (
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleCompleteSession(lesson.id);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-green-600 font-semibold"
+                              >
+                                Complete
+                              </button>
+                            )}
+                            {!showLessons && (lesson.status === 'ongoing' || lesson.status === 'completed') && (
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleAddFeedback(lesson.id);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-green-600"
+                              >
+                                Add Feedback
+                              </button>
+                            )}
+                            {!showLessons && (isAdmin || isSuperAdmin) && lesson.status === 'completed' && (
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  navigate(`/reservations/${lesson.id}?tab=invoice`);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-blue-600 font-semibold"
+                              >
+                                Generate Invoice
+                              </button>
+                            )}
                             {showLessons && (isAdmin || isSuperAdmin) && (
                               <>
                                 <button 
-                                  onClick={() => handleEdit(lesson.id)}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleEdit(lesson.id);
+                                  }}
                                   className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                                 >
                                   Edit
                                 </button>
                                 <button 
-                                  onClick={() => handleDelete(lesson.id)}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleDelete(lesson.id);
+                                  }}
                                   className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                                 >
                                   Delete

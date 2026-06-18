@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiMoreVertical, FiMapPin } from "react-icons/fi";
+import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
 import profileImg from "../../../assets/img/profile.jpg";
@@ -46,12 +46,19 @@ const UserProfile = () => {
   });
   const [locationSaving, setLocationSaving] = useState(false);
 
+  // Wallet state
+  const [walletTxns, setWalletTxns] = useState([]);
+  const [loadingWallet, setLoadingWallet] = useState(false);
+  const [depositForm, setDepositForm] = useState({ amount: '', description: '' });
+  const [depositLoading, setDepositLoading] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchUser();
       fetchDocuments();
       fetchFlightLogs();
       fetchLocations();
+      fetchWalletTxns();
     }
   }, [id]);
 
@@ -118,6 +125,43 @@ const UserProfile = () => {
         ? prev.calendar_location_ids.filter(id => id !== idStr)
         : [...prev.calendar_location_ids, idStr],
     }));
+  };
+
+  const fetchWalletTxns = async () => {
+    if (!id) return;
+    setLoadingWallet(true);
+    try {
+      const res = await userService.getWalletTransactions(id);
+      if (res.success) setWalletTxns(res.data || []);
+    } catch (e) {
+      console.error('Error fetching wallet txns:', e);
+    } finally {
+      setLoadingWallet(false);
+    }
+  };
+
+  const handleDeposit = async (e) => {
+    e.preventDefault();
+    if (!depositForm.amount || parseFloat(depositForm.amount) <= 0) return;
+    setDepositLoading(true);
+    try {
+      const res = await userService.walletDeposit(id, {
+        amount: parseFloat(depositForm.amount),
+        description: depositForm.description || undefined,
+      });
+      if (res.success) {
+        showSuccessToast(`$${parseFloat(depositForm.amount).toFixed(2)} deposited successfully!`);
+        setDepositForm({ amount: '', description: '' });
+        setUser(prev => ({ ...prev, account_balance: res.data.account_balance }));
+        fetchWalletTxns();
+      } else {
+        showErrorToast(res.message || 'Deposit failed');
+      }
+    } catch (err) {
+      showErrorToast(err?.response?.data?.message || 'Deposit failed');
+    } finally {
+      setDepositLoading(false);
+    }
   };
 
   const fetchDocuments = async () => {
@@ -403,6 +447,9 @@ const UserProfile = () => {
             <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "documents" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => setActiveTab("documents")}>
               Documents
             </button>
+            <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "wallet" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => { setActiveTab("wallet"); fetchWalletTxns(); }}>
+              💳 Wallet
+            </button>
           </div>
         </div>
 
@@ -417,7 +464,7 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Phone</p><p className="text-sm font-medium text-gray-900">{user?.phone || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Email</p><p className="text-sm font-medium text-gray-900">{user?.email || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Username</p><p className="text-sm font-medium text-gray-900">{user?.username || 'N/A'}</p></div>
-              <div><p className="text-sm text-gray-500 mb-1">Balance</p><p className="text-sm font-medium text-gray-900">$0.00</p></div>
+              <div><p className="text-sm text-gray-500 mb-1">Balance</p><p className="text-sm font-bold text-green-700">${Number(user?.account_balance || 0).toFixed(2)}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Company</p><p className="text-sm font-medium text-gray-900">{user?.organization?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Created</p><p className="text-sm font-medium text-gray-900">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Last Flight</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
@@ -519,6 +566,117 @@ const UserProfile = () => {
                   <div className="text-center py-8 text-gray-500">No flight logs found</div>
                 )}
               </div>
+            </div>
+          </div>
+        ) : activeTab === 'wallet' ? (
+          <div className="p-6">
+            {/* Balance Banner */}
+            <div className="flex items-center justify-between bg-slate-800 rounded-xl px-6 py-5 mb-6">
+              <div>
+                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">{user?.name} — Wallet Balance</p>
+                <p className="text-3xl font-bold text-white">${Number(user?.account_balance || 0).toFixed(2)}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-blue-600/20 flex items-center justify-center">
+                <FiDollarSign size={22} className="text-blue-400" />
+              </div>
+            </div>
+
+            {/* Add Funds */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+              <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <FiPlusCircle size={15} className="text-green-500" /> Add Funds
+              </h4>
+              <form onSubmit={handleDeposit} className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Amount ($)</label>
+                  <input
+                    type="number" min="0.01" step="0.01"
+                    value={depositForm.amount}
+                    onChange={e => setDepositForm(f => ({ ...f, amount: e.target.value }))}
+                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div className="flex-[2]">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Note (optional)</label>
+                  <input
+                    type="text"
+                    value={depositForm.description}
+                    onChange={e => setDepositForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="e.g. Loan disbursement, Upfront deposit"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    disabled={depositLoading}
+                    className="h-9 px-5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {depositLoading
+                      ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                      : <FiPlusCircle size={14} />}
+                    Add
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Transaction History */}
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                <h4 className="text-sm font-semibold text-gray-700">Transaction History</h4>
+                <span className="text-xs text-gray-400">{walletTxns.length} records</span>
+              </div>
+              {loadingWallet ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                </div>
+              ) : walletTxns.length === 0 ? (
+                <div className="text-center py-10 text-gray-400">
+                  <FiDollarSign size={28} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No transactions yet</p>
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+                      <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Note</th>
+                      <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">By</th>
+                      <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                      <th className="px-5 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                      <th className="px-5 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {walletTxns.map(txn => (
+                      <tr key={txn.id} className="hover:bg-gray-50">
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            txn.type === 'deposit' ? 'bg-green-100 text-green-700' :
+                            txn.type === 'refund'  ? 'bg-blue-100 text-blue-700'  :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {txn.type === 'deposit' || txn.type === 'refund'
+                              ? <FiArrowUpCircle size={11} />
+                              : <FiArrowDownCircle size={11} />}
+                            {txn.type.charAt(0).toUpperCase() + txn.type.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-gray-600 max-w-[180px] truncate">{txn.description || '—'}</td>
+                        <td className="px-5 py-3 text-gray-600">{txn.performed_by || '—'}</td>
+                        <td className="px-5 py-3 text-gray-500">{new Date(txn.created_at).toLocaleDateString()}</td>
+                        <td className={`px-5 py-3 text-right font-bold ${ txn.type === 'deduction' ? 'text-red-600' : 'text-green-600' }`}>
+                          {txn.type === 'deduction' ? '−' : '+'}${Number(txn.amount).toFixed(2)}
+                        </td>
+                        <td className="px-5 py-3 text-right text-gray-500 font-mono text-xs">${Number(txn.balance_after).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         ) : (
