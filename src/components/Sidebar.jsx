@@ -7,6 +7,7 @@ import { authService } from "../api/services/authService";
 import { subscriptionPlanService } from "../api/services/subscriptionPlanService";
 import { getImageUrl } from "../utils/imageUtils";
 import { HiChevronDown } from "react-icons/hi";
+import { FiDollarSign } from "react-icons/fi";
 import logo from "../assets/SVG/logo.svg";
 import { getTrialRemainingDays } from "../utils/organizationHelpers";
 
@@ -25,7 +26,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   // Memoize navigation items to prevent recalculation on every render
   const navLinks = useMemo(() => {
     if (!user?.roles) return [];
-    let items = getNavigationItemsByRole(user.roles);
     
     // Check if subscription/trial has expired
     const hasActiveSub = !!user.has_active_subscription;
@@ -35,20 +35,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     const isTrialActive = backendTrialActive || clientTrialActive;
     const isExpired = !hasActiveSub && !isTrialActive;
 
-    const isInstructorOrStudent = user.roles.some(r => {
-      const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
-      return roleName === 'instructor' || roleName === 'student';
-    });
-
     const isSuperAdmin = user.roles.some(r => {
       const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
       return roleName === 'super admin' || roleName === 'super-admin';
     });
 
-    if (isExpired && !isSuperAdmin && isInstructorOrStudent) {
-      // Keep only Logbook for expired instructor/student accounts
-      items = items.filter(item => ['Logbook'].includes(item.label));
+    if (isExpired && !isSuperAdmin) {
+      // Keep only Subscription for expired accounts
+      return [
+        {
+          icon: FiDollarSign,
+          label: "Subscription",
+          link: "/subscription",
+        }
+      ];
     }
+
+    let items = getNavigationItemsByRole(user.roles);
     
     const seen = new Set();
     return items.filter(item => {

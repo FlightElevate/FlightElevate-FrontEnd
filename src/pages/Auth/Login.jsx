@@ -36,17 +36,7 @@ const Login = () => {
       const isExpired      = !hasActiveSub && !backendTrial && !clientTrial;
 
       if (isExpired) {
-        const isAdmin = userData.roles?.some(r => {
-          const n = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
-          return n === 'admin';
-        });
-        const isInstructorOrStudent = userData.roles?.some(r => {
-          const n = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
-          return n === 'instructor' || n === 'student';
-        });
-
-        if (isAdmin)              return '/subscription';
-        if (isInstructorOrStudent) return '/logbook';
+        return '/subscription';
       }
     }
 

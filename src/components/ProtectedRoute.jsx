@@ -112,18 +112,10 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, r
     const isExpired = !hasActiveSub && !isTrialActive;
 
     if (isExpired) {
-      if (isAdminUser) {
-        // Redirect Admin to /subscription unless already on paying paths
-        const isPayingPath = location.pathname === '/subscription' || location.pathname === '/subscription-plans' || location.pathname.startsWith('/checkout') || location.pathname.startsWith('/support');
-        if (!isPayingPath) {
-          return <Navigate to="/subscription" replace />;
-        }
-      } else if (isInstructorUser || isStudentUser) {
-        // Redirect Instructors/Students to /logbook unless already on allowed path
-        const isAllowedPath = location.pathname === '/logbook' || location.pathname === '/setting' || location.pathname.startsWith('/support');
-        if (!isAllowedPath) {
-          return <Navigate to="/logbook" replace />;
-        }
+      // All roles redirect to /subscription when expired
+      const isSubscriptionPath = location.pathname === '/subscription' || location.pathname.startsWith('/checkout');
+      if (!isSubscriptionPath) {
+        return <Navigate to="/subscription" replace />;
       }
     }
   }

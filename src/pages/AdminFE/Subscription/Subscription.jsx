@@ -270,7 +270,19 @@ const Subscription = () => {
   const safeDateStr = user?.trial_ends_at ? (user.trial_ends_at.includes('T') ? user.trial_ends_at : user.trial_ends_at.replace(' ', 'T') + 'Z') : null;
   const clientTrialActive = safeDateStr ? new Date(safeDateStr) > new Date() : false;
   const isTrialActive = backendTrialActive || clientTrialActive;
-  const isTrialExpired = user && !user.has_active_subscription && !isTrialActive && user.trial_ends_at;
+  const isTrialExpired = user && !currentSubscription && !isTrialActive && user.trial_ends_at;
+
+  const isExpired = !currentSubscription && !isTrialActive;
+  const isAllowedToManage = user?.roles?.some(r => {
+    const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+    return roleName === 'admin' || roleName === 'super admin' || roleName === 'super-admin';
+  });
+
+  const trialEndsDate = user?.trial_ends_at
+    ? new Date(safeDateStr).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : "—";
+
+  const trialDaysRemaining = user?.trial_ends_at ? Math.max(0, Math.ceil((new Date(safeDateStr) - new Date()) / (1000 * 60 * 60 * 24))) : 0;
 
   return (
     <div className="md:mt-5 mx-auto space-y-6">
@@ -284,7 +296,7 @@ const Subscription = () => {
               {currentSubscription ? "Manage your active plan" : "Flat monthly fee — unlimited aircraft, unlimited growth."}
             </p>
           </div>
-          {currentSubscription && (
+          {currentSubscription && isAllowedToManage && (
             <button
               onClick={handleBillingHistory}
               className="flex items-center gap-2 border border-gray-200 bg-white px-3.5 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
@@ -296,8 +308,26 @@ const Subscription = () => {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Trial Expired Warning Banner */}
-          {isTrialExpired && (
+          {/* Locked view for expired Student/Instructor */}
+          {!isAllowedToManage && isExpired && (
+            <div className="py-12 text-center space-y-6 max-w-md mx-auto">
+              <div className="w-20 h-20 bg-red-50 border border-red-100 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse shadow-inner">
+                <FiShield size={36} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-gray-900">Subscription Expired</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Your organization's trial period or subscription has ended. Access to all modules has been temporarily restricted.
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 text-sm text-gray-650 max-w-md mx-auto">
+                Please contact your <strong>Organization Administrator</strong> to renew the subscription and restore full access to FlightElevate.
+              </div>
+            </div>
+          )}
+
+          {/* Trial Expired Warning Banner for Admin */}
+          {isAllowedToManage && isExpired && isTrialExpired && (
             <div className="flex items-start gap-3.5 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-sm">
               <div className="p-2 bg-amber-100 rounded-lg text-amber-600 flex-shrink-0 animate-pulse">
                 <FiClock size={18} />
@@ -311,11 +341,11 @@ const Subscription = () => {
             </div>
           )}
 
-          {/* Active Subscription Info Section */}
+          {/* Active Subscription Info Section (for anyone when valid and present) */}
           {currentSubscription && (
             <div className="space-y-6">
               {/* ── Banner ── */}
-              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-[#1a3a6e] to-[#2563eb] p-6">
+              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-[#1a3a6e] to-[#2563eb] p-6 shadow-md">
                 <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5" />
                 <div className="absolute -right-2 -bottom-10 w-28 h-28 rounded-full bg-white/5" />
                 <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[100px] opacity-[0.06] pointer-events-none select-none leading-none">✈</span>
@@ -359,7 +389,7 @@ const Subscription = () => {
               </div>
 
               {/* ── Included features ── */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
                 <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50/70">
                   <FiCheck size={14} className="text-blue-600" />
                   <h4 className="text-sm font-semibold text-gray-700">Included in your plan</h4>
@@ -378,154 +408,214 @@ const Subscription = () => {
             </div>
           )}
 
-          {/* ── Plan Selection / Upgrade Grid ── */}
-          <div className="pt-6 border-t border-gray-100">
-            <div className="mb-6">
-              <h3 className="text-lg font-bold text-gray-900">
-                {currentSubscription ? "Upgrade or Switch Your Plan" : "Choose a Subscription Plan"}
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {currentSubscription 
-                  ? "Select a plan below to change your subscription level. Changes will be handled securely via Stripe."
-                  : "Regain full access by choosing one of the following subscription plans."}
-              </p>
-            </div>
+          {/* Active Free Trial Section (for anyone when valid and present) */}
+          {!currentSubscription && isTrialActive && (
+            <div className="space-y-6">
+              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-blue-700 to-indigo-600 p-6 text-white shadow-md">
+                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5" />
+                <div className="absolute -right-2 -bottom-10 w-28 h-28 rounded-full bg-white/5" />
+                <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[100px] opacity-[0.06] pointer-events-none select-none leading-none">✈</span>
 
-            {plans.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
-                <p className="text-base font-medium">No active plans available.</p>
-                <p className="text-sm mt-1">Please contact support to get access.</p>
-              </div>
-            ) : (
-              <div className={`grid gap-5 ${plans.length === 1 ? 'grid-cols-1 max-w-md mx-auto' : plans.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-                {plans.map((plan, idx) => {
-                  const isPopular = plans.length > 1 && idx === Math.floor(plans.length / 2);
-                  const isCurrent = currentSubscription && currentSubscription.plan_id === plan.id;
-                  const isCurrentActive = isCurrent && !!user?.has_active_subscription;
-                  const planFeatures = plan.para
-                    ? plan.para.split(/[|\n]/).map(f => f.trim()).filter(Boolean)
-                    : [];
-                  const isLoading = subscribing === plan.id;
-
-                  return (
-                    <div
-                      key={plan.id}
-                      className={`relative flex flex-col rounded-2xl border-2 overflow-hidden transition-all duration-200 ${
-                        isCurrentActive
-                          ? 'border-green-500 bg-green-50/10'
-                          : isCurrent
-                          ? 'border-amber-500 bg-amber-50/5'
-                          : isPopular
-                          ? 'border-blue-600 shadow-lg shadow-blue-500/15'
-                          : 'border-gray-200 hover:border-blue-200'
-                      }`}
-                    >
-                      {isCurrentActive && (
-                        <div className="bg-green-500 text-center py-1.5">
-                          <span className="text-xs font-bold text-white tracking-wide flex items-center justify-center gap-1.5">
-                            <FiCheck size={12} /> YOUR CURRENT PLAN
-                          </span>
-                        </div>
-                      )}
-                      {!isCurrentActive && isCurrent && (
-                        <div className="bg-amber-500 text-center py-1.5">
-                          <span className="text-xs font-bold text-white tracking-wide flex items-center justify-center gap-1.5">
-                            <FiClock size={12} /> YOUR TRIAL/EXPIRED PLAN
-                          </span>
-                        </div>
-                      )}
-                      {!isCurrent && isPopular && (
-                        <div className="bg-blue-600 text-center py-1.5">
-                          <span className="text-xs font-bold text-white tracking-wide flex items-center justify-center gap-1.5">
-                            <FiStar size={10} /> MOST POPULAR
-                          </span>
-                        </div>
-                      )}
-                      <div className={`h-1 bg-gradient-to-r ${isCurrentActive ? 'from-green-400 to-green-600' : isCurrent ? 'from-amber-400 to-amber-600' : 'from-blue-400 to-blue-600'}`} />
-
-                      <div className="flex flex-col flex-1 p-5 gap-4">
-                        {/* Title */}
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900">{plan.title}</h3>
-                          {plan.description && (
-                            <p className="text-sm text-gray-400 mt-1 leading-relaxed">{plan.description}</p>
-                          )}
-                        </div>
-
-                        {/* Price */}
-                        <div className={`rounded-xl p-4 border ${isCurrentActive ? 'bg-green-50 border-green-100' : isCurrent ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
-                          <p className="text-xs text-gray-400 font-medium mb-1">Monthly fee</p>
-                          <div className="flex items-baseline gap-1">
-                            <span className={`text-4xl font-extrabold leading-none ${isCurrentActive ? 'text-green-600' : isCurrent ? 'text-amber-600' : 'text-blue-600'}`}>
-                              ${parseFloat(plan.price).toFixed(2)}
-                            </span>
-                            <span className={`text-sm font-medium ${isCurrentActive ? 'text-green-400' : isCurrent ? 'text-amber-400' : 'text-blue-400'}`}>/month</span>
-                          </div>
-                          <p className="text-xs text-gray-500 font-medium mt-2">Flat monthly fee</p>
-                          {plan.setup_fee > 0 && (
-                            <p className="text-xs text-gray-400 mt-1.5">
-                              + ${parseFloat(plan.setup_fee).toFixed(2)} one-time setup fee
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Limits */}
-                        <div className="flex flex-wrap gap-2">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">
-                            <MdFlight size={12} />
-                            {plan.max_aircraft === 0 ? 'Unlimited aircraft' : `Up to ${plan.max_aircraft} aircraft`}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">
-                            <FiUsers size={11} />
-                            {plan.max_users === 0 ? 'Unlimited users' : `Up to ${plan.max_users} users`}
-                          </span>
-                        </div>
-
-                        {/* Features from DB */}
-                        {planFeatures.length > 0 && (
-                          <ul className="space-y-2">
-                            {planFeatures.map((feat, fi) => (
-                              <li key={fi} className="flex items-start gap-2.5 text-sm text-gray-600">
-                                <span className="w-4 h-4 rounded-full bg-[#E1FAEA] flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <FiCheck size={9} className="text-[#016626]" />
-                                </span>
-                                {feat}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-
-                        {/* CTA */}
-                        {isCurrentActive ? (
-                          <button
-                            disabled={true}
-                            className="mt-auto w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
-                          >
-                            <FiCheck size={14} className="text-green-500" /> Current Plan
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleSubscribe(plan.id)}
-                            disabled={isLoading}
-                            className={`mt-auto w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
-                              isPopular
-                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/25'
-                                : 'bg-gray-900 hover:bg-gray-800 text-white'
-                            }`}
-                          >
-                            {isLoading
-                              ? <><FiLoader size={15} className="animate-spin" /> Processing…</>
-                              : <><FiZap size={14} /> {isCurrent ? "Reactivate Plan" : "Get Started"} — ${parseFloat(plan.price).toFixed(2)}/mo</>
-                            }
-                          </button>
-                        )}
-                      </div>
+                <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/15 text-white border border-white/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        Active Trial
+                      </span>
                     </div>
-                  );
-                })}
+                    <h3 className="text-2xl font-bold">Free Trial Account</h3>
+                    <p className="text-sm text-white/80 mt-1">
+                      Your organization is currently enjoying full access under a 14-day free trial.
+                    </p>
+                  </div>
+                  <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-center backdrop-blur-sm min-w-[120px]">
+                    <p className="text-3xl font-extrabold">{trialDaysRemaining}</p>
+                    <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wider mt-0.5">Days Remaining</p>
+                  </div>
+                </div>
+
+                <div className="w-full bg-white/10 rounded-full h-2 mt-6">
+                  <div 
+                    className={`h-2 rounded-full ${trialDaysRemaining > 5 ? 'bg-green-400' : 'bg-amber-400'}`} 
+                    style={{ width: `${Math.min(100, (trialDaysRemaining / 14) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-white/75 mt-2">
+                  Trial ends on {trialEndsDate}
+                </p>
               </div>
-            )}
-          </div>
+
+              {/* Included features for trial */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 bg-gray-50/70">
+                  <FiCheck size={14} className="text-blue-600" />
+                  <h4 className="text-sm font-semibold text-gray-700">Included in your free trial</h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-px bg-gray-100">
+                  {["Unlimited Flight Logs", "Unlimited Aircraft", "Instructor Oversight", "Fleet Maintenance", "Digital Logbooks", "Student Dashboard", "Role-Based Access", "Calendar & Scheduling", "Announcements"].map((f) => (
+                    <div key={f} className="flex items-center gap-2.5 px-5 py-3 bg-white">
+                      <span className="w-5 h-5 rounded-full bg-[#E1FAEA] flex items-center justify-center flex-shrink-0">
+                        <FiCheck size={10} className="text-[#016626]" />
+                      </span>
+                      <span className="text-sm text-gray-700 font-medium">{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Plan Selection / Upgrade Grid (Only for Admin) ── */}
+          {isAllowedToManage && (
+            <div className="pt-6 border-t border-gray-100">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {currentSubscription ? "Upgrade or Switch Your Plan" : "Choose a Subscription Plan"}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {currentSubscription 
+                    ? "Select a plan below to change your subscription level. Changes will be handled securely via Stripe."
+                    : "Regain full access by choosing one of the following subscription plans."}
+                </p>
+              </div>
+
+              {plans.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                  <p className="text-base font-medium">No active plans available.</p>
+                  <p className="text-sm mt-1">Please contact support to get access.</p>
+                </div>
+              ) : (
+                <div className={`grid gap-5 ${plans.length === 1 ? 'grid-cols-1 max-w-md mx-auto' : plans.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+                  {plans.map((plan, idx) => {
+                    const isPopular = plans.length > 1 && idx === Math.floor(plans.length / 2);
+                    const isCurrent = currentSubscription && currentSubscription.plan_id === plan.id;
+                    const isCurrentActive = isCurrent && !!user?.has_active_subscription;
+                    const planFeatures = plan.para
+                      ? plan.para.split(/[|\n]/).map(f => f.trim()).filter(Boolean)
+                      : [];
+                    const isLoading = subscribing === plan.id;
+
+                    return (
+                      <div
+                        key={plan.id}
+                        className={`relative flex flex-col rounded-2xl border-2 overflow-hidden transition-all duration-200 ${
+                          isCurrentActive
+                            ? 'border-green-500 bg-green-50/10'
+                            : isCurrent
+                            ? 'border-amber-500 bg-amber-50/5'
+                            : isPopular
+                            ? 'border-blue-600 shadow-lg shadow-blue-500/15'
+                            : 'border-gray-200 hover:border-blue-200'
+                        }`}
+                      >
+                        {isCurrentActive && (
+                          <div className="bg-green-500 text-center py-1.5">
+                            <span className="text-xs font-bold text-white tracking-wide flex items-center justify-center gap-1.5">
+                              <FiCheck size={12} /> YOUR CURRENT PLAN
+                            </span>
+                          </div>
+                        )}
+                        {!isCurrentActive && isCurrent && (
+                          <div className="bg-amber-500 text-center py-1.5">
+                            <span className="text-xs font-bold text-white tracking-wide flex items-center justify-center gap-1.5">
+                              <FiClock size={12} /> YOUR TRIAL/EXPIRED PLAN
+                            </span>
+                          </div>
+                        )}
+                        {!isCurrent && isPopular && (
+                          <div className="bg-blue-600 text-center py-1.5">
+                            <span className="text-xs font-bold text-white tracking-wide flex items-center justify-center gap-1.5">
+                              <FiStar size={10} /> MOST POPULAR
+                            </span>
+                          </div>
+                        )}
+                        <div className={`h-1 bg-gradient-to-r ${isCurrentActive ? 'from-green-400 to-green-600' : isCurrent ? 'from-amber-400 to-amber-600' : 'from-blue-400 to-blue-600'}`} />
+
+                        <div className="flex flex-col flex-1 p-5 gap-4">
+                          {/* Title */}
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">{plan.title}</h3>
+                            {plan.description && (
+                              <p className="text-sm text-gray-400 mt-1 leading-relaxed">{plan.description}</p>
+                            )}
+                          </div>
+
+                          {/* Price */}
+                          <div className={`rounded-xl p-4 border ${isCurrentActive ? 'bg-green-50 border-green-100' : isCurrent ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
+                            <p className="text-xs text-gray-400 font-medium mb-1">Monthly fee</p>
+                            <div className="flex items-baseline gap-1">
+                              <span className={`text-4xl font-extrabold leading-none ${isCurrentActive ? 'text-green-600' : isCurrent ? 'text-amber-600' : 'text-blue-600'}`}>
+                                ${parseFloat(plan.price).toFixed(2)}
+                              </span>
+                              <span className={`text-sm font-medium ${isCurrentActive ? 'text-green-400' : isCurrent ? 'text-amber-400' : 'text-blue-400'}`}>/month</span>
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium mt-2">Flat monthly fee</p>
+                            {plan.setup_fee > 0 && (
+                              <p className="text-xs text-gray-400 mt-1.5">
+                                + ${parseFloat(plan.setup_fee).toFixed(2)} one-time setup fee
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Limits */}
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">
+                              <MdFlight size={12} />
+                              {plan.max_aircraft === 0 ? 'Unlimited aircraft' : `Up to ${plan.max_aircraft} aircraft`}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">
+                              <FiUsers size={11} />
+                              {plan.max_users === 0 ? 'Unlimited users' : `Up to ${plan.max_users} users`}
+                            </span>
+                          </div>
+
+                          {/* Features from DB */}
+                          {planFeatures.length > 0 && (
+                            <ul className="space-y-2">
+                              {planFeatures.map((feat, fi) => (
+                                <li key={fi} className="flex items-start gap-2.5 text-sm text-gray-600">
+                                  <span className="w-4 h-4 rounded-full bg-[#E1FAEA] flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <FiCheck size={9} className="text-[#016626]" />
+                                  </span>
+                                  {feat}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {/* CTA */}
+                          {isCurrentActive ? (
+                            <button
+                              disabled={true}
+                              className="mt-auto w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                            >
+                              <FiCheck size={14} className="text-green-500" /> Current Plan
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleSubscribe(plan.id)}
+                              disabled={isLoading}
+                              className={`mt-auto w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                                isPopular
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/25'
+                                  : 'bg-gray-900 hover:bg-gray-800 text-white'
+                              }`}
+                            >
+                              {isLoading
+                                ? <><FiLoader size={15} className="animate-spin" /> Processing…</>
+                                : <><FiZap size={14} /> {isCurrent ? "Reactivate Plan" : "Get Started"} — ${parseFloat(plan.price).toFixed(2)}/mo</>
+                              }
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -537,5 +627,3 @@ const Subscription = () => {
 };
 
 export default Subscription;
-
-

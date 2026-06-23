@@ -26,27 +26,9 @@ const MainLayout = () => {
       const isExpired = !hasActiveSub && !isTrialActive;
       
       if (isExpired) {
-        const isAdminUser = user?.roles?.some(r => {
-          const name = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
-          return name === 'admin';
-        });
-
-        const isInstructorOrStudent = user?.roles?.some(r => {
-          const name = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
-          return name === 'instructor' || name === 'student';
-        });
-
-        if (isAdminUser) {
-          const isOnSubscriptionPage = location.pathname === '/subscription' || location.pathname === '/subscription-plans' || location.pathname.startsWith('/checkout');
-          const isOnSupportPage = location.pathname.startsWith('/support');
-          if (!isOnSubscriptionPage && !isOnSupportPage) {
-            navigate('/subscription', { replace: true });
-          }
-        } else if (isInstructorOrStudent) {
-          const isAllowedPath = location.pathname === '/logbook' || location.pathname === '/setting' || location.pathname.startsWith('/support');
-          if (!isAllowedPath) {
-            navigate('/logbook', { replace: true });
-          }
+        const isOnSubscriptionPage = location.pathname === '/subscription' || location.pathname.startsWith('/checkout');
+        if (!isOnSubscriptionPage) {
+          navigate('/subscription', { replace: true });
         }
       }
     }
