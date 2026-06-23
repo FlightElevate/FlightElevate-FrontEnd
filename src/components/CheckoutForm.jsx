@@ -74,7 +74,7 @@ const CheckoutForm = ({ planId, onSuccess }) => {
         )}
       </button>
       <p className="text-center text-xs text-gray-500 mt-4 flex items-center justify-center gap-1">
-        <FiLock /> Guaranteed safe & secure checkout powered by Stripe
+        <FiLock /> Guaranteed safe & secure checkout
       </p>
     </form>
   );

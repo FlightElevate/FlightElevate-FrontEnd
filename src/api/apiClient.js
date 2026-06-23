@@ -64,9 +64,26 @@ apiClient.interceptors.response.use(
           
           // Handle subscription required redirection
           if (data?.subscription_required) {
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/subscription-required') {
-              window.location.href = '/subscription-required';
+            let isInstructorOrStudent = false;
+            try {
+              const storedUser = localStorage.getItem('user');
+              if (storedUser) {
+                const userObj = JSON.parse(storedUser);
+                const roles = userObj.roles || [];
+                isInstructorOrStudent = roles.some(r => {
+                  const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+                  return roleName === 'instructor' || roleName === 'student';
+                });
+              }
+            } catch (err) {
+              console.error('Failed to parse user roles in apiClient:', err);
+            }
+
+            if (!isInstructorOrStudent) {
+              const currentPath = window.location.pathname;
+              if (currentPath !== '/subscription') {
+                window.location.href = '/subscription';
+              }
             }
           }
           

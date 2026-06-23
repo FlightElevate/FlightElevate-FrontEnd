@@ -23,14 +23,31 @@ const MainLayout = () => {
       const safeDateStr = user.trial_ends_at ? (user.trial_ends_at.includes('T') ? user.trial_ends_at : user.trial_ends_at.replace(' ', 'T') + 'Z') : null;
       const clientTrialActive = safeDateStr ? new Date(safeDateStr) > new Date() : false;
       const isTrialActive = backendTrialActive || clientTrialActive;
+      const isExpired = !hasActiveSub && !isTrialActive;
       
-      // If trial is expired and no active subscription, redirect to subscription page
-      // Unless they are already on the subscription page or support page
-      const isOnSubscriptionPage = location.pathname === '/subscription' || location.pathname === '/subscription-plans';
-      const isOnSupportPage = location.pathname.startsWith('/support');
+      if (isExpired) {
+        const isAdminUser = user?.roles?.some(r => {
+          const name = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+          return name === 'admin';
+        });
 
-      if (!hasActiveSub && !isTrialActive && !isOnSubscriptionPage && !isOnSupportPage) {
-        navigate('/subscription-required', { replace: true });
+        const isInstructorOrStudent = user?.roles?.some(r => {
+          const name = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+          return name === 'instructor' || name === 'student';
+        });
+
+        if (isAdminUser) {
+          const isOnSubscriptionPage = location.pathname === '/subscription' || location.pathname === '/subscription-plans' || location.pathname.startsWith('/checkout');
+          const isOnSupportPage = location.pathname.startsWith('/support');
+          if (!isOnSubscriptionPage && !isOnSupportPage) {
+            navigate('/subscription', { replace: true });
+          }
+        } else if (isInstructorOrStudent) {
+          const isAllowedPath = location.pathname === '/logbook' || location.pathname === '/setting' || location.pathname.startsWith('/support');
+          if (!isAllowedPath) {
+            navigate('/logbook', { replace: true });
+          }
+        }
       }
     }
   }, [user, isSuperAdmin, navigate, location.pathname]);

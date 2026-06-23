@@ -84,25 +84,46 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, r
   // Subscription guard — only for Admin-role users with an organization
   // SuperAdmins and users without an org (e.g., newly invited students) bypass this
   const isAdminUser = user?.roles?.some(r => {
-    const roleName = typeof r === 'string' ? r : r?.name;
-    return roleName === 'Admin';
+    const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+    return roleName === 'admin';
   });
   const isSuperAdminUser = user?.roles?.some(r => {
-    const roleName = typeof r === 'string' ? r : r?.name;
-    return roleName === 'Super Admin';
+    const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+    return roleName === 'super admin' || roleName === 'super-admin';
   });
 
-  if (isAdminUser && !isSuperAdminUser && user?.organization_id) {
+  const isInstructorUser = user?.roles?.some(r => {
+    const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+    return roleName === 'instructor';
+  });
+  const isStudentUser = user?.roles?.some(r => {
+    const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+    return roleName === 'student';
+  });
+
+  if (!isSuperAdminUser && user?.organization_id) {
     const hasActiveSub = !!user.has_active_subscription;
 
     const backendTrialActive = !!user.is_trial_active;
     const safeDateStr = user.trial_ends_at ? (user.trial_ends_at.includes('T') ? user.trial_ends_at : user.trial_ends_at.replace(' ', 'T') + 'Z') : null;
     const clientTrialActive = safeDateStr ? new Date(safeDateStr) > new Date() : false;
     const isTrialActive = backendTrialActive || clientTrialActive;
+    const isExpired = !hasActiveSub && !isTrialActive;
 
-    // Only block if BOTH subscription is inactive AND trial has expired
-    if (!hasActiveSub && !isTrialActive) {
-      return <Navigate to="/subscription-required" replace />;
+    if (isExpired) {
+      if (isAdminUser) {
+        // Redirect Admin to /subscription unless already on paying paths
+        const isPayingPath = window.location.pathname === '/subscription' || window.location.pathname.startsWith('/checkout');
+        if (!isPayingPath) {
+          return <Navigate to="/subscription" replace />;
+        }
+      } else if (isInstructorUser || isStudentUser) {
+        // Redirect Instructors/Students to /logbook unless already on allowed path
+        const isAllowedPath = window.location.pathname === '/logbook' || window.location.pathname === '/setting';
+        if (!isAllowedPath) {
+          return <Navigate to="/logbook" replace />;
+        }
+      }
     }
   }
 

@@ -22,9 +22,33 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   
+  // Memoize navigation items to prevent recalculation on every render
   const navLinks = useMemo(() => {
     if (!user?.roles) return [];
-    const items = getNavigationItemsByRole(user.roles);
+    let items = getNavigationItemsByRole(user.roles);
+    
+    // Check if subscription/trial has expired
+    const hasActiveSub = !!user.has_active_subscription;
+    const backendTrialActive = !!user.is_trial_active;
+    const safeDateStr = user.trial_ends_at ? (user.trial_ends_at.includes('T') ? user.trial_ends_at : user.trial_ends_at.replace(' ', 'T') + 'Z') : null;
+    const clientTrialActive = safeDateStr ? new Date(safeDateStr) > new Date() : false;
+    const isTrialActive = backendTrialActive || clientTrialActive;
+    const isExpired = !hasActiveSub && !isTrialActive;
+
+    const isInstructorOrStudent = user.roles.some(r => {
+      const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+      return roleName === 'instructor' || roleName === 'student';
+    });
+
+    const isSuperAdmin = user.roles.some(r => {
+      const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+      return roleName === 'super admin' || roleName === 'super-admin';
+    });
+
+    if (isExpired && !isSuperAdmin && isInstructorOrStudent) {
+      // Keep only Logbook and Settings
+      items = items.filter(item => ['Logbook', 'Settings'].includes(item.label));
+    }
     
     const seen = new Set();
     return items.filter(item => {
@@ -34,7 +58,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       seen.add(item.link);
       return true;
     });
-  }, [user?.roles]);
+  }, [user?.roles, user?.has_active_subscription, user?.is_trial_active, user?.trial_ends_at]);
 
   
   useEffect(() => {

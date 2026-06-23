@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { HiDotsVertical } from "react-icons/hi";
-import { FiSearch, FiEdit2, FiTrash2, FiX, FiPlus, FiDownload, FiFilter, FiEye } from "react-icons/fi";
+import { FiSearch, FiEdit2, FiTrash2, FiX, FiPlus, FiDownload, FiFilter, FiEye, FiCheckCircle } from "react-icons/fi";
 import Pagination from "../../components/Pagination";
 import { useAuth } from "../../context/AuthContext";
 import { useRole } from "../../hooks/useRole";
@@ -13,6 +14,7 @@ import { safeDisplay } from "../../utils/safeDisplay";
 import { aircraftCategories, getClassesForCategory, simulatorTypes } from "../../data/aircraftMakesModels";
 
 const Logbook = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin, isSuperAdmin } = useRole();
   const isAdminView = isAdmin() || isSuperAdmin();
@@ -98,8 +100,10 @@ const Logbook = () => {
   }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterInstructorId, filterMonth, filterStartDate, filterEndDate, searchTerm]);
 
   useEffect(() => {
-    fetchStudents();
-    if (isAdminView) fetchInstructors();
+    if (isAdminView) {
+      fetchStudents();
+      fetchInstructors();
+    }
     fetchAircraft();
   }, [isAdminView]);
 
@@ -871,6 +875,15 @@ const Logbook = () => {
                     <td className="px-3 py-3 whitespace-nowrap text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
                           <>
+                            {logbook.reservation_id && (
+                              <button
+                                onClick={() => navigate(`/reservations/${logbook.reservation_id}?tab=checkin`)}
+                                className="text-green-600 hover:text-green-800 p-1 flex items-center font-medium"
+                                title="Go to Reservation Check-In"
+                              >
+                                <FiCheckCircle className="mr-1" /> Check-In
+                              </button>
+                            )}
                             <button
                               onClick={() => handleEdit(logbook)}
                               className="text-blue-600 hover:text-blue-800 p-1 flex items-center font-medium"
@@ -911,9 +924,23 @@ const Logbook = () => {
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingLogbook ? 'Edit Logbook Entry' : 'Add Logbook Entry'}
-              </h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {editingLogbook ? 'Edit Logbook Entry' : 'Add Logbook Entry'}
+                </h2>
+                {editingLogbook?.reservation_id && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      navigate(`/reservations/${editingLogbook.reservation_id}?tab=checkin`);
+                    }}
+                    className="inline-flex items-center px-3 py-1 bg-green-50 border border-green-200 text-green-700 rounded-full text-xs font-semibold hover:bg-green-100 transition-colors"
+                  >
+                    <FiCheckCircle className="mr-1" /> Check-In Reservation
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setShowEditModal(false)}
                 className="text-gray-400 hover:text-gray-600"
