@@ -430,6 +430,55 @@ const LessonDetails = () => {
                       </h3>
                       <p className="text-[#344054]">{safeDisplay(lesson.specialInstructions, '')}</p>
                     </div>
+
+                    {/* Quick action button for Admins/Instructors */}
+                    {!lesson.isLessonTemplate && (isAdmin() || isSuperAdmin() || isAssignedInstructor()) && (
+                      <div className="mt-2 pt-4 border-t border-gray-100">
+                        {['dispatched'].includes(lesson.status?.toLowerCase()) && (
+                          <button
+                            onClick={() => navigate(`/reservations/${lesson.id}?tab=checkin`)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Go to Check-In
+                          </button>
+                        )}
+                        {['pending', 'requested'].includes(lesson.status?.toLowerCase()) && (
+                          <button
+                            onClick={() => navigate(`/reservations/${lesson.id}?tab=dispatch`)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="22" y1="2" x2="11" y2="13" />
+                              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                            </svg>
+                            Go to Dispatch
+                          </button>
+                        )}
+                        {['completed'].includes(lesson.status?.toLowerCase()) && (
+                          <button
+                            onClick={() => navigate(`/reservations/${lesson.id}?tab=invoice`)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="12" y1="1" x2="12" y2="23" />
+                              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                            View Invoice
+                          </button>
+                        )}
+                        {!['dispatched','pending','requested','completed'].includes(lesson.status?.toLowerCase()) && (
+                          <button
+                            onClick={() => navigate(`/reservations/${lesson.id}`)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+                          >
+                            View Reservation Details
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </>
                 ) : (
                   // Feedback Tab - Visible for assigned instructor, assigned student, admins, and super admins

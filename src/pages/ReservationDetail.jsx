@@ -698,6 +698,39 @@ const ReservationDetail = () => {
                   </React.Fragment>
                 ))}
               </div>
+
+              {/* Quick action buttons */}
+              {(canDispatch || canCheckin || (canManage && isCompleted)) && (
+                <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap gap-3">
+                  {canDispatch && (
+                    <button
+                      onClick={() => setActiveTab('dispatch')}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                    >
+                      <FiSend size={14} />
+                      Go to Dispatch
+                    </button>
+                  )}
+                  {canCheckin && (
+                    <button
+                      onClick={() => setActiveTab('checkin')}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                    >
+                      <FiCheckCircle size={14} />
+                      Go to Check-In
+                    </button>
+                  )}
+                  {canManage && isCompleted && (
+                    <button
+                      onClick={() => setActiveTab('invoice')}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                    >
+                      <FiDollarSign size={14} />
+                      View Invoice
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
