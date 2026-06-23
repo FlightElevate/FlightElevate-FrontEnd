@@ -302,7 +302,7 @@ const UserProfile = () => {
     return (
       (log.flight_date_formatted || log.flight_date || "")?.toLowerCase().includes(searchLower) ||
       (log.flight_time || "")?.toLowerCase().includes(searchLower) ||
-      (log.instructor || "")?.toLowerCase().includes(searchLower) ||
+      ((user?.roles?.some(r => r.toLowerCase() === 'instructor') ? log.student : log.instructor) || "")?.toLowerCase().includes(searchLower) ||
       (log.status || "")?.toLowerCase().includes(searchLower) ||
       (log.lesson_type || "")?.toLowerCase().includes(searchLower)
     );
@@ -543,7 +543,9 @@ const UserProfile = () => {
                       <tr className="bg-gray-50">
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Time</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Instructor</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">
+                          {user?.roles?.some(r => r.toLowerCase() === 'instructor') ? 'Student' : 'Instructor'}
+                        </th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Status</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Flight Type</th>
                       </tr>
@@ -553,7 +555,11 @@ const UserProfile = () => {
                         <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
                           <td className="px-4 py-3">{safeDisplay(log.flight_date_formatted || log.flight_date)}</td>
                           <td className="px-4 py-3">{safeDisplay(log.flight_time)}</td>
-                          <td className="px-4 py-3">{safeDisplay(log.instructor)}</td>
+                          <td className="px-4 py-3">
+                            {user?.roles?.some(r => r.toLowerCase() === 'instructor') 
+                              ? safeDisplay(log.student) 
+                              : safeDisplay(log.instructor)}
+                          </td>
                           <td className="px-4 py-3">
                             <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{safeDisplay(log.status)}</span>
                           </td>

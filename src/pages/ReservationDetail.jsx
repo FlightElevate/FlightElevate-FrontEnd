@@ -613,15 +613,21 @@ const ReservationDetail = () => {
         {activeTab === 'overview' && (
           <div>
             <Section title="Reservation Info" icon={FiFileText}>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 gap-y-6">
                 <Field label="Reservation No" value={reservation.reservation_no} />
                 <Field label="Flight Type" value={reservation.flight_type} />
-                <Field label="Date" value={reservation.lesson_date} />
-                <Field label="Time" value={reservation.lesson_time ? `${reservation.lesson_time} – ${reservation.end_time}` : null} />
+                <Field label="Flight Date" value={reservation.lesson_date} />
+                <Field label="Flight Time" value={reservation.lesson_time ? `${reservation.lesson_time} – ${reservation.end_time}` : null} />
+                
                 <Field label="Duration" value={reservation.duration_minutes ? `${reservation.duration_minutes} min` : null} />
                 <Field label="Status" value={<StatusBadge status={status} />} />
                 <Field label="Location" value={reservation.location?.name} />
                 <Field label="Lesson Plan" value={reservation.lesson_number ?? reservation.title} />
+
+                <Field label="Student Name" value={reservation.students?.map(s => s.name).join(', ') || '—'} />
+                <Field label="Instructor Name" value={reservation.instructors?.map(i => i.name).join(', ') || '—'} />
+                <Field label="Aircraft Reg No" value={reservation.aircraft?.registration ?? 'No aircraft assigned'} />
+                <Field label="Route (Departure → Arrival)" value={reservation.route_from || reservation.route_to ? `${reservation.route_from ?? '—'} → ${reservation.route_to ?? '—'}` : 'Not checked in yet'} />
               </div>
             </Section>
 

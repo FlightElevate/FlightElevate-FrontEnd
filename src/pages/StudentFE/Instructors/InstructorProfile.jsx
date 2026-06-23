@@ -371,7 +371,7 @@ const InstructorProfile = () => {
     return (
       log.date?.toLowerCase().includes(searchLower) ||
       log.time?.toLowerCase().includes(searchLower) ||
-      log.instructor?.toLowerCase().includes(searchLower) ||
+      log.student?.toLowerCase().includes(searchLower) ||
       log.status?.toLowerCase().includes(searchLower) ||
       log.flight_type?.toLowerCase().includes(searchLower)
     );
@@ -502,7 +502,7 @@ const InstructorProfile = () => {
                       <tr className="bg-gray-50">
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Time</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Instructor</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-700">Student</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Status</th>
                         <th className="px-4 py-3 text-left font-medium text-gray-700">Flight Type</th>
                       </tr>
@@ -512,7 +512,7 @@ const InstructorProfile = () => {
                         <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
                           <td className="px-4 py-3">{safeDisplay(log.date || (log.full_date ? formatDate(log.full_date) : null))}</td>
                           <td className="px-4 py-3">{safeDisplay(log.time || (log.full_time ? formatTime(log.full_time) : null))}</td>
-                          <td className="px-4 py-3">{safeDisplay(log.instructor)}</td>
+                          <td className="px-4 py-3">{safeDisplay(log.student)}</td>
                           <td className="px-4 py-3">
                             <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{safeDisplay(log.status)}</span>
                           </td>

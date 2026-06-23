@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, requiredPermission = null }) => {
   const { isAuthenticated, user, hasRole, hasPermission, loading } = useAuth();
+  const location = useLocation();
 
   
   if (loading) {
@@ -113,13 +114,13 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null, r
     if (isExpired) {
       if (isAdminUser) {
         // Redirect Admin to /subscription unless already on paying paths
-        const isPayingPath = window.location.pathname === '/subscription' || window.location.pathname.startsWith('/checkout');
+        const isPayingPath = location.pathname === '/subscription' || location.pathname === '/subscription-plans' || location.pathname.startsWith('/checkout') || location.pathname.startsWith('/support');
         if (!isPayingPath) {
           return <Navigate to="/subscription" replace />;
         }
       } else if (isInstructorUser || isStudentUser) {
         // Redirect Instructors/Students to /logbook unless already on allowed path
-        const isAllowedPath = window.location.pathname === '/logbook' || window.location.pathname === '/setting';
+        const isAllowedPath = location.pathname === '/logbook' || location.pathname === '/setting' || location.pathname.startsWith('/support');
         if (!isAllowedPath) {
           return <Navigate to="/logbook" replace />;
         }
