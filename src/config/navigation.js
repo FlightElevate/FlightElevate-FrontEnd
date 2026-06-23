@@ -104,7 +104,7 @@ export const navigationItems = [
     icon: MdSupportAgent,
     label: "Support",
     link: "/support",
-    roles: ["super admin", "admin", "instructor", "student"], 
+    roles: ["super admin", "admin"], 
   },
   {
     icon: FiDollarSign,
@@ -122,7 +122,7 @@ export const navigationItems = [
     icon: FiSettings,
     label: "Settings",
     link: "/setting",
-    roles: ["super admin", "admin", "instructor", "student"], 
+    roles: ["super admin", "admin"], 
   },
 ];
 

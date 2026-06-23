@@ -46,8 +46,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     });
 
     if (isExpired && !isSuperAdmin && isInstructorOrStudent) {
-      // Keep only Logbook and Settings
-      items = items.filter(item => ['Logbook', 'Settings'].includes(item.label));
+      // Keep only Logbook for expired instructor/student accounts
+      items = items.filter(item => ['Logbook'].includes(item.label));
     }
     
     const seen = new Set();

@@ -616,21 +616,23 @@ const ReservationDetail = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 gap-y-6">
                 <Field label="Reservation No" value={reservation.reservation_no} />
                 <Field label="Flight Type" value={reservation.flight_type} />
-                <Field label="Flight Date" value={reservation.lesson_date} />
+                <Field
+                  label="Flight Date"
+                  value={
+                    reservation.lesson_date
+                      ? new Date(reservation.lesson_date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+                      : '—'
+                  }
+                />
                 <Field label="Flight Time" value={reservation.lesson_time ? `${reservation.lesson_time} – ${reservation.end_time}` : null} />
-                
                 <Field label="Duration" value={reservation.duration_minutes ? `${reservation.duration_minutes} min` : null} />
                 <Field label="Status" value={<StatusBadge status={status} />} />
                 <Field label="Location" value={reservation.location?.name} />
                 <Field label="Lesson Plan" value={reservation.lesson_number ?? reservation.title} />
-
-                <Field label="Student Name" value={reservation.students?.map(s => s.name).join(', ') || '—'} />
-                <Field label="Instructor Name" value={reservation.instructors?.map(i => i.name).join(', ') || '—'} />
-                <Field label="Aircraft Reg No" value={reservation.aircraft?.registration ?? 'No aircraft assigned'} />
-                <Field label="Route (Departure → Arrival)" value={reservation.route_from || reservation.route_to ? `${reservation.route_from ?? '—'} → ${reservation.route_to ?? '—'}` : 'Not checked in yet'} />
               </div>
             </Section>
 
+            {/* People Section */}
             <Section title="People" icon={FiUser}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -659,14 +661,90 @@ const ReservationDetail = () => {
               </div>
             </Section>
 
+            {/* Aircraft Section */}
             <Section title="Aircraft" icon={FiTool}>
               {reservation.aircraft ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Aircraft" value={reservation.aircraft.name} />
-                  <Field label="Model" value={reservation.aircraft.model} />
-                  <Field label="Registration" value={reservation.aircraft.registration} />
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Registration Badge */}
+                  <div className="flex flex-col items-center justify-center px-6 py-4 rounded-xl border-2 border-blue-200 bg-blue-50 min-w-[130px]">
+                    <span className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Tail No.</span>
+                    <span className="text-2xl font-black text-blue-800 tracking-tight">{reservation.aircraft.registration}</span>
+                  </div>
+                  {/* Other details */}
+                  <div className="grid grid-cols-2 gap-4 flex-1">
+                    <Field label="Aircraft Name" value={reservation.aircraft.name} />
+                    <Field label="Model" value={reservation.aircraft.model} />
+                    {reservation.aircraft.year && <Field label="Year" value={reservation.aircraft.year} />}
+                    {reservation.aircraft.engine_type && <Field label="Engine Type" value={reservation.aircraft.engine_type} />}
+                  </div>
                 </div>
-              ) : <p className="text-sm text-gray-400">No aircraft assigned</p>}
+              ) : (
+                <div className="flex items-center gap-3 py-2">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                    <FiTool size={18} className="text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-400">No aircraft assigned to this reservation</p>
+                </div>
+              )}
+            </Section>
+
+            {/* Departure & Arrival Section */}
+            <Section title="Route" icon={FiSend}>
+              <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                {/* Departure */}
+                <div className="flex-1 rounded-xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    </div>
+                    <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Departure</span>
+                  </div>
+                  {reservation.route_from ? (
+                    <>
+                      <p className="text-2xl font-black text-gray-800 tracking-tight">{reservation.route_from}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Not recorded yet</p>
+                  )}
+                </div>
+
+                {/* Arrow connector */}
+                <div className="flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="h-px w-10 sm:w-4 bg-gray-300 hidden sm:block" />
+                    <div className="text-gray-400">
+                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                      </svg>
+                    </div>
+                    <div className="h-px w-10 sm:w-4 bg-gray-300 hidden sm:block" />
+                  </div>
+                </div>
+
+                {/* Arrival */}
+                <div className="flex-1 rounded-xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="3" fill="white"/>
+                      </svg>
+                    </div>
+                    <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">Arrival</span>
+                  </div>
+                  {reservation.route_to ? (
+                    <>
+                      <p className="text-2xl font-black text-gray-800 tracking-tight">{reservation.route_to}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Not recorded yet</p>
+                  )}
+                </div>
+              </div>
+              {!reservation.route_from && !reservation.route_to && (
+                <p className="text-xs text-gray-400 text-center mt-2">Route details will appear after the flight is checked in</p>
+              )}
             </Section>
 
             {reservation.notes && (
@@ -1504,235 +1582,251 @@ const ReservationDetail = () => {
         )}
 
         {showPreviewModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh] border border-slate-100">
-              {/* Modal Header */}
-              <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <FiDollarSign className="text-blue-400 animate-pulse" size={20} />
-                  <h3 className="font-bold text-base sm:text-lg">Invoice Preview</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{background: 'rgba(10,15,40,0.55)', backdropFilter: 'blur(6px)'}}>
+            <div className="relative bg-white w-full max-w-md sm:max-w-lg md:max-w-2xl xl:max-w-3xl rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[96vh]" style={{border: '1.5px solid #e2e8f0'}}>
+
+              {/* ── HEADER ── */}
+              <div className="flex items-center justify-between px-6 py-4" style={{background: 'linear-gradient(135deg, #1A365D 0%, #2B4C8C 60%, #3B6CB7 100%)'}}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background: 'rgba(255,255,255,0.15)'}}>
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L21 16z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base leading-tight">Invoice Preview</h3>
+                    <p className="text-xs text-blue-200 mt-0.5">Review before generating</p>
+                  </div>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => setShowPreviewModal(false)} 
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  <FiX size={24} />
+                <button type="button" onClick={() => setShowPreviewModal(false)}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:bg-white/20 text-blue-200 hover:text-white">
+                  <FiX size={18} />
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-4 sm:p-6 overflow-y-auto bg-slate-50 flex-1 space-y-4 sm:space-y-6">
+              {/* ── BODY (scrollable) ── */}
+              <div className="overflow-y-auto flex-1 bg-gradient-to-b from-slate-50 to-white">
+
                 {/* Invoice Sheet */}
-                <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 sm:p-8 space-y-6 text-[#2D3748]">
-                  {/* Header: Logo + Invoice ID */}
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-8 h-8 text-[#2B4C8C]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L21 16z"/>
-                      </svg>
-                      <span className="text-xl font-bold tracking-tight text-[#1A365D]">FlightElevate</span>
+                <div className="mx-4 sm:mx-6 my-5 bg-white rounded-2xl shadow-sm overflow-hidden" style={{border: '1px solid #e2e8f0'}}>
+
+                  {/* Invoice Top: Logo + Number */}
+                  <div className="px-6 pt-6 pb-4 flex items-start justify-between" style={{borderBottom: '1px solid #f1f5f9'}}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background: 'linear-gradient(135deg,#1A365D,#3B6CB7)'}}>
+                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L21 16z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="font-bold text-[#1A365D] text-lg leading-none">FlightElevate</span>
+                        <p className="text-xs text-slate-400 mt-0.5">Aviation Training Platform</p>
+                      </div>
                     </div>
-                    <div className="text-right text-xs sm:text-sm text-slate-500">
-                      Invoice # <span className="font-bold text-slate-800">FE-{reservation?.id + 2000 || '2029'}</span>
+                    <div className="text-right">
+                      <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">Invoice</span>
+                      <p className="text-lg font-black text-[#1A365D]">FE-{reservation?.id + 2000 || '2029'}</p>
                     </div>
                   </div>
 
-                  {/* Title & Date */}
-                  <div className="flex justify-between items-end">
+                  {/* INVOICE Title Row */}
+                  <div className="px-6 py-4 flex items-end justify-between" style={{borderBottom: '1px solid #f1f5f9'}}>
                     <div>
-                      <h1 className="text-3xl font-extrabold text-[#1A365D] tracking-tight">INVOICE</h1>
+                      <h1 className="text-3xl sm:text-4xl font-black tracking-tight" style={{color:'#1A365D', letterSpacing:'-1px'}}>INVOICE</h1>
                     </div>
-                    <div className="text-right text-xs sm:text-sm space-y-0.5">
-                      <div><span className="text-slate-400">Ref. No </span><span className="font-bold text-slate-850">#{reservation?.reservation_no}</span></div>
-                      <div><span className="text-slate-400">Invoice Date: </span><span className="font-bold text-slate-800">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
-                    </div>
-                  </div>
-
-                  {/* Metadata Box with light gray background and dividing vertical line */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-50 border border-slate-200/60 rounded-xl overflow-hidden divide-y md:divide-y-0 md:divide-x divide-slate-200 text-xs sm:text-sm">
-                    <div className="p-4 space-y-2">
-                      <div className="flex justify-between"><span className="text-slate-400">Reference Number:</span> <span className="font-bold text-slate-700">{reservation?.reservation_no}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Invoice Date:</span> <span className="font-bold text-slate-700">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Pilot:</span> <span className="font-bold text-slate-750">{reservation?.students?.[0]?.name || 'N/A'}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Location:</span> <span className="font-bold text-slate-700">{reservation?.location?.name || 'Anytown, USA \\ 5321'}</span></div>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <div className="flex justify-between"><span className="text-slate-400">Pilot:</span> <span className="font-bold text-slate-700">{reservation?.students?.[0]?.name || 'N/A'}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Instructor:</span> <span className="font-bold text-slate-700">{reservation?.instructors?.[0]?.name || 'None'}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Aircraft:</span> <span className="font-bold text-slate-700">{reservation?.aircraft ? `${reservation.aircraft.registration} / ${reservation.aircraft.name}` : 'N/A'}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Location:</span> <span className="font-bold text-slate-700">{reservation?.location?.name || 'Anytown Municipal Airport'}</span></div>
-                    </div>
-                  </div>
-
-                  {/* Hobbs / Times Readings Block */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 border border-slate-200 rounded-xl overflow-hidden text-xs sm:text-sm divide-y md:divide-y-0 md:divide-x divide-slate-200 bg-white">
-                    <div className="p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Hobbs Time Start:</span>
-                        <span className="font-bold text-slate-800 flex items-center gap-1">
-                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
-                          {reservation?.hobbs_out || '0.0'}
-                        </span>
+                    <div className="text-right space-y-1">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-xs text-slate-400">Ref. No</span>
+                        <span className="text-sm font-bold text-slate-800">#{reservation?.reservation_no}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">End Time:</span>
-                        <span className="font-bold text-slate-800 flex items-center gap-1">
-                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
-                          {checkinForm?.hobbs_in || reservation?.hobbs_in || '0.0'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Check-in Time:</span>
-                        <span className="font-bold text-slate-800 flex items-center gap-1">
-                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
-                          {reservation?.checked_in_at ? new Date(reservation.checked_in_at).toLocaleString() : new Date().toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 font-medium">Check-out Time:</span>
-                        <span className="font-bold text-slate-800 flex items-center gap-1">
-                          <span className="inline-block border-l-4 border-l-blue-600 border-y-4 border-y-transparent w-0 h-0 mr-1" />
-                          {reservation?.dispatched_at ? new Date(reservation.dispatched_at).toLocaleString() : 'N/A'}
-                        </span>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-xs text-slate-400">Date</span>
+                        <span className="text-sm font-bold text-slate-800">{new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Line Items Table with Blue Header */}
-                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                    <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                  {/* Meta Info Cards */}
+                  <div className="grid grid-cols-2 divide-x" style={{borderBottom:'1px solid #f1f5f9', background:'#f8fafc'}}>
+                    <div className="px-5 py-4 space-y-2.5">
+                      {[
+                        ['Reference No', reservation?.reservation_no],
+                        ['Invoice Date', new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric'})],
+                        ['Pilot', reservation?.students?.[0]?.name || 'N/A'],
+                        ['Location', reservation?.location?.name || '—'],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex justify-between items-center gap-2">
+                          <span className="text-xs text-slate-400">{label}</span>
+                          <span className="text-xs font-semibold text-slate-700 text-right">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-5 py-4 space-y-2.5">
+                      {[
+                        ['Pilot', reservation?.students?.[0]?.name || 'N/A'],
+                        ['Instructor', reservation?.instructors?.[0]?.name || 'None'],
+                        ['Aircraft', reservation?.aircraft ? `${reservation.aircraft.registration} / ${reservation.aircraft.name}` : 'N/A'],
+                        ['Location', reservation?.location?.name || '—'],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex justify-between items-center gap-2">
+                          <span className="text-xs text-slate-400">{label}</span>
+                          <span className="text-xs font-semibold text-slate-700 text-right">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Hobbs / Time Readings */}
+                  <div className="grid grid-cols-2 divide-x" style={{borderBottom:'1px solid #f1f5f9'}}>
+                    {[
+                      { label: 'Hobbs Time Start', val: reservation?.hobbs_out || '0.0' },
+                      { label: 'End Time', val: checkinForm?.hobbs_in || reservation?.hobbs_in || '0.0' },
+                      { label: 'Check-in Time', val: reservation?.checked_in_at ? new Date(reservation.checked_in_at).toLocaleString() : new Date().toLocaleString() },
+                      { label: 'Check-out Time', val: reservation?.dispatched_at ? new Date(reservation.dispatched_at).toLocaleString() : 'N/A' },
+                    ].reduce((rows, item, i) => {
+                      if (i % 2 === 0) rows.push([item]);
+                      else rows[rows.length - 1].push(item);
+                      return rows;
+                    }, []).map((pair, ri) => (
+                      <React.Fragment key={ri}>
+                        {pair.map(({ label, val }) => (
+                          <div key={label} className="px-5 py-3 flex items-center justify-between gap-2">
+                            <span className="text-xs text-slate-500">{label}</span>
+                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
+                              {val}
+                            </span>
+                          </div>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  {/* Line Items Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs sm:text-sm">
                       <thead>
-                        <tr className="bg-[#2B4C8C] text-white">
-                          <th className="py-3 px-4 font-bold uppercase tracking-wider">Description</th>
-                          <th className="py-3 px-4 text-center font-bold uppercase tracking-wider">Rate</th>
-                          <th className="py-3 px-4 text-center font-bold uppercase tracking-wider">Hours / Qty</th>
-                          <th className="py-3 px-4 text-right font-bold uppercase tracking-wider">Amount</th>
+                        <tr style={{background:'linear-gradient(90deg,#1A365D,#2B4C8C)'}}>
+                          {['Description','Rate','Hours / Qty','Amount'].map((h, i) => (
+                            <th key={h} className={`py-3 px-4 text-xs font-bold uppercase tracking-widest text-white ${i===0?'text-left':i===3?'text-right':'text-center'}`}>{h}</th>
+                          ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
-                        {/* Aircraft Line Item */}
+                      <tbody>
                         {parseFloat(invoiceForm.aircraft_rate) > 0 && (
-                          <tr className="hover:bg-slate-50/50">
-                            <td className="py-3.5 px-4">
-                              <span className="font-bold block text-slate-800">Aircraft Rental ({reservation?.aircraft?.name || 'Cessna 172'})</span>
-                            </td>
-                            <td className="py-3.5 px-4 text-center font-semibold text-slate-600">${parseFloat(invoiceForm.aircraft_rate).toFixed(2)}/hr</td>
+                          <tr className="hover:bg-blue-50/30 transition-colors" style={{borderBottom:'1px solid #f1f5f9'}}>
+                            <td className="py-3.5 px-4 font-semibold text-slate-800">Aircraft Rental <span className="font-normal text-slate-400">({reservation?.aircraft?.name || 'Cessna 172'})</span></td>
+                            <td className="py-3.5 px-4 text-center text-slate-600">${parseFloat(invoiceForm.aircraft_rate).toFixed(2)}/hr</td>
                             <td className="py-3.5 px-4 text-center font-bold text-slate-800">{getBlockTime().toFixed(1)}</td>
                             <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">${(getBlockTime() * parseFloat(invoiceForm.aircraft_rate)).toFixed(2)}</td>
                           </tr>
                         )}
-
-                        {/* Dual Instruction Line Item */}
                         {parseFloat(invoiceForm.instruction_dual_hours) > 0 && (
-                          <tr className="hover:bg-slate-50/50">
-                            <td className="py-3.5 px-4">
-                              <span className="font-bold block text-slate-800">Flight Instruction</span>
-                            </td>
-                            <td className="py-3.5 px-4 text-center font-semibold text-slate-600">${parseFloat(invoiceForm.instructor_rate).toFixed(2)}/hr</td>
+                          <tr className="hover:bg-blue-50/30 transition-colors" style={{borderBottom:'1px solid #f1f5f9'}}>
+                            <td className="py-3.5 px-4 font-semibold text-slate-800">Flight Instruction</td>
+                            <td className="py-3.5 px-4 text-center text-slate-600">${parseFloat(invoiceForm.instructor_rate).toFixed(2)}/hr</td>
                             <td className="py-3.5 px-4 text-center font-bold text-slate-800">{parseFloat(invoiceForm.instruction_dual_hours).toFixed(1)}</td>
                             <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">${(parseFloat(invoiceForm.instruction_dual_hours) * parseFloat(invoiceForm.instructor_rate)).toFixed(2)}</td>
                           </tr>
                         )}
-
-                        {/* Ground Instruction Line Item */}
                         {parseFloat(invoiceForm.instruction_ground_hours) > 0 && (
-                          <tr className="hover:bg-slate-50/50">
-                            <td className="py-3.5 px-4">
-                              <span className="font-bold block text-slate-800">Ground Instruction</span>
-                            </td>
-                            <td className="py-3.5 px-4 text-center font-semibold text-slate-600">${parseFloat(invoiceForm.instructor_rate).toFixed(2)}/hr</td>
+                          <tr className="hover:bg-blue-50/30 transition-colors" style={{borderBottom:'1px solid #f1f5f9'}}>
+                            <td className="py-3.5 px-4 font-semibold text-slate-800">Ground Instruction</td>
+                            <td className="py-3.5 px-4 text-center text-slate-600">${parseFloat(invoiceForm.instructor_rate).toFixed(2)}/hr</td>
                             <td className="py-3.5 px-4 text-center font-bold text-slate-800">{parseFloat(invoiceForm.instruction_ground_hours).toFixed(1)}</td>
                             <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">${(parseFloat(invoiceForm.instruction_ground_hours) * parseFloat(invoiceForm.instructor_rate)).toFixed(2)}</td>
+                          </tr>
+                        )}
+                        {/* Empty state */}
+                        {!parseFloat(invoiceForm.aircraft_rate) && !parseFloat(invoiceForm.instruction_dual_hours) && !parseFloat(invoiceForm.instruction_ground_hours) && (
+                          <tr style={{borderBottom:'1px solid #f1f5f9'}}>
+                            <td colSpan={4} className="py-5 px-4 text-center text-sm text-slate-400 italic">No billable items</td>
                           </tr>
                         )}
                       </tbody>
                     </table>
                   </div>
 
-                  {/* Summary Rows Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
-                    {/* Left: Refunds & Adjustments */}
-                    <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 space-y-2">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Refunds &amp; Adjustments</span>
-                      <span className="text-xs text-slate-500 font-semibold">None</span>
+                  {/* Summary + Adjustments */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x" style={{borderTop:'1px solid #f1f5f9'}}>
+                    {/* Refunds */}
+                    <div className="px-5 py-4" style={{background:'#f8fafc'}}>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Refunds &amp; Adjustments</p>
+                      <p className="text-xs text-slate-500 font-medium">None</p>
                     </div>
 
-                    {/* Right: Subtotal, Tax Breakdown */}
-                    <div className="space-y-2.5 text-xs sm:text-sm">
-                      <div className="flex justify-between text-slate-500 font-medium">
-                        <span>Subtotal:</span>
-                        <span className="font-bold text-slate-800">
-                          ${(
-                            (getBlockTime() * (parseFloat(invoiceForm.aircraft_rate) || 0)) +
-                            ((parseFloat(invoiceForm.instruction_dual_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0)) +
-                            ((parseFloat(invoiceForm.instruction_ground_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0))
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                      {parseFloat(invoiceForm.tax_percent) > 0 && (
-                        <div className="flex justify-between text-slate-500 font-medium">
-                          <span>State Tax ({parseFloat(invoiceForm.tax_percent)}%):</span>
-                          <span className="font-bold text-slate-800">
-                            ${(
-                              ((getBlockTime() * (parseFloat(invoiceForm.aircraft_rate) || 0)) +
-                              ((parseFloat(invoiceForm.instruction_dual_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0)) +
-                              ((parseFloat(invoiceForm.instruction_ground_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0))) *
-                              parseFloat(invoiceForm.tax_percent) / 100
-                            ).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Bold Estimated Total */}
-                      <div className="flex justify-between border-t border-slate-200 pt-2.5 text-sm sm:text-base font-extrabold text-slate-900 bg-slate-50/50 p-2.5 rounded-lg">
-                        <span>Estimated Total:</span>
-                        <span className="font-black text-[#1A365D]">${calculateEstimatedTotal().toFixed(2)}</span>
-                      </div>
+                    {/* Totals */}
+                    <div className="px-5 py-4 space-y-2">
+                      {(() => {
+                        const subtotal =
+                          (getBlockTime() * (parseFloat(invoiceForm.aircraft_rate) || 0)) +
+                          ((parseFloat(invoiceForm.instruction_dual_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0)) +
+                          ((parseFloat(invoiceForm.instruction_ground_hours) || 0) * (parseFloat(invoiceForm.instructor_rate) || 0));
+                        const taxAmt = subtotal * (parseFloat(invoiceForm.tax_percent) || 0) / 100;
+                        return (
+                          <>
+                            <div className="flex justify-between text-xs text-slate-500">
+                              <span>Subtotal</span>
+                              <span className="font-semibold text-slate-700">${subtotal.toFixed(2)}</span>
+                            </div>
+                            {parseFloat(invoiceForm.tax_percent) > 0 && (
+                              <div className="flex justify-between text-xs text-slate-500">
+                                <span>Tax ({parseFloat(invoiceForm.tax_percent)}%)</span>
+                                <span className="font-semibold text-slate-700">${taxAmt.toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center pt-2 mt-1" style={{borderTop:'1.5px solid #e2e8f0'}}>
+                              <span className="text-sm font-bold text-slate-700">Estimated Total</span>
+                              <span className="text-base font-black text-[#1A365D]">${calculateEstimatedTotal().toFixed(2)}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 
-                  {/* Invoice Notes (if present) */}
+                  {/* Notes */}
                   {invoiceForm.notes && (
-                    <div className="bg-slate-50/50 border border-slate-150 rounded-xl p-4 text-xs text-slate-500 leading-relaxed">
-                      <span className="font-bold text-slate-700 block mb-1">Invoice Notes:</span>
+                    <div className="px-5 py-3 text-xs text-slate-500 leading-relaxed" style={{borderTop:'1px solid #f1f5f9', background:'#f8fafc'}}>
+                      <span className="font-bold text-slate-700 block mb-1">Notes:</span>
                       {invoiceForm.notes}
                     </div>
                   )}
+
+                  {/* Final Total Banner */}
+                  <div className="flex items-center justify-between px-6 py-5" style={{background:'linear-gradient(90deg,#1A365D 0%,#2B4C8C 60%,#3B6CB7 100%)'}}>
+                    <div>
+                      <p className="text-xs text-blue-200 font-medium uppercase tracking-widest">Total Due</p>
+                      <p className="text-xs text-blue-300 mt-0.5">All charges included</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-blue-200 uppercase tracking-widest font-bold mr-2">FINAL TOTAL</span>
+                      <span className="text-2xl sm:text-3xl font-black text-white">${calculateEstimatedTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Modal Footer Banner representing Final Total */}
-              <div className="bg-[#2B4C8C] text-white flex justify-end items-center px-6 py-4 text-xl sm:text-2xl font-black">
-                <span className="mr-3 text-xs sm:text-sm text-slate-200 uppercase tracking-widest font-bold">Final Total:</span>
-                ${calculateEstimatedTotal().toFixed(2)}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                <button 
-                  type="button" 
-                  onClick={() => setShowPreviewModal(false)} 
-                  className="px-4 sm:px-5 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
-                >
-                  Back to Edit
+              {/* ── FOOTER ── */}
+              <div className="px-5 py-4 flex items-center justify-between gap-3 bg-white" style={{borderTop:'1px solid #e2e8f0'}}>
+                <button type="button" onClick={() => setShowPreviewModal(false)}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
+                  ← Back to Edit
                 </button>
-                <button 
-                  type="button" 
+                <button type="button"
                   onClick={async (e) => {
                     await handleSaveInvoice(e);
                     setShowPreviewModal(false);
                     setIsEditingInvoice(false);
-                  }} 
-                  disabled={actionLoading} 
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all shadow-md hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center gap-2 text-sm"
-                >
-                  {actionLoading ? <FiLoader className="animate-spin" /> : <FiCheckCircle size={16} />}
+                  }}
+                  disabled={actionLoading}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 active:scale-95"
+                  style={{background:'linear-gradient(135deg,#1A365D,#3B6CB7)', boxShadow:'0 4px 14px rgba(43,76,140,0.35)'}}>
+                  {actionLoading ? <FiLoader className="animate-spin" size={16} /> : <FiCheckCircle size={16} />}
                   Generate &amp; Save Invoice
                 </button>
               </div>
+
             </div>
           </div>
         )}
@@ -1742,5 +1836,7 @@ const ReservationDetail = () => {
   </div>
 );
 };
+
+
 
 export default ReservationDetail;

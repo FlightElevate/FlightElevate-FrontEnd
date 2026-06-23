@@ -12,14 +12,53 @@ const Login = () => {
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { login, isAuthenticated, loading: authLoading, user } = useAuth();
 
-  
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate('/dashboard');
+  // ─── Helper: compute post-login destination ───────────────────────────────
+  const getRedirectPath = (userData) => {
+    if (!userData) return '/dashboard';
+
+    const isSuperAdmin = userData.roles?.some(r => {
+      const n = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+      return n === 'super admin' || n === 'super-admin' || n === 'superadmin';
+    });
+    // Super admins always go to dashboard
+    if (isSuperAdmin) return '/dashboard';
+
+    // Only check subscription for org users
+    if (userData.organization_id) {
+      const hasActiveSub   = !!userData.has_active_subscription;
+      const backendTrial   = !!userData.is_trial_active;
+      const safeDateStr    = userData.trial_ends_at
+        ? (userData.trial_ends_at.includes('T') ? userData.trial_ends_at : userData.trial_ends_at.replace(' ', 'T') + 'Z')
+        : null;
+      const clientTrial    = safeDateStr ? new Date(safeDateStr) > new Date() : false;
+      const isExpired      = !hasActiveSub && !backendTrial && !clientTrial;
+
+      if (isExpired) {
+        const isAdmin = userData.roles?.some(r => {
+          const n = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+          return n === 'admin';
+        });
+        const isInstructorOrStudent = userData.roles?.some(r => {
+          const n = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+          return n === 'instructor' || n === 'student';
+        });
+
+        if (isAdmin)              return '/subscription';
+        if (isInstructorOrStudent) return '/logbook';
+      }
     }
-  }, [isAuthenticated, authLoading, navigate]);
+
+    return '/dashboard';
+  };
+
+  // Redirect already-authenticated users
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      navigate(getRedirectPath(user), { replace: true });
+    }
+  }, [isAuthenticated, authLoading, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,7 +70,9 @@ const Login = () => {
       
       if (result.success) {
         showSuccessToast('Login successful! Welcome back.');
-        navigate('/dashboard');
+        // result.user comes from authService.login response.data.user
+        const destination = getRedirectPath(result.user);
+        navigate(destination, { replace: true });
       } else {
         setError(result.message || 'Login failed. Please try again.');
         showErrorToast(result.message || 'Invalid credentials');
