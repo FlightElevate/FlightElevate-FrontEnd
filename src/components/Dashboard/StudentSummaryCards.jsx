@@ -1,191 +1,113 @@
 import React, { useState, useEffect } from 'react';
 import Widgets from '../ui/Widgets';
-import { api } from '../../api/apiClient';
-import { ENDPOINTS } from '../../api/config';
 import { lessonService } from '../../api/services/lessonService';
 import { useAuth } from '../../context/AuthContext';
 
 const StudentSummaryCards = () => {
   const { user } = useAuth();
-  const [upcomingLessons, setUpcomingLessons] = useState(0);
-  const [totalFlightsLogged, setTotalFlightsLogged] = useState(0);
-  const [totalFlightHours, setTotalFlightHours] = useState(0);
-  const [supportTicketsCount, setSupportTicketsCount] = useState(0);
-  const [loading, setLoading] = useState({
-    upcoming: true,
-    flights: true,
-    hours: true,
-    tickets: true,
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalFlightHours: 0,
+    totalGroundHours: 0,
+    singleEngineHours: 0,
+    multiEngineHours: 0,
   });
 
-  
   useEffect(() => {
-    const fetchUpcomingLessons = async () => {
+    const fetchStudentStats = async () => {
       if (!user?.id) {
-        setLoading(prev => ({ ...prev, upcoming: false }));
+        setLoading(false);
         return;
       }
 
       try {
         const response = await lessonService.getUserLessons(user.id, {
-          per_page: 1,
-          page: 1,
           type: 'student',
-          status: 'ongoing',
-        });
-
-        if (response.success) {
-          const total = response.meta?.total || response.data?.total || 
-                       (Array.isArray(response.data) ? response.data.length : 0);
-          setUpcomingLessons(total);
-        }
-      } catch (err) {
-        console.error('Error fetching upcoming lessons:', err);
-        setUpcomingLessons(0);
-      } finally {
-        setLoading(prev => ({ ...prev, upcoming: false }));
-      }
-    };
-
-    fetchUpcomingLessons();
-  }, [user?.id]);
-
-  
-  useEffect(() => {
-    const fetchTotalFlights = async () => {
-      if (!user?.id) {
-        setLoading(prev => ({ ...prev, flights: false }));
-        return;
-      }
-
-      try {
-        const response = await lessonService.getUserLessons(user.id, {
-          per_page: 1,
-          page: 1,
-          type: 'student',
-        });
-
-        if (response.success) {
-          const total = response.meta?.total || response.data?.total || 
-                       (Array.isArray(response.data) ? response.data.length : 0);
-          setTotalFlightsLogged(total);
-        }
-      } catch (err) {
-        console.error('Error fetching total flights:', err);
-        setTotalFlightsLogged(0);
-      } finally {
-        setLoading(prev => ({ ...prev, flights: false }));
-      }
-    };
-
-    fetchTotalFlights();
-  }, [user?.id]);
-
-  
-  useEffect(() => {
-    const fetchTotalHours = async () => {
-      if (!user?.id) {
-        setLoading(prev => ({ ...prev, hours: false }));
-        return;
-      }
-
-      try {
-        const response = await lessonService.getUserLessons(user.id, {
-          per_page: 100, 
-          page: 1,
-          type: 'student',
+          per_page: 1000, 
         });
 
         if (response.success) {
           const lessons = response.data || [];
           
-          const totalMinutes = lessons.reduce((sum, lesson) => {
-            return sum + (parseInt(lesson.duration_minutes) || 0);
-          }, 0);
-          const totalHours = Math.round(totalMinutes / 60);
-          setTotalFlightHours(totalHours);
-        }
-      } catch (err) {
-        console.error('Error fetching flight hours:', err);
-        setTotalFlightHours(0);
-      } finally {
-        setLoading(prev => ({ ...prev, hours: false }));
-      }
-    };
+          let totalFlight = 0;
+          let totalGround = 0;
+          let singleEngine = 0;
+          let multiEngine = 0;
 
-    fetchTotalHours();
-  }, [user?.id]);
+          lessons.forEach((lesson) => {
+            const flightDual = parseFloat(lesson.flight_dual_hours || 0);
+            const flightSolo = parseFloat(lesson.flight_solo_hours || 0);
+            const flightCrossCountryDual = parseFloat(lesson.flight_cross_country_dual_hours || 0);
+            const flightCrossCountrySolo = parseFloat(lesson.flight_cross_country_solo_hours || 0);
+            const flightInstrument = parseFloat(lesson.flight_instrument_hours || 0);
+            const flightAtd = parseFloat(lesson.flight_atd_hours || 0);
+            const flightNight = parseFloat(lesson.flight_night_hours || 0);
+            
+            const lessonFlightHours = flightDual + flightSolo + flightCrossCountryDual + 
+                          flightCrossCountrySolo + flightInstrument + flightAtd + flightNight;
+            
+            totalFlight += lessonFlightHours;
 
-  
-  useEffect(() => {
-    const fetchSupportTickets = async () => {
-      try {
-        const response = await api.get(ENDPOINTS.SUPPORT.LIST, {
-          params: {
-            per_page: 1,
-            status: 'open',
-          },
-        });
+            totalGround += parseFloat(lesson.ground_hours || 0);
 
-        if (response.success) {
-          let total = 0;
-          
-          if (response.data?.meta?.total) {
-            total = response.data.meta.total;
-          } else if (response.data?.total) {
-            total = response.data.total;
-          } else if (Array.isArray(response.data)) {
-            total = response.data.length;
-          } else if (response.data?.data) {
-            if (response.data.meta?.total) {
-              total = response.data.meta.total;
-            } else if (Array.isArray(response.data.data)) {
-              total = response.data.data.length;
+            const aircraftCategory = (lesson.aircraft_category || '').toLowerCase();
+            const flightType = (lesson.flight_type || '').toLowerCase();
+            
+            const engineHours = flightDual + flightSolo + flightCrossCountryDual + flightCrossCountrySolo;
+            
+            if (aircraftCategory.includes('multi') || flightType.includes('multi')) {
+              multiEngine += engineHours;
+            } else {
+              singleEngine += engineHours;
             }
-          }
-          
-          setSupportTicketsCount(total);
+          });
+
+          setStats({
+            totalFlightHours: Math.round(totalFlight * 10) / 10, 
+            totalGroundHours: Math.round(totalGround * 10) / 10,
+            singleEngineHours: Math.round(singleEngine * 10) / 10,
+            multiEngineHours: Math.round(multiEngine * 10) / 10,
+          });
         }
-      } catch (err) {
-        console.error('Error fetching support tickets:', err);
-        setSupportTicketsCount(0);
+      } catch (error) {
+        console.error('Error fetching student stats:', error);
       } finally {
-        setLoading(prev => ({ ...prev, tickets: false }));
+        setLoading(false);
       }
     };
 
-    fetchSupportTickets();
-  }, []);
+    fetchStudentStats();
+  }, [user?.id]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <Widgets
         bgColor="#E9F0FC"
         textColor="#1751D0"
-        label="Upcoming Flight Lessons"
-        count={loading.upcoming ? '...' : upcomingLessons}
-        viewLink="/my-lessons"
+        label="Total Flight Hours"
+        count={loading ? '...' : stats.totalFlightHours}
+        viewLink="#"
       />
       <Widgets
         bgColor="#E6F7E6"
         textColor="#10B981"
-        label="Total Flights Logged"
-        count={loading.flights ? '...' : totalFlightsLogged}
-        viewLink="/logbook"
+        label="Total Ground Training Hours"
+        count={loading ? '...' : stats.totalGroundHours}
+        viewLink="#"
       />
       <Widgets
         bgColor="#FEE2E2"
         textColor="#EF4444"
-        label="Total Flights Hours"
-        count={loading.hours ? '...' : totalFlightHours}
-        viewLink="/logbook"
+        label="Single Engine Hours"
+        count={loading ? '...' : stats.singleEngineHours}
+        viewLink="#"
       />
       <Widgets
         bgColor="#FFF1DA"
         textColor="#EC980C"
-        label="Support Tickets"
-        count={loading.tickets ? '--' : supportTicketsCount}
-        viewLink="/support"
+        label="Multi Engine Hours"
+        count={loading ? '...' : stats.multiEngineHours}
+        viewLink="#"
       />
     </div>
   );

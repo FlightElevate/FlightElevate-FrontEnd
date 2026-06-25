@@ -118,12 +118,6 @@ export const navigationItems = [
     link: "/subscription",
     roles: ["admin"],
   },
-  {
-    icon: FiSettings,
-    label: "Settings",
-    link: "/setting",
-    roles: ["super admin", "admin"], 
-  },
 ];
 
 

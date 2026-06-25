@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiArrowLeft, FiTrash2, FiAlertTriangle, FiCheckCircle,
@@ -63,23 +64,27 @@ const Input = ({ label, type = 'text', value, onChange, required, placeholder, m
 );
 
 // ─── Confirm dialog ───────────────────────────────────────────────────────────
-const ConfirmDialog = ({ title, message, onConfirm, onCancel, danger }) => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-      <div className="flex items-start gap-3 mb-4">
-        <FiAlertTriangle size={22} className={danger ? 'text-red-500 mt-0.5' : 'text-yellow-500 mt-0.5'} />
-        <div>
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-600 mt-1">{message}</p>
+const ConfirmDialog = ({ title, message, onConfirm, onCancel, danger }) => {
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <FiAlertTriangle size={22} className={danger ? 'text-red-500 mt-0.5' : 'text-yellow-500 mt-0.5'} />
+          <div>
+            <h3 className="font-semibold text-gray-900">{title}</h3>
+            <p className="text-sm text-gray-600 mt-1">{message}</p>
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end">
+          <button onClick={onCancel} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">Cancel</button>
+          <button onClick={onConfirm} className={`px-4 py-2 rounded-lg text-white text-sm font-medium ${danger ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}>Confirm</button>
         </div>
       </div>
-      <div className="flex gap-3 justify-end">
-        <button onClick={onCancel} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">Cancel</button>
-        <button onClick={onConfirm} className={`px-4 py-2 rounded-lg text-white text-sm font-medium ${danger ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}>Confirm</button>
-      </div>
-    </div>
-  </div>
-);
+    </div>,
+    document.body
+  );
+};
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 const TABS = [
@@ -1500,8 +1505,8 @@ const ReservationDetail = () => {
           </Section>
         )}
 
-        {showAttentionModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+        {showAttentionModal && createPortal(
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 animate-fade-in">
             <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 border border-gray-100">
               <div className="flex items-start gap-4 mb-4">
                 <div className="p-3 bg-red-50 rounded-full text-red-600 flex-shrink-0">
@@ -1578,15 +1583,16 @@ const ReservationDetail = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
-        {showPreviewModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{background: 'rgba(10,15,40,0.55)', backdropFilter: 'blur(6px)'}}>
+        {showPreviewModal && createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4" style={{background: 'rgba(10,15,40,0.55)', backdropFilter: 'blur(6px)'}}>
             <div className="relative bg-white w-full max-w-md sm:max-w-lg md:max-w-2xl xl:max-w-3xl rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[96vh]" style={{border: '1.5px solid #e2e8f0'}}>
 
               {/* ── HEADER ── */}
-              <div className="flex items-center justify-between px-6 py-4" style={{background: 'linear-gradient(135deg, #1A365D 0%, #2B4C8C 60%, #3B6CB7 100%)'}}>
+              <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" style={{background: 'linear-gradient(135deg, #1A365D 0%, #2B4C8C 60%, #3B6CB7 100%)'}}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background: 'rgba(255,255,255,0.15)'}}>
                     <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -1605,7 +1611,7 @@ const ReservationDetail = () => {
               </div>
 
               {/* ── BODY (scrollable) ── */}
-              <div className="overflow-y-auto flex-1 bg-gradient-to-b from-slate-50 to-white">
+              <div className="overflow-y-auto flex-1 min-h-0 bg-gradient-to-b from-slate-50 to-white relative">
 
                 {/* Invoice Sheet */}
                 <div className="mx-4 sm:mx-6 my-5 bg-white rounded-2xl shadow-sm overflow-hidden" style={{border: '1px solid #e2e8f0'}}>
@@ -1808,7 +1814,7 @@ const ReservationDetail = () => {
               </div>
 
               {/* ── FOOTER ── */}
-              <div className="px-5 py-4 flex items-center justify-between gap-3 bg-white" style={{borderTop:'1px solid #e2e8f0'}}>
+              <div className="px-5 py-4 flex items-center justify-between gap-3 bg-white flex-shrink-0" style={{borderTop:'1px solid #e2e8f0'}}>
                 <button type="button" onClick={() => setShowPreviewModal(false)}
                   className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
                   ← Back to Edit
@@ -1828,7 +1834,8 @@ const ReservationDetail = () => {
               </div>
 
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
       </div>

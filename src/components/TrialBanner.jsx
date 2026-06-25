@@ -8,8 +8,9 @@ const TrialBanner = () => {
   const navigate = useNavigate();
 
   const trialInfo = useMemo(() => {
-    // Only show for Admin users in trial period
     if (!user) return null;
+    // Only show for Admin users in trial period
+    if (!hasRole('Admin')) return null;
     if (hasRole('Super Admin')) return null;
     if (user.has_active_subscription) return null; // hide if they bought a subscription
     if (!user.trial_ends_at) return null;
