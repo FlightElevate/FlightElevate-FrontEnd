@@ -124,8 +124,14 @@ const Register = () => {
         showSuccessToast('Registration successful! Welcome to FlightElevate.');
         navigate('/dashboard');
       } else {
-        setError(result.message || 'Registration failed. Please try again.');
-        showErrorToast(result.message || 'Registration failed');
+        let errorMsg = result.message || 'Registration failed. Please try again.';
+        if (result.errors) {
+          const firstError = Object.values(result.errors)[0];
+          if (Array.isArray(firstError)) errorMsg = firstError[0];
+          else if (typeof firstError === 'string') errorMsg = firstError;
+        }
+        setError(errorMsg);
+        showErrorToast(errorMsg);
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
