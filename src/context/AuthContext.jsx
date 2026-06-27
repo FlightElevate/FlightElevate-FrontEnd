@@ -38,8 +38,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Login error:', error);
       return { 
         success: false, 
-        message: error.message || 'Invalid credentials' 
-      };
+        message: error.message || 'Registration failed',
+        errors: error.errors || null,
+    };
     }
   }, []);
 
