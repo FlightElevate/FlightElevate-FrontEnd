@@ -97,7 +97,7 @@ apiClient.interceptors.response.use(
           break;
         case 422:
           
-          errorResponse.message = data?.message || 'Validation failed';
+          errorResponse.message = data?.errors?.message || data?.message || 'Validation failed';
           errorResponse.errors = data?.errors || data;
           if (import.meta.env.DEV) {
             console.error('Validation failed:', data?.errors || data);
@@ -111,7 +111,7 @@ apiClient.interceptors.response.use(
           }
           break;
         default:
-          errorResponse.message = data?.message || `Error: ${status}`;
+          errorResponse.message = data?.errors?.message || data?.message || `Error: ${status}`;
       }
       
       
