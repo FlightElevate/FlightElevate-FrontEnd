@@ -229,9 +229,13 @@ const LandingPage = () => {
                 Features
               </a>
               <a href="#faq" className="text-white hover:text-blue-100 transition-colors font-medium">
-                FAQ
+               FAQ
               </a>
-            </nav>
+              <a href="/about" className="text-white hover:text-blue-100 transition-colors font-medium">
+                About
+              </a>
+             </nav>
+
 
             {/* Right - Actions */}
             <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
