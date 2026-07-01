@@ -190,8 +190,8 @@ const LandingPage = () => {
 
           {/* Desktop Nav Items */}
           <nav className="hidden lg:flex items-center space-x-6">
-            <a href="#philosophy" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
-              Philosophy
+            <a href="/about" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
+              About
             </a>
             <a href="#features-interactive" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               Pillars
@@ -238,8 +238,8 @@ const LandingPage = () => {
         {mobileMenuOpen && (
           <div ref={menuRef} className="pointer-events-auto mt-3 max-w-4xl mx-auto rounded-2xl bg-white border border-slate-100 shadow-xl p-5 space-y-3 lg:hidden">
             <div className="flex flex-col space-y-1 text-left">
-              <a href="#philosophy" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
-                Philosophy
+              <a href="/about" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
+                About
               </a>
               <a href="#features-interactive" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
                 Pillars
@@ -275,8 +275,26 @@ const LandingPage = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-28 overflow-hidden z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-24 lg:pb-32 overflow-hidden bg-white">
+        
+        {/* Runway Grid Background (Light Mode) */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20" 
+          style={{
+            backgroundImage: 'linear-gradient(rgba(27,79,155,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(27,79,155,0.2) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+            transform: 'perspective(600px) rotateX(38deg) scaleX(1.4)',
+            transformOrigin: 'center 80%'
+          }}
+        ></div>
+        <div 
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[3px] h-[60%] pointer-events-none opacity-20"
+          style={{ background: 'linear-gradient(to top, rgba(27,79,155,0.8), transparent 100%)' }}
+        ></div>
+        <div 
+          className="absolute bottom-[20%] left-1/2 -translate-x-1/2 w-[500px] h-[2px] blur-[2px] pointer-events-none opacity-20"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(27,79,155,0.6), transparent)' }}
+        ></div>        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* Hero Left */}
@@ -347,7 +365,7 @@ const LandingPage = () => {
                 </div>
 
                 {/* Simulated Screen with matching Sidebar and Content Pane */}
-                <div className="flex min-h-[340px] text-left">
+                <div className="flex min-h-[420px] text-left">
                   
                   {/* Matching Sidebar Frame in exact Brand bg-blue-700 */}
                   <div className="w-40 bg-blue-700 text-white p-3 flex flex-col justify-between border-r border-blue-800">
@@ -392,76 +410,183 @@ const LandingPage = () => {
                       <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                         <h4 className="text-xs font-black text-slate-800 tracking-tight">
                           {activeMockupRole === 'admin' && "Academy Base Command"}
-                          {activeMockupRole === 'instructor' && "Flight Endorsements"}
-                          {activeMockupRole === 'student' && "Sarah Jenkins Logbook"}
+                          {activeMockupRole === 'instructor' && "Instructor Dashboard"}
+                          {activeMockupRole === 'student' && "Student Flight Logbook"}
                         </h4>
                         <span className="text-[8px] font-bold text-slate-400">Updates Live</span>
                       </div>
 
                       {/* View Specific Cards */}
                       {activeMockupRole === 'admin' && (
-                        <div className="mt-3 space-y-2 animate-in fade-in duration-200">
+                        <div className="mt-3 animate-in fade-in duration-200 space-y-3">
                           <div className="grid grid-cols-2 gap-2">
-                            <div className="p-2 rounded-lg bg-white border border-slate-100">
-                              <span className="text-[8px] font-bold uppercase text-slate-400 tracking-wider">Fleet Util.</span>
-                              <p className="text-sm font-black text-blue-700 mt-0.5">84.2%</p>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#1751D0' }}>Total Flights</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">128</h2>
+                                <span className="text-[7px] underline" style={{ color: '#1751D0' }}>View Details</span>
+                              </div>
                             </div>
-                            <div className="p-2 rounded-lg bg-white border border-slate-100">
-                              <span className="text-[8px] font-bold uppercase text-slate-400 tracking-wider">Daily Flights</span>
-                              <p className="text-sm font-black text-slate-850 mt-0.5">18 Flights</p>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#10B981' }}>Upcoming Bookings</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">24</h2>
+                                <span className="text-[7px] underline" style={{ color: '#10B981' }}>View Details</span>
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EF4444' }}>Aircraft In Use</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">8</h2>
+                                <span className="text-[7px] underline" style={{ color: '#EF4444' }}>View Details</span>
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EC980C' }}>Support Tickets</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">3</h2>
+                                <span className="text-[7px] underline" style={{ color: '#EC980C' }}>View Details</span>
+                              </div>
                             </div>
                           </div>
-                          <div className="p-2 rounded-lg bg-rose-50 border border-rose-100/60 flex items-start gap-2">
-                            <FiAlertCircle className="text-rose-600 w-3 h-3 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="text-[9px] font-bold text-rose-800">Ground Warning Active</p>
-                              <p className="text-[7px] text-slate-500">N172FE auto-grounded due to Squawk #12.</p>
+
+                          <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <div className="flex justify-between items-center mb-2">
+                              <h5 className="text-[10px] font-bold text-slate-800">Flight Session Summary</h5>
+                              <span className="text-[7px] text-slate-400 bg-slate-50 px-2 py-1 rounded">Monthly</span>
+                            </div>
+                            <div className="flex gap-4 mb-3">
+                               <div>
+                                 <p className="text-[7px] text-slate-500">Single Engine</p>
+                                 <h3 className="text-xs font-black text-slate-900">320.5 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
+                               </div>
+                               <div>
+                                 <p className="text-[7px] text-slate-500">Multi Engine</p>
+                                 <h3 className="text-xs font-black text-slate-900">145.0 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
+                               </div>
+                            </div>
+                            <div className="flex items-end justify-between px-2 h-16 border-b border-slate-100 pb-1">
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-6 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-3 bg-[#1D4ED8] rounded-t-[2px]"/></div>
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-10 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-5 bg-[#1D4ED8] rounded-t-[2px]"/></div>
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-8 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-7 bg-[#1D4ED8] rounded-t-[2px]"/></div>
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-12 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-6 bg-[#1D4ED8] rounded-t-[2px]"/></div>
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-14 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-9 bg-[#1D4ED8] rounded-t-[2px]"/></div>
                             </div>
                           </div>
                         </div>
                       )}
 
                       {activeMockupRole === 'instructor' && (
-                        <div className="mt-3 space-y-2 animate-in fade-in duration-200">
-                          <div className="p-2 rounded-lg bg-white border border-slate-100 space-y-1.5">
-                            <p className="text-[9px] font-bold text-slate-800">Pending Endorsements</p>
-                            
-                            <div className="flex justify-between items-center text-[8px] p-1 bg-slate-50 rounded">
-                              <span className="font-semibold">Sarah J. - Instrument Check</span>
-                              <span className="text-blue-700 font-bold">Signoff</span>
+                        <div className="mt-3 animate-in fade-in duration-200 space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#1751D0' }}>Total Flight Hours</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">450.5</h2>
+                                <span className="text-[7px] underline" style={{ color: '#1751D0' }}>View Details</span>
+                              </div>
                             </div>
-                            <div className="flex justify-between items-center text-[8px] p-1 bg-slate-50 rounded">
-                              <span className="font-semibold">David M. - Solo XC Route</span>
-                              <span className="text-blue-700 font-bold">Signoff</span>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#10B981' }}>Total Ground Hours</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">85.0</h2>
+                                <span className="text-[7px] underline" style={{ color: '#10B981' }}>View Details</span>
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EF4444' }}>Single Engine Hours</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">320.5</h2>
+                                <span className="text-[7px] underline" style={{ color: '#EF4444' }}>View Details</span>
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EC980C' }}>Multi Engine Hours</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">130.0</h2>
+                                <span className="text-[7px] underline" style={{ color: '#EC980C' }}>View Details</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <h5 className="text-[10px] font-bold text-slate-800 mb-2">Upcoming Flights</h5>
+                            <div className="space-y-2">
+                               <div className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                     <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[7px] font-bold">SJ</div>
+                                     <div>
+                                        <p className="text-[8px] font-bold text-slate-800">Sarah Jenkins</p>
+                                        <p className="text-[7px] text-slate-500">IFR Training • N172FE</p>
+                                     </div>
+                                  </div>
+                                  <span className="text-[7px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">09:00 AM</span>
+                               </div>
+                               <div className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                     <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[7px] font-bold">MR</div>
+                                     <div>
+                                        <p className="text-[8px] font-bold text-slate-800">Mike Ross</p>
+                                        <p className="text-[7px] text-slate-500">Commercial Multi • N442ME</p>
+                                     </div>
+                                  </div>
+                                  <span className="text-[7px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">01:30 PM</span>
+                               </div>
                             </div>
                           </div>
                         </div>
                       )}
 
                       {activeMockupRole === 'student' && (
-                        <div className="mt-3 space-y-2 animate-in fade-in duration-200">
-                          <div className="grid grid-cols-3 gap-1">
-                            <div className="p-1.5 bg-white border border-slate-100 rounded text-center">
-                              <span className="text-[7px] font-bold text-slate-400 block">Total</span>
-                              <p className="text-xs font-black text-slate-850">42.5 hrs</p>
+                        <div className="mt-3 animate-in fade-in duration-200 space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#1751D0' }}>Total Flights</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">42</h2>
+                                <span className="text-[7px] underline" style={{ color: '#1751D0' }}>View Details</span>
+                              </div>
                             </div>
-                            <div className="p-1.5 bg-white border border-slate-100 rounded text-center">
-                              <span className="text-[7px] font-bold text-slate-400 block">Solo</span>
-                              <p className="text-xs font-black text-slate-850">12.0 hrs</p>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#10B981' }}>Upcoming Flights</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">2</h2>
+                                <span className="text-[7px] underline" style={{ color: '#10B981' }}>View Details</span>
+                              </div>
                             </div>
-                            <div className="p-1.5 bg-white border border-slate-100 rounded text-center">
-                              <span className="text-[7px] font-bold text-slate-400 block">Syllabus</span>
-                              <p className="text-xs font-black text-emerald-700">80%</p>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EF4444' }}>Total Flight Hours</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">65.5</h2>
+                                <span className="text-[7px] underline" style={{ color: '#EF4444' }}>View Details</span>
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
+                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EC980C' }}>Ground Training</h6>
+                              <div className="mt-1">
+                                <h2 className="text-sm font-black text-black">20.0</h2>
+                                <span className="text-[7px] underline" style={{ color: '#EC980C' }}>View Details</span>
+                              </div>
                             </div>
                           </div>
-                          
-                          <div className="p-2 rounded bg-white border border-slate-100 space-y-1">
-                            <div className="flex justify-between text-[7px] font-bold">
-                              <span>FAA Stage 2 Progress</span>
-                              <span className="text-blue-700">80% Complete</span>
-                            </div>
-                            <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
-                              <div className="bg-blue-700 h-1 rounded-full" style={{ width: '80%' }} />
+
+                          <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <h5 className="text-[10px] font-bold text-slate-800 mb-2">Syllabus Progress</h5>
+                            <div className="space-y-3">
+                               <div>
+                                 <div className="flex justify-between text-[7px] font-bold mb-1">
+                                    <span>Private Pilot - Stage 1</span>
+                                    <span className="text-emerald-600">100% Completed</span>
+                                 </div>
+                                 <div className="w-full h-1.5 bg-slate-100 rounded-full"><div className="h-1.5 bg-emerald-500 rounded-full" style={{ width: '100%' }}></div></div>
+                               </div>
+                               <div>
+                                 <div className="flex justify-between text-[7px] font-bold mb-1">
+                                    <span>Private Pilot - Stage 2</span>
+                                    <span className="text-blue-700">65% Active</span>
+                                 </div>
+                                 <div className="w-full h-1.5 bg-slate-100 rounded-full"><div className="h-1.5 bg-blue-700 rounded-full" style={{ width: '65%' }}></div></div>
+                               </div>
                             </div>
                           </div>
                         </div>
@@ -470,7 +595,7 @@ const LandingPage = () => {
                     </div>
 
                     {/* Micro Navigation Guidance */}
-                    <div className="text-[8px] text-slate-400 text-center pt-2 border-t border-slate-100 font-medium">
+                    <div className="text-[8px] text-slate-400 text-center pt-2 border-t border-slate-100 font-medium mt-3">
                       💡 Click roles in the sidebar to dynamically change dashboard layout!
                     </div>
 
@@ -485,30 +610,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Logo Ticker Section */}
-      <section className="py-8 border-y border-slate-100 bg-[#F4F6F9]/40 z-10 relative">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
-            Powering Active Flight Academies & Clubs Across the Country
-          </p>
-          
-          <div className="relative w-full flex overflow-x-hidden">
-            <div className="animate-marquee whitespace-nowrap flex gap-12 text-[11px] font-extrabold tracking-widest text-slate-400 opacity-70">
-              <span>✈️ APEX FLIGHT SCHOOLS</span>
-              <span>⚡ VERTICAL FLIGHT ACADEMY</span>
-              <span>🦅 BLUE RIDGE FLYERS</span>
-              <span>🌐 COASTAL WINGS</span>
-              <span>🏆 SUMMIT FLIGHT SERVICES</span>
-              {/* Duplicate for seamless infinite marquee scroll */}
-              <span>✈️ APEX FLIGHT SCHOOLS</span>
-              <span>⚡ VERTICAL FLIGHT ACADEMY</span>
-              <span>🦅 BLUE RIDGE FLYERS</span>
-              <span>🌐 COASTAL WINGS</span>
-              <span>🏆 SUMMIT FLIGHT SERVICES</span>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* Core Philosophy Section */}
       <section className="py-20 sm:py-24 bg-white relative z-10 border-b border-slate-100" id="philosophy">
@@ -867,7 +969,7 @@ const LandingPage = () => {
               <a href="/user-policy" className="text-slate-500 hover:text-blue-700 transition-colors">
                 User Policy
               </a>
-              <a href="#philosophy" className="text-slate-500 hover:text-blue-700 transition-colors">
+              <a href="/about" className="text-slate-500 hover:text-blue-700 transition-colors">
                 About
               </a>
               <a href="#faq" className="text-slate-500 hover:text-blue-700 transition-colors">
