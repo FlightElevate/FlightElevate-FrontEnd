@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle } from "react-icons/fi";
+import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2 } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
 import profileImg from "../../../assets/img/profile.jpg";
@@ -13,12 +13,14 @@ import { showDeleteConfirm, showSuccessToast, showErrorToast, showBlockUserConfi
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { getImageUrl } from "../../../utils/imageUtils";
 import { safeDisplay } from "../../../utils/safeDisplay";
+import EditUserModal from "../../../components/User/EditUserModal";
 
 const UserProfile = () => {
   const { id } = useParams();
   
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [flightLogs, setFlightLogs] = useState([]);
@@ -49,7 +51,7 @@ const UserProfile = () => {
   // Wallet state
   const [walletTxns, setWalletTxns] = useState([]);
   const [loadingWallet, setLoadingWallet] = useState(false);
-  const [depositForm, setDepositForm] = useState({ amount: '', description: '' });
+  const [depositForm, setDepositForm] = useState({ amount: '', payment_method: 'card', description: '' });
   const [depositLoading, setDepositLoading] = useState(false);
 
   useEffect(() => {
@@ -84,6 +86,10 @@ const UserProfile = () => {
     } finally {
       setLoadingUser(false);
     }
+  };
+
+  const handleEditSuccess = () => {
+    fetchUser();
   };
 
   const fetchLocations = async () => {
@@ -147,11 +153,12 @@ const UserProfile = () => {
     try {
       const res = await userService.walletDeposit(id, {
         amount: parseFloat(depositForm.amount),
+        payment_method: depositForm.payment_method,
         description: depositForm.description || undefined,
       });
       if (res.success) {
         showSuccessToast(`$${parseFloat(depositForm.amount).toFixed(2)} deposited successfully!`);
-        setDepositForm({ amount: '', description: '' });
+        setDepositForm({ amount: '', payment_method: 'card', description: '' });
         setUser(prev => ({ ...prev, account_balance: res.data.account_balance }));
         fetchWalletTxns();
       } else {
@@ -341,7 +348,6 @@ const UserProfile = () => {
     <div className="md:mt-5 mx-auto">
       <div className="bg-white inset-shadow-sm shadow-sm rounded-lg">
         
-        {}
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xl relative" style={{ minWidth: '64px', minHeight: '64px', width: '64px', height: '64px' }}>
@@ -428,17 +434,22 @@ const UserProfile = () => {
               </div>
             </div>
           </div>
-          <button onClick={handleBlockUser} className={`mt-4 sm:mt-0 px-5 py-2.5 flex items-center gap-2 rounded-lg transition ${
-            user?.status === 'blocked' 
-              ? 'bg-green-50 text-green-600 hover:bg-green-100' 
-              : 'bg-red-50 text-red-600 hover:bg-red-100'
-          }`}>
-            <img src={gear_filler} alt="Settings" className="w-4 h-4" />
-            <span className="text-sm font-medium">{user?.status === 'blocked' ? 'Unblock User' : 'Block User'}</span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+            <button onClick={() => setEditModalOpen(true)} className="px-5 py-2.5 flex items-center gap-2 rounded-lg transition bg-blue-50 text-blue-600 hover:bg-blue-100">
+              <FiEdit2 className="w-4 h-4" />
+              <span className="text-sm font-medium">Edit Profile</span>
+            </button>
+            <button onClick={handleBlockUser} className={`px-5 py-2.5 flex items-center gap-2 rounded-lg transition ${
+              user?.status === 'blocked' 
+                ? 'bg-green-50 text-green-600 hover:bg-green-100' 
+                : 'bg-red-50 text-red-600 hover:bg-red-100'
+            }`}>
+              <img src={gear_filler} alt="Settings" className="w-4 h-4" />
+              <span className="text-sm font-medium">{user?.status === 'blocked' ? 'Unblock User' : 'Block User'}</span>
+            </button>
+          </div>
         </div>
 
-        {}
         <div className="border-b border-gray-200">
           <div className="px-6 flex gap-2">
             <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "profile" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => setActiveTab("profile")}>
@@ -453,14 +464,13 @@ const UserProfile = () => {
           </div>
         </div>
 
-        {}
         {activeTab === "profile" ? (
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mb-8">
               <div><p className="text-sm text-gray-500 mb-1">Name</p><p className="text-sm font-medium text-gray-900">{user?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Certificate Level</p><p className="text-sm font-medium text-gray-900">{user?.certificate_level || '—'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Certificates</p><div className="flex gap-2">{certificates.map((cert, i) => (<span key={i} className={`px-2 py-0.5 text-xs font-medium rounded ${cert.color}`}>{cert.name}</span>))}</div></div>
-              <div><p className="text-sm text-gray-500 mb-1">Location</p><p className="text-sm font-medium text-gray-900">{user?.organization?.name || 'N/A'}</p></div>
+              <div><p className="text-sm text-gray-500 mb-1">Location</p><p className="text-sm font-medium text-gray-900">{locationOptions.find(l => l.id == user?.default_location_id)?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Phone</p><p className="text-sm font-medium text-gray-900">{user?.phone || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Email</p><p className="text-sm font-medium text-gray-900">{user?.email || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Username</p><p className="text-sm font-medium text-gray-900">{user?.username || 'N/A'}</p></div>
@@ -471,7 +481,6 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
             </div>
 
-            {/* Assigned Location */}
             <div className="border-t border-gray-200 pt-6 mb-6">
               <div className="flex items-center gap-2 mb-4">
                 <FiMapPin className="text-blue-600" size={18} />
@@ -514,7 +523,6 @@ const UserProfile = () => {
                 </button>
               </div>
             </div>
-
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
@@ -576,7 +584,6 @@ const UserProfile = () => {
           </div>
         ) : activeTab === 'wallet' ? (
           <div className="p-6">
-            {/* Balance Banner */}
             <div className="flex items-center justify-between bg-slate-800 rounded-xl px-6 py-5 mb-6">
               <div>
                 <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">{user?.name} — Wallet Balance</p>
@@ -587,7 +594,6 @@ const UserProfile = () => {
               </div>
             </div>
 
-            {/* Add Funds */}
             <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <FiPlusCircle size={15} className="text-green-500" /> Add Funds
@@ -603,6 +609,20 @@ const UserProfile = () => {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Mode</label>
+                  <select
+                    value={depositForm.payment_method}
+                    onChange={e => setDepositForm(f => ({ ...f, payment_method: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="card">Card</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="check">Check</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
                 <div className="flex-[2]">
                   <label className="block text-xs font-medium text-gray-500 mb-1">Note (optional)</label>
@@ -629,7 +649,6 @@ const UserProfile = () => {
               </form>
             </div>
 
-            {/* Transaction History */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h4 className="text-sm font-semibold text-gray-700">Transaction History</h4>
@@ -648,7 +667,7 @@ const UserProfile = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+                      <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Type / Mode</th>
                       <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Note</th>
                       <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">By</th>
                       <th className="px-5 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
@@ -670,6 +689,11 @@ const UserProfile = () => {
                               : <FiArrowDownCircle size={11} />}
                             {txn.type.charAt(0).toUpperCase() + txn.type.slice(1)}
                           </span>
+                          {txn.payment_method && (
+                            <span className="ml-2 inline-flex text-[10px] font-semibold text-gray-500 capitalize bg-gray-200 px-2 py-0.5 rounded-full">
+                              {txn.payment_method.replace('_', ' ')}
+                            </span>
+                          )}
                         </td>
                         <td className="px-5 py-3 text-gray-600 max-w-[180px] truncate">{txn.description || '—'}</td>
                         <td className="px-5 py-3 text-gray-600">{txn.performed_by || '—'}</td>
@@ -744,7 +768,13 @@ const UserProfile = () => {
         )}
       </div>
 
-      {/* Edit Document Modal */}
+      <EditUserModal 
+        isOpen={editModalOpen} 
+        onClose={() => setEditModalOpen(false)} 
+        onSuccess={handleEditSuccess} 
+        initialData={user} 
+      />
+
       {showEditDocument && editingDocument && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">

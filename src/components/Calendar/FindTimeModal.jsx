@@ -183,6 +183,7 @@ const FindTimeModal = ({
             </div>
 
             {}
+            {/* Instructor Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <FiUser className="inline mr-1" size={16} />
@@ -200,11 +201,32 @@ const FindTimeModal = ({
                   required
                 >
                   <option value="">Select Instructor</option>
-                  {instructors.map((instructor) => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.name || instructor.email}
-                    </option>
-                  ))}
+                  {(() => {
+                    let filteredInstructors = instructors;
+                    if (selectedStudent) {
+                      const student = students.find(s => String(s.id) === String(selectedStudent));
+                      if (student && student.default_location_id) {
+                        const studentLoc = String(student.default_location_id);
+                        filteredInstructors = instructors.filter(inst => {
+                          if (String(inst.default_location_id) === studentLoc) return true;
+                          if (inst.calendar_location_ids && Array.isArray(inst.calendar_location_ids)) {
+                            return inst.calendar_location_ids.map(String).includes(studentLoc);
+                          }
+                          return false;
+                        });
+                      }
+                    }
+                    
+                    return filteredInstructors.length > 0 ? (
+                      filteredInstructors.map((instructor) => (
+                        <option key={instructor.id} value={instructor.id}>
+                          {instructor.name || instructor.email}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>No instructors available for this location</option>
+                    );
+                  })()}
                 </select>
               )}
             </div>

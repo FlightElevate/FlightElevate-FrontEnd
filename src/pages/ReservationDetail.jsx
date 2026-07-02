@@ -469,6 +469,7 @@ const ReservationDetail = () => {
       }
       setInvoice(data);
       showSuccess(`Payment charged via ${chargeMethod}!`);
+      fetchReservation();
     } catch (err) {
       showError(err);
     } finally {
@@ -540,7 +541,7 @@ const ReservationDetail = () => {
       {showChargeDialog && (
         <ConfirmDialog
           title="Charge Invoice"
-          message={`Charge $${invoice?.total?.toFixed(2) ?? '0.00'} via ${chargeMethod}?`}
+          message={`Charge $${Number(invoice?.total || 0).toFixed(2)} via ${chargeMethod}?`}
           onConfirm={handleChargeInvoice}
           onCancel={() => setShowChargeDialog(false)}
         />
@@ -1251,7 +1252,7 @@ const ReservationDetail = () => {
                         </div>
                         <div className="pt-4 flex flex-col items-end gap-1">
                           <div className="text-sm text-gray-500">Total Charged</div>
-                          <div className="text-2xl font-bold text-gray-900">${invoice.total?.toFixed(2)}</div>
+                          <div className="text-2xl font-bold text-gray-900">${Number(invoice?.total || 0).toFixed(2)}</div>
                         </div>
                         {invoice.notes && <p className="text-sm text-gray-600 mt-4 bg-gray-50 rounded-lg p-3">{invoice.notes}</p>}
                         

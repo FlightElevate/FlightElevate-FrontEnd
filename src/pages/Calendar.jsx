@@ -2526,7 +2526,7 @@ const Calendar = () => {
                         const student = students.find((s) => String(s.id) === sid);
                         const suggestedPIC = student?.certificate_level && ['Private', 'Commercial', 'ATP'].includes(student.certificate_level)
                           ? sid
-                          : reservationForm.instructor_id;
+                          : ''; // Clear instructor id because it might not be valid for this student
                         // Auto-fill location from student's assigned location
                         const studentLocationId = student?.default_location_id
                           ? String(student.default_location_id)
@@ -2566,7 +2566,7 @@ const Calendar = () => {
                       Loading instructors...
                     </div>
                   ) : (
-                    <select
+                      <select
                       value={reservationForm.instructor_id}
                       onChange={(e) => {
                         const iid = e.target.value;
@@ -2584,13 +2584,30 @@ const Calendar = () => {
                       required
                     >
                       <option value="">Select Instructor</option>
-                      {instructors.length > 0 ? (
-                        instructors.map((instructor) => (
-                          <option key={instructor.id} value={String(instructor.id)}>{instructor.name || instructor.email}</option>
-                        ))
-                      ) : (
-                        <option value="" disabled>No instructors available</option>
-                      )}
+                      {(() => {
+                        let filteredInstructors = instructors;
+                        if (reservationForm.student_id) {
+                          const student = students.find(s => String(s.id) === String(reservationForm.student_id));
+                          if (student && student.default_location_id) {
+                            const studentLoc = String(student.default_location_id);
+                            filteredInstructors = instructors.filter(inst => {
+                              if (String(inst.default_location_id) === studentLoc) return true;
+                              if (inst.calendar_location_ids && Array.isArray(inst.calendar_location_ids)) {
+                                return inst.calendar_location_ids.map(String).includes(studentLoc);
+                              }
+                              return false;
+                            });
+                          }
+                        }
+                        
+                        return filteredInstructors.length > 0 ? (
+                          filteredInstructors.map((instructor) => (
+                            <option key={instructor.id} value={String(instructor.id)}>{instructor.name || instructor.email}</option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No instructors available for this location</option>
+                        );
+                      })()}
                     </select>
                   )}
                 </div>
