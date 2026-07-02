@@ -30,20 +30,7 @@ const SummaryCards = () => {
         });
 
         if (response.success) {
-          let total = 0;
-          if (response.data?.meta?.total) {
-            total = response.data.meta.total;
-          } else if (response.data?.total) {
-            total = response.data.total;
-          } else if (Array.isArray(response.data)) {
-            total = response.data.length;
-          } else if (response.data?.data) {
-            if (response.data.meta?.total) {
-              total = response.data.meta.total;
-            } else if (Array.isArray(response.data.data)) {
-              total = response.data.data.length;
-            }
-          }
+          const total = response.meta?.total || 0;
           setSupportTicketsCount(total);
         }
       } catch (err) {

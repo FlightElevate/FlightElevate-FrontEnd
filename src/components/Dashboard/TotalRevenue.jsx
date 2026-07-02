@@ -189,9 +189,9 @@ const TotalRevenue = () => {
         end_date: endDate
       });
 
-      if (response && response.data) {
-        // Create blob and download
-        const blob = new Blob([response.data], { type: 'text/csv' });
+      if (response) {
+        // Create blob and download (response is already the blob data from apiClient)
+        const blob = response instanceof Blob ? response : new Blob([response], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
