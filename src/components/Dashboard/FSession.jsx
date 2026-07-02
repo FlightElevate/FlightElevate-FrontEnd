@@ -84,59 +84,71 @@ const FSession = () => {
 
   // Process data based on time period
   const processedData = useMemo(() => {
-    if (!logbookData || !Array.isArray(logbookData) || logbookData.length === 0) {
-      return [];
-    }
-
     const dataMap = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    logbookData.forEach(logbook => {
-      if (!logbook.flight_date || !logbook.total_hours) return;
-
-      const date = new Date(logbook.flight_date);
-      const totalHours = parseFloat(logbook.total_hours) || 0;
-      const aircraftClass = logbook.aircraft_class || '';
-
+    // Generate last 7 periods
+    for (let i = 6; i >= 0; i--) {
+      let d = new Date(today);
       let periodKey = '';
       let periodLabel = '';
 
       if (timePeriod === "Daily") {
-        periodKey = date.toISOString().split('T')[0];
-        periodLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        d.setDate(d.getDate() - i);
+        periodKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        periodLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       } else if (timePeriod === "Weekly") {
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
-        periodKey = weekStart.toISOString().split('T')[0];
-        periodLabel = `Week of ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        d.setDate(d.getDate() - (i * 7));
+        d.setDate(d.getDate() - d.getDay());
+        periodKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        periodLabel = `Week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
       } else { // Monthly
-        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        periodLabel = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        d.setMonth(d.getMonth() - i);
+        d.setDate(1);
+        periodKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        periodLabel = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       }
 
-      if (!dataMap[periodKey]) {
-        dataMap[periodKey] = {
-          key: periodKey,
-          month: periodLabel,
-          single: 0,
-          multi: 0
-        };
-      }
+      dataMap[periodKey] = {
+        key: periodKey,
+        month: periodLabel,
+        single: 0,
+        multi: 0
+      };
+    }
 
-      // Categorize by engine type
-      if (isSingleEngine(aircraftClass)) {
-        dataMap[periodKey].single += totalHours;
-      } else if (isMultiEngine(aircraftClass)) {
-        dataMap[periodKey].multi += totalHours;
-      }
-    });
+    if (logbookData && Array.isArray(logbookData)) {
+      logbookData.forEach(logbook => {
+        if (!logbook.flight_date || !logbook.total_hours) return;
 
-    // Convert to array and sort by date
-    const dataArray = Object.values(dataMap).sort((a, b) => {
-      return new Date(a.key) - new Date(b.key);
-    });
+        const date = new Date(logbook.flight_date);
+        const totalHours = parseFloat(logbook.total_hours) || 0;
+        const aircraftClass = logbook.aircraft_class || '';
 
-    // Get last 7 periods for display
-    return dataArray.slice(-7);
+        let periodKey = '';
+
+        if (timePeriod === "Daily") {
+          periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        } else if (timePeriod === "Weekly") {
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          periodKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+        } else { // Monthly
+          periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        if (dataMap[periodKey]) {
+          if (isSingleEngine(aircraftClass)) {
+            dataMap[periodKey].single += totalHours;
+          } else if (isMultiEngine(aircraftClass)) {
+            dataMap[periodKey].multi += totalHours;
+          }
+        }
+      });
+    }
+
+    return Object.values(dataMap).sort((a, b) => new Date(a.key) - new Date(b.key));
   }, [logbookData, timePeriod]);
 
   // Calculate summary totals

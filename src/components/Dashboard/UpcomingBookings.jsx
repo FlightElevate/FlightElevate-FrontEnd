@@ -33,8 +33,8 @@ const UpcomingBookings = () => {
               date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
               time: dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
               student: studentName.trim() || 'N/A',
-              aircraft: item.aircraft?.registration || item.aircraft?.model || 'N/A',
-              flightType: item.type || item.lesson_type || 'Flight'
+              aircraft: item.aircraft?.registration || item.aircraft?.serial_number || item.aircraft?.name || item.aircraft?.model || 'N/A',
+              flightType: item.flight_type || item.type || item.lesson_type || 'Flight'
             };
           });
           

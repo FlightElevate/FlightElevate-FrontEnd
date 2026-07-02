@@ -116,49 +116,62 @@ const TotalRevenue = () => {
 
   
   const filteredData = useMemo(() => {
-    let filtered = revenueData.filter(item => {
-      return item.fullDate >= startDate && item.fullDate <= endDate;
-    });
+    // Helper to format Date based on timePeriod
+    const getPeriodKeyAndLabel = (dateObj) => {
+      let periodKey = '';
+      let periodLabel = '';
+      
+      if (timePeriod === "Daily") {
+        periodKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+        periodLabel = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else if (timePeriod === "Weekly") {
+        const weekStart = new Date(dateObj);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        periodKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+        periodLabel = `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      } else { // Monthly
+        periodKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+        periodLabel = dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+      return { periodKey, periodLabel };
+    };
 
-    if (timePeriod === "Daily") {
-      return filtered;
-    } else if (timePeriod === "Weekly") {
-      const weeklyData = {};
-      filtered.forEach(item => {
-        const date = new Date(item.fullDate);
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay()); 
-        const weekKey = weekStart.toISOString().split('T')[0];
-        
-        if (!weeklyData[weekKey]) {
-          weeklyData[weekKey] = {
-            date: `Week of ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-            fullDate: weekKey,
-            revenue: 0
-          };
-        }
-        weeklyData[weekKey].revenue += item.revenue;
-      });
-      return Object.values(weeklyData).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
-    } else if (timePeriod === "Monthly") {
-      const monthlyData = {};
-      filtered.forEach(item => {
-        const date = new Date(item.fullDate);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        
-        if (!monthlyData[monthKey]) {
-          monthlyData[monthKey] = {
-            date: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-            fullDate: `${monthKey}-01`,
-            revenue: 0
-          };
-        }
-        monthlyData[monthKey].revenue += item.revenue;
-      });
-      return Object.values(monthlyData).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+    const dataMap = {};
+    
+    // Parse start and end dates safely
+    const [sy, sm, sd] = startDate.split('-');
+    const start = new Date(sy, sm - 1, sd);
+    
+    const [ey, em, ed] = endDate.split('-');
+    const end = new Date(ey, em - 1, ed);
+
+    // Populate dataMap with all intervals initialized to 0
+    let current = new Date(start);
+    while (current <= end) {
+      const { periodKey, periodLabel } = getPeriodKeyAndLabel(current);
+      if (!dataMap[periodKey]) {
+        dataMap[periodKey] = {
+          date: periodLabel,
+          fullDate: periodKey,
+          revenue: 0
+        };
+      }
+      current.setDate(current.getDate() + 1);
     }
 
-    return filtered;
+    // Now accumulate the actual revenueData
+    revenueData.forEach(item => {
+      if (item.fullDate >= startDate && item.fullDate <= endDate) {
+        const [y, m, d] = item.fullDate.split('-');
+        const itemDate = new Date(y, m - 1, d);
+        const { periodKey } = getPeriodKeyAndLabel(itemDate);
+        if (dataMap[periodKey]) {
+          dataMap[periodKey].revenue += item.revenue;
+        }
+      }
+    });
+
+    return Object.values(dataMap).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
   }, [revenueData, startDate, endDate, timePeriod]);
 
   
