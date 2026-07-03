@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2 } from "react-icons/fi";
+import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
 import profileImg from "../../../assets/img/profile.jpg";
@@ -108,6 +108,7 @@ const UserProfile = () => {
     try {
       const payload = {
         default_location_id: locationForm.default_location_id ? parseInt(locationForm.default_location_id, 10) : null,
+        calendar_location_ids: locationForm.calendar_location_ids.map(id => parseInt(id, 10)).filter(n => !Number.isNaN(n)),
       };
       const response = await userService.updateUser(id, payload);
       if (response.success) {
@@ -481,48 +482,13 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
             </div>
 
-            <div className="border-t border-gray-200 pt-6 mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FiMapPin className="text-blue-600" size={18} />
-                <h3 className="text-lg font-semibold text-gray-900">Assigned Location</h3>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">
-                Assign one location to this user. During reservation creation, only this location will be available for selection.
-              </p>
-              <div className="max-w-sm">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                {locationOptions.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">
-                    No locations available. An admin must first add locations in the Settings page.
-                  </p>
-                ) : (
-                  <select
-                    value={locationForm.default_location_id}
-                    onChange={(e) => setLocationForm(prev => ({ ...prev, default_location_id: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">— No location assigned —</option>
-                    {locationOptions.map((loc) => (
-                      <option key={loc.id} value={String(loc.id)}>{loc.name}{loc.address ? ` – ${loc.address}` : ''}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="mt-4 flex justify-start">
-                <button
-                  onClick={handleSaveLocationSettings}
-                  disabled={locationSaving}
-                  className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {locationSaving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Saving…
-                    </>
-                  ) : 'Save Location'}
-                </button>
-              </div>
-            </div>
+            <LocationAssignmentSection
+              locationOptions={locationOptions}
+              locationForm={locationForm}
+              setLocationForm={setLocationForm}
+              locationSaving={locationSaving}
+              onSave={handleSaveLocationSettings}
+            />
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
@@ -885,6 +851,273 @@ const UserProfile = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// ── Searchable Location Assignment Component ──────────────────────────────────
+const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationForm, locationSaving, onSave }) => {
+  const [defaultSearch, setDefaultSearch] = useState('');
+  const [defaultOpen, setDefaultOpen] = useState(false);
+  const [multiSearch, setMultiSearch] = useState('');
+  const defaultRef = React.useRef(null);
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (defaultRef.current && !defaultRef.current.contains(e.target)) {
+        setDefaultOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredDefault = locationOptions.filter(loc =>
+    loc.name.toLowerCase().includes(defaultSearch.toLowerCase()) ||
+    (loc.address || '').toLowerCase().includes(defaultSearch.toLowerCase())
+  );
+
+  const filteredMulti = locationOptions.filter(loc =>
+    loc.name.toLowerCase().includes(multiSearch.toLowerCase()) ||
+    (loc.address || '').toLowerCase().includes(multiSearch.toLowerCase())
+  );
+
+  const selectedDefaultName = locationOptions.find(l => String(l.id) === locationForm.default_location_id)?.name;
+
+  const toggleCalendar = (idStr) => {
+    setLocationForm(prev => ({
+      ...prev,
+      calendar_location_ids: prev.calendar_location_ids.includes(idStr)
+        ? prev.calendar_location_ids.filter(id => id !== idStr)
+        : [...prev.calendar_location_ids, idStr],
+    }));
+  };
+
+  const selectedCalendarLocations = locationOptions.filter(l =>
+    locationForm.calendar_location_ids.includes(String(l.id))
+  );
+
+  if (locationOptions.length === 0) {
+    return (
+      <div className="border-t border-gray-200 pt-6 mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+            <FiMapPin className="text-blue-600" size={16} />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Assigned Locations</h3>
+        </div>
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 max-w-2xl mt-4">
+          <FiMapPin className="text-amber-500 flex-shrink-0" size={16} />
+          <p className="text-sm text-amber-700">No locations available. An admin must first add locations in Settings.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-gray-200 pt-6 mb-6">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+          <FiMapPin className="text-blue-600" size={16} />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900">Assigned Locations</h3>
+      </div>
+      <p className="text-sm text-gray-500 mb-5">Assign locations to this user for scheduling and reservations.</p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 max-w-4xl">
+
+        {/* ── Default Location ── */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Default Location <span className="text-gray-400 font-normal normal-case">(single)</span>
+          </label>
+          <div className="relative" ref={defaultRef}>
+            <button
+              type="button"
+              onClick={() => { setDefaultOpen(o => !o); setDefaultSearch(''); }}
+              className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 border border-gray-300 rounded-xl bg-white text-sm hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            >
+              <span className="flex items-center gap-2 truncate">
+                {selectedDefaultName ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                    <span className="font-medium text-gray-800 truncate">{selectedDefaultName}</span>
+                  </>
+                ) : (
+                  <span className="text-gray-400">— No location assigned —</span>
+                )}
+              </span>
+              <FiChevronDown size={16} className={`text-gray-400 flex-shrink-0 transition-transform ${defaultOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {defaultOpen && (
+              <div className="absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                {/* Search */}
+                <div className="p-2 border-b border-gray-100">
+                  <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                    <FiSearch size={14} className="text-gray-400 flex-shrink-0" />
+                    <input
+                      autoFocus
+                      type="text"
+                      value={defaultSearch}
+                      onChange={e => setDefaultSearch(e.target.value)}
+                      placeholder="Search locations..."
+                      className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+                {/* List */}
+                <ul className="max-h-52 overflow-y-auto py-1">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => { setLocationForm(p => ({ ...p, default_location_id: '' })); setDefaultOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${!locationForm.default_location_id ? 'text-blue-600 font-medium' : 'text-gray-500'}`}
+                    >
+                      <span className="w-4 h-4 flex items-center justify-center">
+                        {!locationForm.default_location_id && <FiCheck size={13} className="text-blue-500" />}
+                      </span>
+                      — None —
+                    </button>
+                  </li>
+                  {filteredDefault.length === 0 ? (
+                    <li className="px-4 py-3 text-sm text-gray-400 text-center">No locations found</li>
+                  ) : filteredDefault.map(loc => {
+                    const isSel = locationForm.default_location_id === String(loc.id);
+                    return (
+                      <li key={loc.id}>
+                        <button
+                          type="button"
+                          onClick={() => { setLocationForm(p => ({ ...p, default_location_id: String(loc.id) })); setDefaultOpen(false); }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-blue-50 transition-colors ${isSel ? 'text-blue-700 bg-blue-50' : 'text-gray-700'}`}
+                        >
+                          <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                            {isSel && <FiCheck size={13} className="text-blue-500" />}
+                          </span>
+                          <span className="flex flex-col items-start min-w-0">
+                            <span className={`font-medium truncate ${isSel ? 'text-blue-700' : ''}`}>{loc.name}</span>
+                            {loc.address && <span className="text-xs text-gray-400 truncate">{loc.address}</span>}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+          {selectedDefaultName && (
+            <p className="mt-1.5 text-xs text-blue-600 font-medium flex items-center gap-1">
+              <FiMapPin size={10} /> Primary: {selectedDefaultName}
+            </p>
+          )}
+        </div>
+
+        {/* ── Additional Locations ── */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Additional Schedule Locations <span className="text-gray-400 font-normal normal-case">(multi-select)</span>
+          </label>
+
+          {/* Selected tags */}
+          {selectedCalendarLocations.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {selectedCalendarLocations.map(loc => (
+                <span key={loc.id} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full">
+                  {loc.name}
+                  <button
+                    type="button"
+                    onClick={() => toggleCalendar(String(loc.id))}
+                    className="ml-0.5 w-4 h-4 rounded-full hover:bg-indigo-200 flex items-center justify-center transition-colors"
+                  >
+                    <FiX size={9} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Search box */}
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-1 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+            <FiSearch size={14} className="text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              value={multiSearch}
+              onChange={e => setMultiSearch(e.target.value)}
+              placeholder="Search and select locations..."
+              className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
+            />
+            {multiSearch && (
+              <button type="button" onClick={() => setMultiSearch('')} className="text-gray-400 hover:text-gray-600">
+                <FiX size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Checklist */}
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            {filteredMulti.length === 0 ? (
+              <div className="px-4 py-6 text-sm text-gray-400 text-center">No locations found</div>
+            ) : (
+              <ul className="max-h-48 overflow-y-auto divide-y divide-gray-50">
+                {filteredMulti.map(loc => {
+                  const isChecked = locationForm.calendar_location_ids.includes(String(loc.id));
+                  return (
+                    <li key={loc.id}>
+                      <label className={`flex items-center gap-3 px-3.5 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${isChecked ? 'bg-indigo-50/60' : ''}`}>
+                        <span className={`w-4 h-4 rounded flex items-center justify-center border flex-shrink-0 transition-all ${isChecked ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}`}>
+                          {isChecked && <FiCheck size={10} className="text-white" strokeWidth={3} />}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleCalendar(String(loc.id))}
+                          className="sr-only"
+                        />
+                        <span className="flex flex-col min-w-0">
+                          <span className={`text-sm font-medium truncate ${isChecked ? 'text-indigo-700' : 'text-gray-700'}`}>{loc.name}</span>
+                          {loc.address && <span className="text-xs text-gray-400 truncate">{loc.address}</span>}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          {selectedCalendarLocations.length > 0 && (
+            <p className="mt-1.5 text-xs text-indigo-600 font-medium">
+              {selectedCalendarLocations.length} location{selectedCalendarLocations.length > 1 ? 's' : ''} selected
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="mt-5 flex items-center gap-3">
+        <button
+          onClick={onSave}
+          disabled={locationSaving}
+          className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        >
+          {locationSaving ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              Saving…
+            </>
+          ) : (
+            <>
+              <FiMapPin size={14} />
+              Save Locations
+            </>
+          )}
+        </button>
+        {!locationSaving && (
+          <span className="text-xs text-gray-400">Changes apply immediately upon saving.</span>
+        )}
+      </div>
     </div>
   );
 };
