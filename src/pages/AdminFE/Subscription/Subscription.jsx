@@ -166,7 +166,7 @@ const StatPill = ({ icon: Icon, label, value, color = "blue" }) => {
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────
 const Subscription = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [plans, setPlans] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -177,6 +177,9 @@ const Subscription = () => {
   const initData = useCallback(async () => {
     setLoading(true);
     try {
+      if (refreshUser) {
+        await refreshUser();
+      }
       const planRes = await subscriptionPlanService.getSubscriptionPlans();
       if (planRes?.success) {
         const list = Array.isArray(planRes.data)
@@ -195,7 +198,7 @@ const Subscription = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshUser]);
 
   useEffect(() => { initData(); }, [initData]);
 

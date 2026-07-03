@@ -85,7 +85,10 @@ export const formatOrganizationInfo = (organization, user) => {
 
 export const getTrialRemainingDays = (trialEndsAt) => {
   if (!trialEndsAt) return null;
-  const end = new Date(trialEndsAt);
+  const safeDateStr = typeof trialEndsAt === 'string' && !trialEndsAt.includes('T') 
+    ? trialEndsAt.replace(' ', 'T') + 'Z' 
+    : trialEndsAt;
+  const end = new Date(safeDateStr);
   const now = new Date();
   const diffTime = end - now;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

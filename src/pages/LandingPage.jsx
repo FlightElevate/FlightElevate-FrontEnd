@@ -393,13 +393,7 @@ const LandingPage = () => {
                       </div>
                     </div>
                     
-                    {/* Trial Status Badge shown conditionally */}
-                    {activeMockupRole === 'student' && (
-                      <div className="bg-blue-800/60 rounded p-1.5 border border-blue-500/50">
-                        <p className="text-[7px] text-blue-200 uppercase font-bold tracking-wider">Trial Status</p>
-                        <p className="text-[8px] font-bold text-white mt-0.5">8 Days Remaining</p>
-                      </div>
-                    )}
+                    {/* Trial Status Badge removed as per request */}
                   </div>
 
                   {/* Main Panel Area */}

@@ -59,7 +59,11 @@ const Login = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        showSuccessToast('Login successful! Welcome back.');
+        if (result.user?.organization?.verification_status === 'pending') {
+          showSuccessToast('Your email is currently pending verification. We will contact you via email within 1-4 business days.');
+        } else {
+          showSuccessToast('Login successful! Welcome back.');
+        }
         // result.user comes from authService.login response.data.user
         const destination = getRedirectPath(result.user);
         navigate(destination, { replace: true });
