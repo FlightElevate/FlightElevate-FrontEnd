@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   FiCheck, 
@@ -190,9 +190,9 @@ const LandingPage = () => {
 
           {/* Desktop Nav Items */}
           <nav className="hidden lg:flex items-center space-x-6">
-            <a href="/about" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
+            <Link to="/about" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               About
-            </a>
+            </Link>
             <a href="#features-interactive" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               Pillars
             </a>
@@ -238,9 +238,9 @@ const LandingPage = () => {
         {mobileMenuOpen && (
           <div ref={menuRef} className="pointer-events-auto mt-3 max-w-4xl mx-auto rounded-2xl bg-white border border-slate-100 shadow-xl p-5 space-y-3 lg:hidden">
             <div className="flex flex-col space-y-1 text-left">
-              <a href="/about" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
+              <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
                 About
-              </a>
+              </Link>
               <a href="#features-interactive" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
                 Pillars
               </a>
@@ -960,12 +960,12 @@ const LandingPage = () => {
 
             {/* Links */}
             <div className="flex flex-wrap justify-center gap-8 text-xs font-bold uppercase tracking-wider">
-              <a href="/user-policy" className="text-slate-500 hover:text-blue-700 transition-colors">
+              <Link to="/user-policy" className="text-slate-500 hover:text-blue-700 transition-colors">
                 User Policy
-              </a>
-              <a href="/about" className="text-slate-500 hover:text-blue-700 transition-colors">
+              </Link>
+              <Link to="/about" className="text-slate-500 hover:text-blue-700 transition-colors">
                 About
-              </a>
+              </Link>
               <a href="#faq" className="text-slate-500 hover:text-blue-700 transition-colors">
                 Contact
               </a>
