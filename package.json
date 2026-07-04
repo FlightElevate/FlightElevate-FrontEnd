@@ -48,8 +48,11 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "@tailwindcss/vite",
-      "postcss",
-      "core-js"
+      "postcss"
+    ],
+    "neverBuiltDependencies": [
+      "core-js",
+      "core-js@3.49.0"
     ]
   }
 }
