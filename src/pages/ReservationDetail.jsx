@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -6,6 +6,8 @@ import {
   FiClock, FiMapPin, FiUser, FiTool, FiFileText, FiDollarSign,
   FiBook, FiSend, FiRefreshCw, FiLoader, FiPrinter, FiCalendar, FiCreditCard, FiX,
 } from 'react-icons/fi';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import { reservationService } from '../api/services/reservationService';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,11 +35,14 @@ const Field = ({ label, value, className = '' }) => (
 );
 
 // ─── Section card ─────────────────────────────────────────────────────────────
-const Section = ({ title, icon: Icon, children }) => (
+const Section = ({ title, icon: Icon, children, headerRight }) => (
   <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-4">
-    <div className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-b border-gray-200">
-      {Icon && <Icon size={16} className="text-gray-500" />}
-      <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+    <div className="flex items-center justify-between gap-2 px-5 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="flex items-center gap-2">
+        {Icon && <Icon size={16} className="text-gray-500" />}
+        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+      </div>
+      {headerRight && <div>{headerRight}</div>}
     </div>
     <div className="p-5">{children}</div>
   </div>
@@ -122,6 +127,43 @@ const ReservationDetail = () => {
   const [metarDisplay, setMetarDisplay] = useState('');
   const [stripePaymentMethodId, setStripePaymentMethodId] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  const pdfRef = useRef(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!pdfRef.current) return;
+    setIsGeneratingPdf(true);
+    try {
+      // Use scrollHeight to capture the full content if it is somehow constrained
+      const canvasWidth = pdfRef.current.scrollWidth;
+      const canvasHeight = pdfRef.current.scrollHeight;
+      
+      const imgData = await htmlToImage.toPng(pdfRef.current, {
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        skipFonts: true,
+        width: canvasWidth,
+        height: canvasHeight,
+        style: { transform: "scale(1)", transformOrigin: "top left" }
+      });
+      
+      // Create a PDF with exactly the dimensions of the invoice so nothing gets cut off
+      const pdf = new jsPDF({
+        orientation: canvasWidth > canvasHeight ? "l" : "p",
+        unit: "px",
+        format: [canvasWidth, canvasHeight]
+      });
+      
+      pdf.addImage(imgData, "PNG", 0, 0, canvasWidth, canvasHeight);
+      pdf.save(`Invoice-FE-${invoice?.id ?? reservation?.id ?? "Draft"}.pdf`);
+    } catch (err) {
+      console.error("Failed to generate PDF", err);
+      alert("Failed to generate PDF. Check console for details.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // Editing states
   const [isEditingDispatch, setIsEditingDispatch] = useState(false);
@@ -1205,196 +1247,125 @@ const ReservationDetail = () => {
 
         {/* ── INVOICE TAB ── */}
         {activeTab === 'invoice' && (
-          <div className="space-y-6">
-                {!invoice ? (
-                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-12 text-center">
-                    <FiDollarSign size={48} className="text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">No Invoice Found</h3>
-                    <p className="text-gray-500 mb-6 max-w-sm mx-auto">This reservation doesn't have an invoice yet. Invoices are created after check-in.</p>
-                    {canInvoice && (
-                      <button onClick={handleSaveInvoice} disabled={actionLoading} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
-                        Create Invoice
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* --- PAID SUMMARY --- */}
-                    {(invoice.status === 'paid' && !isEditingInvoice) && (
-                      <Section title="Invoice Details" icon={FiDollarSign}>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-                          <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm">
-                            <FiCheckCircle size={14} /> Paid via {invoice.payment_method} on {new Date(invoice.updated_at).toLocaleString()}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => window.print()}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200"
-                            >
-                              <FiPrinter size={14} /> Print
-                            </button>
-                            {isAdmin && (
-                              <button
-                                onClick={() => setIsEditingInvoice(true)}
-                                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
-                              >
-                                Edit Invoice
-                              </button>
-                            )}
-                          </div>
+          <div className="space-y-4">
+            {!invoice ? (
+              <div className="bg-gray-100 border border-gray-200 rounded-xl p-12 text-center">
+                <FiDollarSign size={48} className="text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">No Invoice Found</h3>
+                <p className="text-gray-500 mb-6 max-w-sm mx-auto">This reservation does not have an invoice yet.</p>
+                {canInvoice && (
+                  <button onClick={handleSaveInvoice} disabled={actionLoading} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">Create Invoice</button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(invoice.status !== 'paid' || isEditingInvoice) && (
+                  <Section
+                    title={isEditingInvoice ? 'Edit Invoice Details' : 'Invoice Draft'}
+                    icon={FiDollarSign}
+                    headerRight={
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        invoice.status === 'paid' ? 'bg-green-100 text-green-700' :
+                        invoice.status === 'refunded' ? 'bg-red-100 text-red-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>{invoice.status === 'draft' ? 'Draft' : invoice.status}</span>
+                    }
+                  >
+                    <form onSubmit={async (e) => { await handleSaveInvoice(e); setIsEditingInvoice(false); }} className="space-y-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.aircraft_rate} onChange={e => setInvoiceForm(f => ({ ...f, aircraft_rate: e.target.value }))} />
+                        <Input label="Dual Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_dual_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} />
+                        <Input label="Ground Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_ground_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} />
+                        <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.instructor_rate} onChange={e => setInvoiceForm(f => ({ ...f, instructor_rate: e.target.value }))} />
+                        <Input label="Tax %" type="number" step="0.01" min="0" max="100" value={invoiceForm.tax_percent} onChange={e => setInvoiceForm(f => ({ ...f, tax_percent: e.target.value }))} />
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Invoice Notes</label>
+                          <input type="text" value={invoiceForm.notes} onChange={e => setInvoiceForm(f => ({ ...f, notes: e.target.value }))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 h-[42px]" placeholder="Optional notes..." />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-gray-100">
-                          <Field label="Aircraft Rate" value={`$${invoice.aircraft_rate}`} />
-                          <Field label="Dual Instruction" value={`${invoice.instruction_dual_hours} hrs`} />
-                          <Field label="Ground Instruction" value={`${invoice.instruction_ground_hours} hrs`} />
-                          <Field label="Instructor Rate" value={`$${invoice.instructor_rate}`} />
-                          <Field label="Tax" value={`${invoice.tax_percent}%`} />
+                      </div>
+                      <div className="flex justify-between items-center bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <div>
+                          <div className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Estimated</div>
+                          <div className="text-2xl font-black text-blue-900">${calculateEstimatedTotal().toFixed(2)}</div>
+                          <div className="text-xs text-blue-500">Tax: $0.00</div>
                         </div>
-                        <div className="pt-4 flex flex-col items-end gap-1">
-                          <div className="text-sm text-gray-500">Total Charged</div>
-                          <div className="text-2xl font-bold text-gray-900">${Number(invoice?.total || 0).toFixed(2)}</div>
-                        </div>
-                        {invoice.notes && <p className="text-sm text-gray-600 mt-4 bg-gray-50 rounded-lg p-3">{invoice.notes}</p>}
-                        
-                        {invoice.is_refunded && (
-                          <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-                            <p className="text-xs font-bold text-red-600 uppercase mb-1">Refund Issued</p>
-                            <p className="text-sm text-red-700">Amount: ${Number(invoice.refund_amount).toFixed(2)} — Reason: {invoice.refund_reason || 'N/A'}</p>
-                          </div>
-                        )}
-                      </Section>
-                    )}
-
-                    {/* --- EDIT / DRAFT FORM --- */}
-                    {(invoice.status !== 'paid' || isEditingInvoice) && (
-                      <Section title={isEditingInvoice ? "Edit Invoice Details" : "Invoice Draft"} icon={FiDollarSign}>
-                        <p className="text-sm text-gray-500 mb-4">Adjust rates and hours as needed. The total will be recalculated.</p>
-                        <form onSubmit={async (e) => {
-                          await handleSaveInvoice(e);
-                          setIsEditingInvoice(false);
-                        }} className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.aircraft_rate} onChange={e => setInvoiceForm(f => ({ ...f, aircraft_rate: e.target.value }))} />
-                            <Input label="Dual Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_dual_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_dual_hours: e.target.value }))} />
-                            <Input label="Ground Instruction (hrs)" type="number" step="0.1" min="0" value={invoiceForm.instruction_ground_hours} onChange={e => setInvoiceForm(f => ({ ...f, instruction_ground_hours: e.target.value }))} />
-                            <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={invoiceForm.instructor_rate} onChange={e => setInvoiceForm(f => ({ ...f, instructor_rate: e.target.value }))} />
-                            <Input label="Tax %" type="number" step="0.01" min="0" max="100" value={invoiceForm.tax_percent} onChange={e => setInvoiceForm(f => ({ ...f, tax_percent: e.target.value }))} />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Invoice Notes</label>
-                            <textarea rows={2} value={invoiceForm.notes} onChange={e => setInvoiceForm(f => ({ ...f, notes: e.target.value }))} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" placeholder="Internal notes or customer visible comments..." />
-                          </div>
-                          <div className="flex justify-between items-center bg-blue-50 rounded-lg p-4 border border-blue-100">
-                            <div>
-                              <div className="text-xs text-blue-600 font-medium uppercase">Estimated Total</div>
-                              <div className="text-xl font-bold text-blue-900">${calculateEstimatedTotal().toFixed(2)}</div>
-                            </div>
-                            <div className="flex gap-3">
-                              {(isEditingInvoice || invoice.status === 'draft') && invoice.id && (
-                                <button type="button" onClick={() => setIsEditingInvoice(false)} className="px-5 py-2 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">Cancel</button>
-                              )}
-                              <button 
-                                type="button" 
-                                onClick={() => setShowPreviewModal(true)} 
-                                className="px-5 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5 font-medium"
-                              >
-                                <FiFileText size={14} /> Preview Invoice
-                              </button>
-                              <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50">
-                                {actionLoading ? <FiLoader className="animate-spin" /> : <FiDollarSign size={14} />}
-                                {isEditingInvoice ? 'Update Invoice' : 'Save Invoice Draft'}
-                              </button>
-                            </div>
-                          </div>
-                        </form>
-                      </Section>
-                    )}
-                    
-                    {/* --- PAYMENT OPTIONS (only if not paid) --- */}
-                    {invoice.status !== 'paid' && !isEditingInvoice && (
-                      <Section title="Payment Type" icon={FiDollarSign}>
-                        <div className="flex flex-col md:flex-row gap-6">
-                          <div className="flex-1 space-y-6">
-                            <div className="flex flex-col gap-3">
-                              <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Select Payment Method</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {[
-                                  { id: 'card', label: 'Terminal', desc: 'Pay with card terminal', icon: FiCreditCard, color: 'from-blue-500/10 to-indigo-500/10 border-blue-500 text-blue-700' },
-                                  { id: 'cash', label: 'Cash', desc: 'Physical cash received', icon: FiDollarSign, color: 'from-green-500/10 to-emerald-500/10 border-green-500 text-green-700' },
-                                  { id: 'check', label: 'Check', desc: 'Physical check payment', icon: FiFileText, color: 'from-amber-500/10 to-orange-500/10 border-amber-500 text-amber-700' },
-                                  { id: 'account', label: 'Wallet', desc: 'Debit student wallet balance', icon: FiUser, color: 'from-purple-500/10 to-fuchsia-500/10 border-purple-500 text-purple-700' }
-                                ].map(m => {
-                                  const isSelected = chargeMethod === m.id;
-                                  const Icon = m.icon;
-                                  return (
-                                    <button 
-                                      key={m.id} 
-                                      type="button"
-                                      onClick={() => setChargeMethod(m.id)} 
-                                      className={`relative flex flex-col text-left p-5 rounded-2xl border-2 transition-all duration-300 transform hover:-translate-y-0.5 ${
-                                        isSelected 
-                                          ? `border-slate-800 bg-gradient-to-br ${m.color.split(' ')[0]} shadow-md` 
-                                          : 'border-slate-100 bg-white text-slate-600 hover:border-slate-300 hover:shadow-sm'
-                                      }`}
-                                    >
-                                      <div className={`p-2.5 rounded-xl w-fit mb-3 transition-colors ${isSelected ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-500'}`}>
-                                        <Icon size={20} />
-                                      </div>
-                                      <span className="font-bold text-slate-800 text-sm leading-snug">{m.label}</span>
-                                      <span className="text-xs text-slate-400 mt-1 leading-tight">{m.desc}</span>
-                                      {isSelected && (
-                                        <span className="absolute top-4 right-4 flex h-3.5 w-3.5">
-                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
-                                          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-slate-800"></span>
-                                        </span>
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            {chargeMethod === 'account' && reservation.students?.length > 0 && (
-                              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Wallet Balance Details</span>
-                                {reservation.students.map(student => (
-                                  <div key={student.id} className="flex justify-between items-center text-sm text-slate-700 bg-white border border-slate-100 rounded-xl px-4 py-3 shadow-xs">
-                                    <span className="font-bold text-slate-850">{student.name} — Wallet Balance</span>
-                                    <span className="font-black font-mono text-base text-green-600">${Number(student.account_balance || 0).toFixed(2)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="md:w-72 bg-gradient-to-br from-slate-900 to-slate-850 rounded-2xl p-6 text-white text-center flex flex-col justify-center shadow-xl border border-slate-700/50">
-                            <div className="text-sm text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Due</div>
-                            <div className="text-4xl font-black mb-6 tracking-tight text-white">${Number(invoice.total || 0).toFixed(2)}</div>
-                            <button onClick={() => setShowChargeDialog(true)} disabled={actionLoading} className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/35 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-                              {actionLoading ? <FiLoader className="animate-spin" /> : <FiCheckCircle size={18} />}
-                              Confirm Payment
-                            </button>
-                          </div>
-                        </div>
-                      </Section>
-                    )}
-
-                    {/* --- REFUND (Admin only, already paid) --- */}
-                    {isAdmin && invoice.status === 'paid' && !invoice.is_refunded && !isEditingInvoice && (
-                      <Section title="Issue Refund" icon={FiRefreshCw}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <Input label="Refund Amount ($)" type="number" step="0.01" min="0" max={invoice.total} value={refundForm.refund_amount} onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))} />
-                          <Input label="Reason for Refund" value={refundForm.refund_reason} onChange={e => setRefundForm(f => ({ ...f, refund_reason: e.target.value }))} placeholder="e.g., Error in hours, Customer request" />
-                        </div>
-                        <div className="flex justify-end">
-                          <button onClick={() => setShowRefundDialog(true)} disabled={actionLoading || !refundForm.refund_amount} className="flex items-center gap-2 px-6 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50">
-                            <FiRefreshCw size={14} className={actionLoading ? 'animate-spin' : ''} />
-                            Process Refund
+                        <div className="flex gap-2 flex-wrap justify-end">
+                          {(isEditingInvoice || invoice.status === 'draft') && invoice.id && (
+                            <button type="button" onClick={() => setIsEditingInvoice(false)} className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
+                          )}
+                          <button type="button" onClick={() => setShowPreviewModal(true)} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 text-sm font-medium">
+                            <FiFileText size={13} /> Preview
+                          </button>
+                          <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 text-sm disabled:opacity-50">
+                            {actionLoading ? <FiLoader className="animate-spin" size={13} /> : <FiDollarSign size={13} />}
+                            {isEditingInvoice ? 'Update Invoice' : 'Create Invoice'}
                           </button>
                         </div>
-                      </Section>
-                    )}
-                  </div>
+                      </div>
+                    </form>
+                  </Section>
                 )}
+
+                {invoice.status !== 'paid' && !isEditingInvoice && (
+                  <Section title="Charge" icon={FiCreditCard} headerRight={<span className="text-xs text-gray-400">Select payment method</span>}>
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1 space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {[
+                            { id: 'card', label: 'Terminal', desc: 'Card terminal', icon: FiCreditCard },
+                            { id: 'cash', label: 'Cash', desc: 'Cash received', icon: FiDollarSign },
+                            { id: 'check', label: 'Check', desc: 'Physical check', icon: FiFileText },
+                            { id: 'account', label: 'Wallet', desc: 'Student balance', icon: FiUser },
+                          ].map(m => {
+                            const isSel = chargeMethod === m.id;
+                            const Icon = m.icon;
+                            return (
+                              <button key={m.id} type="button" onClick={() => setChargeMethod(m.id)}
+                                className={`flex flex-col items-center text-center p-4 rounded-xl border-2 transition-all ${isSel ? 'border-blue-600 bg-blue-600 text-white shadow-md' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                              >
+                                <div className={`p-2 rounded-lg mb-2 ${isSel ? 'bg-white/20' : 'bg-gray-50'}`}><Icon size={18} /></div>
+                                <span className="font-bold text-sm">{m.label}</span>
+                                <span className={`text-xs mt-0.5 ${isSel ? 'text-blue-100' : 'text-gray-400'}`}>{m.desc}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {chargeMethod === 'account' && reservation.students?.length > 0 && (
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Wallet Balance</span>
+                            {reservation.students.map(s => (
+                              <div key={s.id} className="flex justify-between items-center text-sm bg-white border border-slate-100 rounded-lg px-4 py-2.5">
+                                <span className="font-medium text-slate-700">{s.name}</span>
+                                <span className="font-bold text-green-600">${Number(s.account_balance || 0).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="md:w-52 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white text-center flex flex-col justify-center shadow-xl">
+                        <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Due</div>
+                        <div className="text-3xl font-black mb-5">${Number(invoice.total || 0).toFixed(2)}</div>
+                        <button onClick={() => setShowChargeDialog(true)} disabled={actionLoading} className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
+                          {actionLoading ? <FiLoader className="animate-spin" /> : <FiCheckCircle size={15} />} Confirm
+                        </button>
+                      </div>
+                    </div>
+                  </Section>
+                )}
+
+                <BillingHistorySection
+                  invoice={invoice}
+                  reservation={reservation}
+                  isAdmin={isAdmin}
+                  refundForm={refundForm}
+                  setRefundForm={setRefundForm}
+                  actionLoading={actionLoading}
+                  setShowRefundDialog={setShowRefundDialog}
+                  setShowPreviewModal={setShowPreviewModal}
+                  setIsEditingInvoice={setIsEditingInvoice}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -1615,7 +1586,7 @@ const ReservationDetail = () => {
               <div className="overflow-y-auto flex-1 min-h-0 bg-gradient-to-b from-slate-50 to-white relative">
 
                 {/* Invoice Sheet */}
-                <div className="mx-4 sm:mx-6 my-5 bg-white rounded-2xl shadow-sm overflow-hidden" style={{border: '1px solid #e2e8f0'}}>
+                <div className="mx-4 sm:mx-6 my-5 bg-white rounded-2xl shadow-sm overflow-hidden" style={{border: '1px solid #e2e8f0'}} ref={pdfRef}>
 
                   {/* Invoice Top: Logo + Number */}
                   <div className="px-6 pt-6 pb-4 flex items-start justify-between" style={{borderBottom: '1px solid #f1f5f9'}}>
@@ -1820,6 +1791,12 @@ const ReservationDetail = () => {
                   className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
                   ← Back to Edit
                 </button>
+                <button type="button" onClick={handleDownloadPdf} disabled={isGeneratingPdf}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {isGeneratingPdf ? <FiLoader className="animate-spin" size={16} /> : <FiPrinter size={16} />}
+                  Download PDF
+                </button>
+
                 <button type="button"
                   onClick={async (e) => {
                     await handleSaveInvoice(e);
@@ -1845,6 +1822,268 @@ const ReservationDetail = () => {
 );
 };
 
+
+
+// ── Billing History Section (Paginated + Accordion) ──────────────────────────
+const PAGE_SIZE = 5;
+
+const BillingHistorySection = ({
+  invoice, reservation, isAdmin, refundForm, setRefundForm,
+  actionLoading, setShowRefundDialog, setShowPreviewModal, setIsEditingInvoice
+}) => {
+  const [openRefundFor, setOpenRefundFor] = React.useState(null);
+  const [expandedRows, setExpandedRows] = React.useState({});
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  const transactions = invoice.transactions || [];
+  const chargeRows = transactions.filter(t => t.type === 'charge');
+  const allRows = transactions.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const pagedRows = allRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const netBilled = chargeRows.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const invoiceNumber = 'FE-' + String(invoice.id ?? reservation?.id ?? '').padStart(4, '0');
+
+  const fmtDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+      ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const toggleRow = (id) => setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+
+  return (
+    <Section
+      title="Billing History"
+      icon={FiFileText}
+      headerRight={
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 font-medium">
+            {allRows.length} transaction{allRows.length !== 1 ? 's' : ''}
+          </span>
+          {isAdmin && invoice.status === 'paid' && (
+            <button
+              onClick={() => setIsEditingInvoice(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600"
+            >
+              <FiDollarSign size={11} /> New Invoice
+            </button>
+          )}
+        </div>
+      }
+    >
+      {allRows.length === 0 ? (
+        <div className="text-center py-8 text-gray-400 text-sm">No billing transactions yet.</div>
+      ) : (
+        <div>
+          {/* Rows */}
+          <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden">
+            {pagedRows.map((txn, idx) => {
+              const globalIdx = (currentPage - 1) * PAGE_SIZE + idx;
+              const isCharge = txn.type === 'charge';
+              const isRefundTxn = txn.type === 'refund';
+              const txnNum = isCharge
+                ? invoiceNumber
+                : 'CR-' + String(txn.id ?? globalIdx).padStart(4, '0');
+              const rowKey = txn.id ?? globalIdx;
+              const isExpanded = !!expandedRows[rowKey];
+
+              return (
+                <div key={rowKey} className={isRefundTxn ? 'bg-red-50/30' : 'bg-white'}>
+                  {/* ── Accordion Header ── */}
+                  <button
+                    type="button"
+                    onClick={() => toggleRow(rowKey)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    {/* Icon */}
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${isCharge ? 'bg-green-100' : 'bg-red-100'}`}>
+                      {isCharge
+                        ? <FiCheckCircle size={13} className="text-green-600" />
+                        : <FiRefreshCw size={13} className="text-red-500" />}
+                    </div>
+
+                    {/* Label */}
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="text-sm font-semibold text-gray-800 truncate">
+                        {isRefundTxn ? `Refund ${txnNum}` : `Invoice ${txnNum}`}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {fmtDate(txn.created_at)}
+                        {txn.description && <span className="ml-1">· {txn.description}</span>}
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${isRefundTxn ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {isRefundTxn ? 'Refund' : 'Paid'}
+                    </span>
+
+                    {/* Amount */}
+                    <span className={`text-sm font-bold w-24 text-right flex-shrink-0 ${isRefundTxn ? 'text-red-600' : 'text-gray-800'}`}>
+                      {isRefundTxn ? '−' : '+'} ${Math.abs(txn.amount).toFixed(2)}
+                    </span>
+
+                    {/* Chevron */}
+                    <svg
+                      className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* ── Accordion Body ── */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 bg-gray-50/60 px-4 py-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                        <div>
+                          <div className="text-xs text-gray-400 font-medium uppercase mb-1">Type</div>
+                          <div className="font-semibold text-gray-700 capitalize">{txn.type}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 font-medium uppercase mb-1">Amount</div>
+                          <div className={`font-bold ${isRefundTxn ? 'text-red-600' : 'text-green-700'}`}>
+                            {isRefundTxn ? '−' : '+'} ${Math.abs(txn.amount).toFixed(2)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 font-medium uppercase mb-1">Processed By</div>
+                          <div className="font-semibold text-gray-700">{txn.processed_by || 'System'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 font-medium uppercase mb-1">Date</div>
+                          <div className="font-semibold text-gray-700">{fmtDate(txn.created_at)}</div>
+                        </div>
+                        {txn.description && (
+                          <div className="col-span-2 md:col-span-4">
+                            <div className="text-xs text-gray-400 font-medium uppercase mb-1">Notes</div>
+                            <div className="text-gray-700">{txn.description}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setShowPreviewModal(true)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-white"
+                        >
+                          <FiFileText size={12} /> PDF
+                        </button>
+
+                        {isAdmin && isCharge && !invoice.is_refunded && invoice.status === 'paid' && (
+                          <button
+                            onClick={() => {
+                              setOpenRefundFor(openRefundFor === rowKey ? null : rowKey);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50"
+                          >
+                            <FiRefreshCw size={12} /> Issue Refund
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Inline Refund Form */}
+                      {openRefundFor === rowKey && (
+                        <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4">
+                          <div className="text-xs font-bold text-red-700 mb-3">
+                            Issue refund against {txnNum}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                            <div>
+                              <label className="text-xs font-medium text-gray-600 block mb-1">Refund Amount ($)</label>
+                              <input
+                                type="number" step="0.01" min="0" max={txn.amount}
+                                value={refundForm.refund_amount}
+                                onChange={e => setRefundForm(f => ({ ...f, refund_amount: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-400"
+                                placeholder="0.00"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-gray-600 block mb-1">Reason</label>
+                              <input
+                                type="text"
+                                value={refundForm.refund_reason}
+                                onChange={e => setRefundForm(f => ({ ...f, refund_reason: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-400"
+                                placeholder="e.g. Error in hours, customer request"
+                              />
+                            </div>
+                            <button
+                              onClick={() => { setOpenRefundFor(null); setShowRefundDialog(true); }}
+                              disabled={actionLoading || !refundForm.refund_amount}
+                              className="flex items-center justify-center gap-1.5 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 h-[38px]"
+                            >
+                              <FiRefreshCw size={13} /> Process
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── Pagination ── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+              <span className="text-xs text-gray-400">
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, allRows.length)} of {allRows.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-3.5 h-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+                  <button
+                    key={pg}
+                    onClick={() => setCurrentPage(pg)}
+                    className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors ${
+                      pg === currentPage
+                        ? 'bg-blue-600 text-white border border-blue-600'
+                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pg}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-3.5 h-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Net Total ── */}
+          <div className="flex justify-end items-center pt-3 mt-2 border-t border-gray-100 gap-3">
+            <span className="text-sm text-gray-500">Net billed this session</span>
+            <span className="text-base font-black text-gray-900">${netBilled.toFixed(2)}</span>
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+};
 
 
 export default ReservationDetail;
