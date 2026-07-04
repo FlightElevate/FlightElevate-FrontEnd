@@ -46,3 +46,4 @@ coverage
 *.tsbuildinfo
 .eslintcache
 .cache
+node_modules
