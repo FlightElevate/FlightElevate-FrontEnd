@@ -49,7 +49,7 @@
       "esbuild",
       "@tailwindcss/vite",
       "postcss",
-      "core-js@3.49.0"
+      "core-js"
     ]
   },
   "packageManager": "pnpm@11.0.9"
