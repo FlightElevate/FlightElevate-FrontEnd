@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: flightelevate-frontend
+    env: static
+    buildCommand: pnpm install --ignore-scripts && pnpm run build
+    staticPublishPath: ./dist
+    branch: production_feedback
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
