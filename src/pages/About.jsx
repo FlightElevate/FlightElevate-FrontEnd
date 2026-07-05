@@ -422,7 +422,7 @@ const About = () => {
                 <p className="about-section-body">
                   Claude Sturla brings deep expertise in financial planning, investment advisory, and strategic business development to his role as Managing Partner. His career spans leading institutions including Fidelity Investments and Merrill Lynch, where he developed the strategic and operational perspective that now guides FlightElevate's growth, partnerships, and market positioning.
                   <br /><br />
-                  Claude is the public-facing voice of FlightElevate — translating the platform's aviation-rooted vision into business strategy and building the relationships that will carry it forward.
+                  As Managing Partner, Claude provides strategic guidance that supports FlightElevate's long-term vision and growth.
                 </p>
                 <div className="about-expertise-grid">
                   <div className="about-expertise-card">
