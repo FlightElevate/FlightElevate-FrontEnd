@@ -44,12 +44,5 @@
     "tailwindcss": "^4.1.11",
     "vite": "^7.0.4"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "@tailwindcss/vite",
-      "postcss"
-    ]
-  },
   "packageManager": "pnpm@11.0.9"
 }
