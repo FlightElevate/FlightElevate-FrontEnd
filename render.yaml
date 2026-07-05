@@ -2,7 +2,7 @@ services:
   - type: web
     name: flightelevate-frontend
     env: static
-    buildCommand: pnpm install --ignore-scripts && pnpm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     branch: production_feedback
     routes:
