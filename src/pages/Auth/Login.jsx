@@ -59,7 +59,12 @@ const Login = () => {
       const result = await login(email, password);
       
       if (result.success) {
-        if (result.user?.organization?.verification_status === 'pending') {
+        const isSuperAdmin = result.user?.roles?.some(r => {
+          const n = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+          return n === 'super admin' || n === 'super-admin' || n === 'superadmin';
+        });
+
+        if (!isSuperAdmin && result.user?.organization?.verification_status === 'pending') {
           showSuccessToast('Your email is currently pending verification. We will contact you via email within 1-4 business days.');
         } else {
           showSuccessToast('Login successful! Welcome back.');
