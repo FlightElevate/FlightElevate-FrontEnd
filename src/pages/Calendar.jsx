@@ -2551,7 +2551,6 @@ const Calendar = () => {
                       required
                       disabled={isStudent()}
                     >
-                    >
                       <option value="">Select Student</option>
                       {(() => {
                         const filterLocs = getFilterLocationsFor('student', reservationForm, { students, instructors, aircraft });
