@@ -65,7 +65,7 @@ const Login = () => {
         });
 
         if (!isSuperAdmin && result.user?.organization?.verification_status === 'pending') {
-          showSuccessToast('Your email is currently pending verification. We will contact you via email within 1-4 business days.');
+          showSuccessToast('Please reset your password after first login');
         } else {
           showSuccessToast('Login successful! Welcome back.');
         }
