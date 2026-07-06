@@ -233,7 +233,7 @@ const LessonDetails = () => {
       }
     } catch (err) {
       console.error('Error submitting feedback:', err);
-      showErrorToast(err.response?.data?.message || 'Failed to submit feedback');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to submit feedback');
     } finally {
       setSubmittingFeedback(false);
     }

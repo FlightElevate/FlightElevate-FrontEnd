@@ -333,7 +333,7 @@ const RolesPermissions = () => {
       setAllPermissions(allPerms);
       // Filtered permissions will be set via useMemo
     } catch (err) {
-      const errorMessage = err.message || err.response?.data?.message || 'Error loading data';
+      const errorMessage = err.message || err.message || err.response?.data?.message || 'Error loading data';
       console.error('[RolesPermissions] Error fetching data:', err);
       setError(errorMessage);
       
@@ -411,7 +411,7 @@ const RolesPermissions = () => {
         fetchData(true);
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete role');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete role');
     } finally {
       setActionLoading(null);
     }
@@ -527,7 +527,7 @@ const RolesPermissions = () => {
         fetchData(true);
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to create role');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to create role');
     } finally {
       setSavingRole(false);
     }

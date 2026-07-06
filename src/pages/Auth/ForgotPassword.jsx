@@ -29,7 +29,7 @@ const ForgotPassword = () => {
         showErrorToast(errorMessage);
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'An error occurred. Please try again.';
+      const errorMessage = err.message || err.response?.data?.message || err.message || 'An error occurred. Please try again.';
       setError(errorMessage);
       showErrorToast(errorMessage);
     } finally {

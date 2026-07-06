@@ -116,7 +116,7 @@ const UpcomingBookings = () => {
           console.error("Cancellation error:", error);
           Swal.fire(
             'Error!',
-            error?.response?.data?.message || 'Failed to cancel the booking. Please try again.',
+            error?.message || .response?.data?.message || 'Failed to cancel the booking. Please try again.',
             'error'
           );
         }

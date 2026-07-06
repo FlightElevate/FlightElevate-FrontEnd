@@ -1416,8 +1416,8 @@ const Calendar = () => {
         }, 100);
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.errors?.message || 
-                          err.response?.data?.message || 
+      const errorMessage = err.message || err.response?.data?.errors?.message || 
+                          err.message || err.response?.data?.message || 
                           err.message || 
                           'Failed to create reservation';
       showErrorToast(errorMessage);

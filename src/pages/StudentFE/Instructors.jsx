@@ -187,7 +187,7 @@ const Instructors = () => {
         fetchInstructors();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete instructor');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete instructor');
     }
   };
 
@@ -234,7 +234,7 @@ const Instructors = () => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || `Failed to ${editingInstructor ? 'update' : 'create'} instructor`);
+      showErrorToast(err.message || err.response?.data?.message || `Failed to ${editingInstructor ? 'update' : 'create'} instructor`);
     } finally {
       setSubmitting(false);
     }

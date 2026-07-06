@@ -121,7 +121,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
         fetchSquawks();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete squawk');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete squawk');
     }
   };
 
@@ -143,7 +143,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
         fetchSquawks();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to resolve squawk');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to resolve squawk');
     }
   };
 
@@ -175,7 +175,7 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to save squawk');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to save squawk');
     }
   };
 

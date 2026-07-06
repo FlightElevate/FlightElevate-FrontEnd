@@ -104,7 +104,7 @@ export const RolesProvider = ({ children }) => {
       return rolesData;
     } catch (err) {
       const errorMessage =
-        err.message || err.response?.data?.message || err.response?.data?.errors?.message || 'Failed to load roles';
+        err.message || err.message || err.response?.data?.message || err.message || err.response?.data?.errors?.message || 'Failed to load roles';
       
       
       errorRef.current = errorMessage;

@@ -73,7 +73,7 @@ const Subscription = () => {
         fetchPlans();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete subscription plan');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete subscription plan');
     }
   };
 

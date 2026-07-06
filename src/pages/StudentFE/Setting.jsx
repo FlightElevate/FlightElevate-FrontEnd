@@ -105,7 +105,7 @@ const Setting = () => {
         showErrorToast(res.message || 'Failed to add location');
       }
     } catch (e) {
-      showErrorToast(e.response?.data?.message || 'Failed to add location');
+      showErrorToast(e.message || e.response?.data?.message || 'Failed to add location');
     } finally {
       setSavingLocation(false);
     }
@@ -281,7 +281,7 @@ const Setting = () => {
         fetchAllOrganizations();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to submit join request');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to submit join request');
     } finally {
       setJoiningOrgId(null);
     }
@@ -451,7 +451,7 @@ const Setting = () => {
         await fetchDocuments();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to add document');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to add document');
     } finally {
       setLoading(false);
     }
@@ -479,7 +479,7 @@ const Setting = () => {
         await fetchDocuments();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete document');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete document');
     } finally {
       setDeletingDocId(null);
     }
@@ -583,7 +583,7 @@ const Setting = () => {
       }
     } catch (err) {
       console.error('Avatar upload error:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to update profile picture';
+      const errorMsg = err.message || err.response?.data?.message || err.message || 'Failed to update profile picture';
       showErrorToast(errorMsg);
     } finally {
       setUploadingAvatar(false);
@@ -690,7 +690,7 @@ const Setting = () => {
       }
     } catch (err) {
       console.error('Profile save error:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to update settings';
+      const errorMsg = err.message || err.response?.data?.message || err.message || 'Failed to update settings';
       showErrorToast(errorMsg);
     } finally {
       setLoading(false);
@@ -752,7 +752,7 @@ const Setting = () => {
         showErrorToast(response.errors?.message || response.message || 'Failed to update password');
       }
     } catch (err) {
-      showErrorToast(err.message || err.response?.data?.errors?.message || err.response?.data?.message || 'Failed to update password');
+      showErrorToast(err.message || err.message || err.response?.data?.errors?.message || err.message || err.response?.data?.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }
@@ -855,7 +855,7 @@ const Setting = () => {
       }
     } catch (err) {
       console.error('Error updating organization logo:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to update organization logo';
+      const errorMsg = err.message || err.response?.data?.message || err.message || 'Failed to update organization logo';
       showErrorToast(errorMsg);
     } finally {
       setUploadingOrgLogo(false);
@@ -908,7 +908,7 @@ const Setting = () => {
       }
     } catch (err) {
       console.error('Error updating organization:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to update organization';
+      const errorMsg = err.message || err.response?.data?.message || err.message || 'Failed to update organization';
       showErrorToast(errorMsg);
     } finally {
       setLoading(false);

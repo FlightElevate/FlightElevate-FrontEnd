@@ -119,7 +119,7 @@ const Plans = () => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} subscription plan`);
+      showErrorToast(err.message || err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} subscription plan`);
     } finally {
       setSubmitting(false);
     }

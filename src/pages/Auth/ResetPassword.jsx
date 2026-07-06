@@ -93,11 +93,11 @@ const ResetPassword = () => {
         showErrorToast(errorMessage);
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'An error occurred. Please try again.';
+      const errorMessage = err.message || err.response?.data?.message || err.message || 'An error occurred. Please try again.';
       setError(errorMessage);
       
       
-      if (err.response?.data?.errors) {
+      if (err.message || err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       }
       

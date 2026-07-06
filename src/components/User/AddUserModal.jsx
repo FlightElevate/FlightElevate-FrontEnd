@@ -76,11 +76,11 @@ const AddUserModal = ({
     } catch (err) {
 
       console.error('Error creating user:', err.response);
-      const errorMessage = err.response?.data?.errors?.message || err.message || 'Failed to create user';
+      const errorMessage = err.message || err.response?.data?.errors?.message || err.message || 'Failed to create user';
       showErrorToast(errorMessage);
       
       
-      if (err.response?.data?.errors) {
+      if (err.message || err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       }
     } finally {

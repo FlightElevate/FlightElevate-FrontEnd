@@ -149,7 +149,7 @@ const InstructorLessons = () => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to accept session request');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to accept session request');
     } finally {
       setAcceptingId(null);
     }
@@ -197,7 +197,7 @@ const InstructorLessons = () => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to decline session request');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to decline session request');
     } finally {
       setDecliningId(null);
     }
@@ -344,7 +344,7 @@ const InstructorLessons = () => {
       }
     } catch (err) {
       console.error('Error starting session:', err);
-      showErrorToast(err.response?.data?.message || 'Failed to start session');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to start session');
     } finally {
       setStartingSession(false);
     }
@@ -406,7 +406,7 @@ const InstructorLessons = () => {
       }
     } catch (err) {
       console.error('Error completing session:', err);
-      showErrorToast(err.response?.data?.message || 'Failed to complete session');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to complete session');
     } finally {
       setStartingSession(false);
     }
@@ -508,7 +508,7 @@ const InstructorLessons = () => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete lesson');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete lesson');
     }
   };
 
@@ -564,7 +564,7 @@ const InstructorLessons = () => {
       }
     } catch (err) {
       console.error('Error submitting feedback:', err);
-      showErrorToast(err.response?.data?.message || 'Failed to submit feedback');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to submit feedback');
     } finally {
       setSubmittingFeedback(false);
     }
@@ -844,7 +844,7 @@ const InstructorLessons = () => {
           }
         }
       } catch (err) {
-        const errorMessage = err.response?.data?.message || err.message || 'Failed to create lesson template';
+        const errorMessage = err.message || err.response?.data?.message || err.message || 'Failed to create lesson template';
         showErrorToast(errorMessage);
       } finally {
         setSubmitting(false);
@@ -937,7 +937,7 @@ const InstructorLessons = () => {
         }
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create reservation';
+      const errorMessage = err.message || err.response?.data?.message || err.message || 'Failed to create reservation';
       showErrorToast(errorMessage);
     } finally {
       setSubmitting(false);

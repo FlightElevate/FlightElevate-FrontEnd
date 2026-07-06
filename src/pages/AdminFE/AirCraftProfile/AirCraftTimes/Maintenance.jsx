@@ -114,7 +114,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
         fetchMaintenance();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete maintenance record');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete maintenance record');
     }
   };
 
@@ -148,7 +148,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to save maintenance record');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to save maintenance record');
     }
   };
 

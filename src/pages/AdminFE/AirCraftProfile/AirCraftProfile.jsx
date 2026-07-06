@@ -207,7 +207,7 @@ const AirCraftProfile = () => {
         fetchAircraft();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete aircraft');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete aircraft');
     }
   };
 
@@ -303,7 +303,7 @@ const AirCraftProfile = () => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || `Failed to ${editingAircraft ? 'update' : 'create'} aircraft`);
+      showErrorToast(err.message || err.response?.data?.message || `Failed to ${editingAircraft ? 'update' : 'create'} aircraft`);
     } finally {
       setSubmitting(false);
     }

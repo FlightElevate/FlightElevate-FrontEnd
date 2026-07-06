@@ -217,11 +217,11 @@ const Support = () => {
       }
     } catch (error) {
       console.error("Error creating ticket:", error);
-      const errorMessage = error.response?.data?.message || "Failed to create ticket";
+      const errorMessage = error.message || error.response?.data?.message || "Failed to create ticket";
       toast.error(errorMessage);
       
       
-      if (error.response?.data?.errors) {
+      if (error.message || error.response?.data?.errors) {
         setFormErrors(error.response.data.errors);
       }
     } finally {

@@ -137,7 +137,7 @@ const MyLessons = ({ showReadyButton = false }) => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete lesson');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete lesson');
     }
   };
 
@@ -242,7 +242,7 @@ const MyLessons = ({ showReadyButton = false }) => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to save lesson');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to save lesson');
     } finally {
       setSubmitting(false);
     }

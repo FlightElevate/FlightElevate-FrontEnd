@@ -63,7 +63,7 @@ const FindTimeModal = ({
         throw new Error(response.message || 'Failed to fetch available slots');
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to load available time slots';
+      const errorMessage = err.message || err.response?.data?.message || err.message || 'Failed to load available time slots';
       setError(errorMessage);
       showErrorToast(errorMessage);
       setAvailableSlots([]);

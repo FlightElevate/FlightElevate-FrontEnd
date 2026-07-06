@@ -76,9 +76,9 @@ const EditUserModal = ({
       }
     } catch (err) {
       console.error('Error updating user:', err.response);
-      const errorMessage = err.response?.data?.errors?.message || err.message || 'Failed to update user';
+      const errorMessage = err.message || err.response?.data?.errors?.message || err.message || 'Failed to update user';
       showErrorToast(errorMessage);
-      if (err.response?.data?.errors) {
+      if (err.message || err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       }
     } finally {

@@ -325,8 +325,8 @@ const InstructorProfile = () => {
       }
     } catch (error) {
       console.error('Error submitting request:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.message ||
+      const errorMessage = error.message || error.response?.data?.message || 
+                          error.message || error.response?.data?.errors?.message ||
                           error.message || 
                           'Failed to submit session request';
       showErrorToast(errorMessage);
