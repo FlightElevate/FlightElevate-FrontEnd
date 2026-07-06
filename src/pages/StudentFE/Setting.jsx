@@ -748,9 +748,11 @@ const Setting = () => {
             confirm_password: '',
           }));
         }
+      } else {
+        showErrorToast(response.errors?.message || response.message || 'Failed to update password');
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to update password');
+      showErrorToast(err.message || err.response?.data?.errors?.message || err.response?.data?.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }
