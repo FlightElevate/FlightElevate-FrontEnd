@@ -15,8 +15,10 @@ import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { getImageUrl } from "../../../utils/imageUtils";
 import { safeDisplay } from "../../../utils/safeDisplay";
 import EditUserModal from "../../../components/User/EditUserModal";
+import { useAuth } from "../../../context/AuthContext";
 
 const UserProfile = () => {
+  const { user: currentUser } = useAuth();
   const { id } = useParams();
   
   const [user, setUser] = useState(null);
@@ -495,18 +497,20 @@ const UserProfile = () => {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-            <button onClick={() => setEditModalOpen(true)} className="px-5 py-2.5 flex items-center gap-2 rounded-lg transition bg-blue-50 text-blue-600 hover:bg-blue-100">
-              <FiEdit2 className="w-4 h-4" />
+            <button onClick={() => setEditModalOpen(true)} className="px-5 py-2.5 bg-blue-50 text-blue-600 font-medium rounded-lg hover:bg-blue-100 transition flex items-center gap-2">
+              <FiEdit2 size={16} />
               <span className="text-sm font-medium">Edit Profile</span>
             </button>
-            <button onClick={handleBlockUser} className={`px-5 py-2.5 flex items-center gap-2 rounded-lg transition ${
-              user?.status === 'blocked' 
-                ? 'bg-green-50 text-green-600 hover:bg-green-100' 
-                : 'bg-red-50 text-red-600 hover:bg-red-100'
-            }`}>
-              <img src={gear_filler} alt="Settings" className="w-4 h-4" />
-              <span className="text-sm font-medium">{user?.status === 'blocked' ? 'Unblock User' : 'Block User'}</span>
-            </button>
+            {String(user?.id) !== String(currentUser?.id) && (
+              <button onClick={handleBlockUser} className={`px-5 py-2.5 flex items-center gap-2 rounded-lg transition ${
+                user?.status === 'blocked' 
+                  ? 'bg-green-50 text-green-600 hover:bg-green-100' 
+                  : 'bg-red-50 text-red-600 hover:bg-red-100'
+              }`}>
+                <img src={gear_filler} alt="Settings" className="w-4 h-4" />
+                <span className="text-sm font-medium">{user?.status === 'blocked' ? 'Unblock User' : 'Block User'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -541,13 +545,15 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
             </div>
 
-            <LocationAssignmentSection
-              locationOptions={locationOptions}
-              locationForm={locationForm}
-              setLocationForm={setLocationForm}
-              locationSaving={locationSaving}
-              onSave={handleSaveLocationSettings}
-            />
+            {String(user?.id) !== String(currentUser?.id) && (
+              <LocationAssignmentSection
+                locationOptions={locationOptions}
+                locationForm={locationForm}
+                setLocationForm={setLocationForm}
+                locationSaving={locationSaving}
+                onSave={handleSaveLocationSettings}
+              />
+            )}
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">

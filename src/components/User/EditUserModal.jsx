@@ -6,6 +6,7 @@ import { useRoles } from '../../hooks/useRoles';
 import { userService } from '../../api/services/userService';
 import { locationService } from '../../api/services/locationService';
 import { showSuccessToast, showErrorToast } from '../../utils/notifications';
+import { useAuth } from '../../context/AuthContext';
 
 const EditUserModal = ({ 
   isOpen, 
@@ -13,6 +14,7 @@ const EditUserModal = ({
   onSuccess,
   initialData = {}
 }) => {
+  const { user: currentUser } = useAuth();
   const { formData, formErrors, handleChange, validate, reset, setErrors, updateField } = useUserForm(initialData, { requirePassword: false });
   const { roles, loading: loadingRoles } = useRoles();
   const [submitting, setSubmitting] = useState(false);
@@ -150,7 +152,9 @@ const EditUserModal = ({
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
-                  <option value="blocked">Blocked</option>
+                  {String(initialData?.id) !== String(currentUser?.id) && (
+                    <option value="blocked">Blocked</option>
+                  )}
                 </select>
               </div>
             </div>
@@ -186,47 +190,49 @@ const EditUserModal = ({
               </div>
             </div>
             
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Location Settings</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
-                  <select name="default_location_id" value={formData.default_location_id || ''} onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value="">-- No Default Location --</option>
-                    {locationOptions.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Schedule Locations</label>
-                  <div className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white max-h-[150px] overflow-y-auto space-y-2">
-                    {locationOptions.length === 0 ? (
-                      <p className="text-sm text-gray-500">No locations available</p>
-                    ) : (
-                      locationOptions.map(l => (
-                        <label key={l.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                          <input
-                            type="checkbox"
-                            checked={(formData.calendar_location_ids || []).includes(l.id) || (formData.calendar_location_ids || []).includes(String(l.id))}
-                            onChange={(e) => {
-                              const currentIds = (formData.calendar_location_ids || []).map(Number);
-                              if (e.target.checked) {
-                                updateField('calendar_location_ids', [...currentIds, l.id]);
-                              } else {
-                                updateField('calendar_location_ids', currentIds.filter(id => id !== l.id));
-                              }
-                            }}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <span className="text-sm text-gray-700">{l.name}</span>
-                        </label>
-                      ))
-                    )}
+            {String(initialData?.id) !== String(currentUser?.id) && (
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Location Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
+                    <select name="default_location_id" value={formData.default_location_id || ''} onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="">-- No Default Location --</option>
+                      {locationOptions.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Schedule Locations</label>
+                    <div className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white max-h-[150px] overflow-y-auto space-y-2">
+                      {locationOptions.length === 0 ? (
+                        <p className="text-sm text-gray-500">No locations available</p>
+                      ) : (
+                        locationOptions.map(l => (
+                          <label key={l.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={(formData.calendar_location_ids || []).includes(l.id) || (formData.calendar_location_ids || []).includes(String(l.id))}
+                              onChange={(e) => {
+                                const currentIds = (formData.calendar_location_ids || []).map(Number);
+                                if (e.target.checked) {
+                                  updateField('calendar_location_ids', [...currentIds, l.id]);
+                                } else {
+                                  updateField('calendar_location_ids', currentIds.filter(id => id !== l.id));
+                                }
+                              }}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span className="text-sm text-gray-700">{l.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
           </div>
           <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-3">
