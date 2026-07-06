@@ -11,6 +11,7 @@ import { safeDisplay } from '../utils/safeDisplay';
 import { useAuth } from '../context/AuthContext';
 import { useRole } from '../hooks/useRole';
 import { api } from '../api/apiClient';
+import { getFilterLocationsFor, checkLocationMatch, getLocationsForEntity } from "../utils/locationFilters";
 import { ENDPOINTS } from '../api/config';
 import FindTimeModal from '../components/Calendar/FindTimeModal';
 import { FLIGHT_TYPES } from '../config/flightTypes';
@@ -1314,6 +1315,7 @@ const Calendar = () => {
 
       const lessonData = {
         ...reservationForm,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         is_request: false,
         // Convert single IDs to arrays for many-to-many relationship
         student_ids: reservationForm.student_id ? [parseInt(reservationForm.student_id)] : [],
@@ -1495,7 +1497,12 @@ const Calendar = () => {
         {/* Header */}
         <div className="flex flex-col gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 border-b border-gray-200">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 whitespace-nowrap">Schedule</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 whitespace-nowrap">Schedule</h2>
+              <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-600 rounded-md whitespace-nowrap">
+                {Intl.DateTimeFormat().resolvedOptions().timeZone}
+              </span>
+            </div>
           
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             {/* Action Buttons - Hidden for students */}
@@ -2544,14 +2551,19 @@ const Calendar = () => {
                       required
                       disabled={isStudent()}
                     >
+                    >
                       <option value="">Select Student</option>
-                      {students.length > 0 ? (
-                        students.map((student) => (
-                          <option key={student.id} value={String(student.id)}>{student.name || student.email}</option>
-                        ))
-                      ) : (
-                        <option value="" disabled>No students available</option>
-                      )}
+                      {(() => {
+                        const filterLocs = getFilterLocationsFor('student', reservationForm, { students, instructors, aircraft });
+                        const filtered = filterLocs ? students.filter(s => checkLocationMatch(s, filterLocs)) : students;
+                        return filtered.length > 0 ? (
+                          filtered.map((student) => (
+                            <option key={student.id} value={String(student.id)}>{student.name || student.email}</option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No students available for this location combination</option>
+                        );
+                      })()}
                     </select>
                   )}
                   {isStudent() && (
@@ -2585,27 +2597,14 @@ const Calendar = () => {
                     >
                       <option value="">Select Instructor</option>
                       {(() => {
-                        let filteredInstructors = instructors;
-                        if (reservationForm.student_id) {
-                          const student = students.find(s => String(s.id) === String(reservationForm.student_id));
-                          if (student && student.default_location_id) {
-                            const studentLoc = String(student.default_location_id);
-                            filteredInstructors = instructors.filter(inst => {
-                              if (String(inst.default_location_id) === studentLoc) return true;
-                              if (inst.calendar_location_ids && Array.isArray(inst.calendar_location_ids)) {
-                                return inst.calendar_location_ids.map(String).includes(studentLoc);
-                              }
-                              return false;
-                            });
-                          }
-                        }
-                        
-                        return filteredInstructors.length > 0 ? (
-                          filteredInstructors.map((instructor) => (
+                        const filterLocs = getFilterLocationsFor('instructor', reservationForm, { students, instructors, aircraft });
+                        const filtered = filterLocs ? instructors.filter(i => checkLocationMatch(i, filterLocs)) : instructors;
+                        return filtered.length > 0 ? (
+                          filtered.map((instructor) => (
                             <option key={instructor.id} value={String(instructor.id)}>{instructor.name || instructor.email}</option>
                           ))
                         ) : (
-                          <option value="" disabled>No instructors available for this location</option>
+                          <option value="" disabled>No instructors available for this location combination</option>
                         );
                       })()}
                     </select>
@@ -2615,29 +2614,21 @@ const Calendar = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Location <span className="text-red-500">*</span>
-                    {(() => {
-                      const selStudent = students.find(s => String(s.id) === reservationForm.student_id);
-                      return selStudent?.default_location_id ? (
-                        <span className="ml-2 text-xs text-blue-600 font-normal">🔒 Auto-filled from student's profile</span>
-                      ) : null;
-                    })()}
                   </label>
                   {loadingFormData ? (
                     <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500">Loading locations...</div>
                   ) : (() => {
-                    const selStudent = students.find(s => String(s.id) === reservationForm.student_id);
-                    const isLocked = !!(selStudent?.default_location_id);
-                    // When locked, show only the student's location
-                    const visibleLocations = isLocked
-                      ? locationsList.filter(loc => String(loc.id) === String(selStudent.default_location_id))
+                    const activeLocs = getFilterLocationsFor('none', reservationForm, { students, instructors, aircraft });
+                    const visibleLocations = activeLocs
+                      ? locationsList.filter(loc => activeLocs.includes(String(loc.id)))
                       : locationsList;
+                    
                     return (
                       <select
                         value={reservationForm.location_id || ''}
-                        onChange={(e) => !isLocked && setReservationForm({ ...reservationForm, location_id: e.target.value })}
-                        className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked ? 'bg-blue-50 cursor-not-allowed border-blue-200' : ''}`}
+                        onChange={(e) => setReservationForm({ ...reservationForm, location_id: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
-                        disabled={isLocked}
                       >
                         <option value="">Select Location</option>
                         {visibleLocations.length > 0 ? (
@@ -2695,13 +2686,17 @@ const Calendar = () => {
                       title="Select an aircraft (optional - you can change the pre-selected one)"
                     >
                       <option value="">Select Aircraft (Optional)</option>
-                      {aircraft.length > 0 ? (
-                        aircraft.map((ac) => (
-                          <option key={ac.id} value={String(ac.id)}>{ac.registration || ac.serial_number || ac.name} {ac.model ? `(${ac.model})` : ''}</option>
-                        ))
-                      ) : (
-                        <option value="" disabled>No aircraft available</option>
-                      )}
+                      {(() => {
+                        const filterLocs = getFilterLocationsFor('aircraft', reservationForm, { students, instructors, aircraft });
+                        const filtered = filterLocs ? aircraft.filter(a => checkLocationMatch(a, filterLocs)) : aircraft;
+                        return filtered.length > 0 ? (
+                          filtered.map((ac) => (
+                            <option key={ac.id} value={String(ac.id)}>{ac.registration || ac.serial_number || ac.name} {ac.model ? `(${ac.model})` : ''}</option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No aircraft available for this location combination</option>
+                        );
+                      })()}
                     </select>
                   )}
                   {isAircraftPreSelected && (

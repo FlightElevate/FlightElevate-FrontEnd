@@ -315,6 +315,8 @@ const ReservationDetail = () => {
     hobbs_out: '',
     tach_out: '',
     tach_2_out: '',
+    cycles_out: '',
+    cycles_2_out: '',
     dispatch_weather_briefing: '',
     dispatch_weather_acknowledged: false,
     dispatch_notes: '',
@@ -331,6 +333,8 @@ const ReservationDetail = () => {
         hobbs_out: parseFloat(dispatchForm.hobbs_out),
         tach_out: parseFloat(dispatchForm.tach_out),
         tach_2_out: dispatchForm.tach_2_out ? parseFloat(dispatchForm.tach_2_out) : null,
+        cycles_out: dispatchForm.cycles_out ? parseInt(dispatchForm.cycles_out, 10) : null,
+        cycles_2_out: dispatchForm.cycles_2_out ? parseInt(dispatchForm.cycles_2_out, 10) : null,
         dispatch_weather_briefing: dispatchForm.dispatch_weather_briefing || null,
         dispatch_weather_acknowledged: !!dispatchForm.dispatch_weather_acknowledged,
         dispatch_notes: dispatchForm.dispatch_notes || null,
@@ -368,6 +372,8 @@ const ReservationDetail = () => {
     hobbs_in: '',
     tach_in: '',
     tach_2_in: '',
+    cycles_in: '',
+    cycles_2_in: '',
     instruction_dual_hours: '',
     instruction_ground_hours: '',
     instruction_multi_engine_hours: '',
@@ -396,6 +402,8 @@ const ReservationDetail = () => {
         hobbs_in: parseFloat(checkinForm.hobbs_in),
         tach_in: parseFloat(checkinForm.tach_in),
         tach_2_in: checkinForm.tach_2_in ? parseFloat(checkinForm.tach_2_in) : null,
+        cycles_in: checkinForm.cycles_in ? parseInt(checkinForm.cycles_in, 10) : null,
+        cycles_2_in: checkinForm.cycles_2_in ? parseInt(checkinForm.cycles_2_in, 10) : null,
         instruction_dual_hours: checkinForm.instruction_dual_hours ? parseFloat(checkinForm.instruction_dual_hours) : null,
         instruction_ground_hours: checkinForm.instruction_ground_hours ? parseFloat(checkinForm.instruction_ground_hours) : null,
         instruction_multi_engine_hours: checkinForm.instruction_multi_engine_hours ? parseFloat(checkinForm.instruction_multi_engine_hours) : null,
@@ -895,7 +903,9 @@ const ReservationDetail = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Field label="Hobbs Out" value={reservation.hobbs_out} />
                   <Field label="Engine 1 Tach Out" value={reservation.tach_out} />
-                  {reservation.tach_2_out != null && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
+                  {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
+                  {reservation.cycles_out != null && <Field label="Engine 1 Cycles Out" value={reservation.cycles_out} />}
+                  {reservation.cycles_2_out != null && <Field label="Engine 2 Cycles Out" value={reservation.cycles_2_out} />}
                   <Field label="Weather Briefing" value={reservation.dispatch_weather_briefing} />
                   <Field label="Weather Acknowledged" value={reservation.dispatch_weather_acknowledged ? 'Yes' : 'No'} />
                   <Field label="Aircraft Rate/hr" value={reservation.aircraft_rate_per_hour ? `$${reservation.aircraft_rate_per_hour}` : null} />
@@ -915,6 +925,8 @@ const ReservationDetail = () => {
                     <Input label="Hobbs Out" type="number" step="0.1" min="0" value={dispatchForm.hobbs_out} onChange={e => setDispatchForm(f => ({ ...f, hobbs_out: e.target.value }))} required placeholder="e.g. 1234.5" />
                     <Input label="Engine 1 Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_out} onChange={e => setDispatchForm(f => ({ ...f, tach_out: e.target.value }))} required placeholder="e.g. 1234.5" />
                     <Input label="Engine 2 Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_2_out} onChange={e => setDispatchForm(f => ({ ...f, tach_2_out: e.target.value }))} placeholder="e.g. 1234.5 (Optional)" />
+                    <Input label="Engine 1 Cycles Out" type="number" step="1" min="0" value={dispatchForm.cycles_out} onChange={e => setDispatchForm(f => ({ ...f, cycles_out: e.target.value }))} placeholder="e.g. 100 (Optional)" />
+                    <Input label="Engine 2 Cycles Out" type="number" step="1" min="0" value={dispatchForm.cycles_2_out} onChange={e => setDispatchForm(f => ({ ...f, cycles_2_out: e.target.value }))} placeholder="e.g. 100 (Optional)" />
                     <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={dispatchForm.aircraft_rate_per_hour} onChange={e => setDispatchForm(f => ({ ...f, aircraft_rate_per_hour: e.target.value }))} placeholder="e.g. 120.00" />
                     <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={dispatchForm.instructor_rate_per_hour} onChange={e => setDispatchForm(f => ({ ...f, instructor_rate_per_hour: e.target.value }))} placeholder="e.g. 45.00" />
                   </div>
@@ -1061,8 +1073,12 @@ const ReservationDetail = () => {
                   <Field label="Engine 1 Tach Out" value={reservation.tach_out} />
                   <Field label="Engine 1 Tach In" value={reservation.tach_in} />
                   <Field label="Engine 1 Tach Time" value={reservation.tach_block_time ? `${reservation.tach_block_time} hrs` : null} />
-                  {reservation.tach_2_out != null && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
-                  {reservation.tach_2_in != null && <Field label="Engine 2 Tach In" value={reservation.tach_2_in} />}
+                  {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
+                  {(reservation.tach_2_in != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach In" value={reservation.tach_2_in} />}
+                  {reservation.cycles_out != null && <Field label="Engine 1 Cycles Out" value={reservation.cycles_out} />}
+                  {reservation.cycles_in != null && <Field label="Engine 1 Cycles In" value={reservation.cycles_in} />}
+                  {reservation.cycles_2_out != null && <Field label="Engine 2 Cycles Out" value={reservation.cycles_2_out} />}
+                  {reservation.cycles_2_in != null && <Field label="Engine 2 Cycles In" value={reservation.cycles_2_in} />}
                   <Field label="Dual Instruction Hours" value={reservation.instruction_dual_hours ? `${reservation.instruction_dual_hours} hrs` : null} />
                   <Field label="Ground Instruction Hours" value={reservation.instruction_ground_hours ? `${reservation.instruction_ground_hours} hrs` : null} />
                   <Field label="Multi-Engine Hours" value={reservation.instruction_multi_engine_hours ? `${reservation.instruction_multi_engine_hours} hrs` : null} />
@@ -1146,13 +1162,19 @@ const ReservationDetail = () => {
                         <div><span className="font-semibold text-slate-500">Hobbs Out: </span><span className="font-bold text-slate-800">{reservation.hobbs_out}</span></div>
                         <div><span className="font-semibold text-slate-500">Engine 1 Tach Out: </span><span className="font-bold text-slate-800">{reservation.tach_out}</span></div>
                         {reservation.tach_2_out != null && <div><span className="font-semibold text-slate-500">Engine 2 Tach Out: </span><span className="font-bold text-slate-800">{reservation.tach_2_out}</span></div>}
+                        {reservation.cycles_out != null && <div><span className="font-semibold text-slate-500">Engine 1 Cycles Out: </span><span className="font-bold text-slate-800">{reservation.cycles_out}</span></div>}
+                        {reservation.cycles_2_out != null && <div><span className="font-semibold text-slate-500">Engine 2 Cycles Out: </span><span className="font-bold text-slate-800">{reservation.cycles_2_out}</span></div>}
                       </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Input label="Hobbs In" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
                       <Input label="Engine 1 Tach In" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
-                      {reservation.tach_2_out != null && (
+                      {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && (
                         <Input label="Engine 2 Tach In" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
+                      )}
+                      <Input label="Engine 1 Cycles In" type="number" step="1" min={reservation.cycles_out ?? 0} value={checkinForm.cycles_in} onChange={e => setCheckinForm(f => ({ ...f, cycles_in: e.target.value }))} placeholder={`>= ${reservation.cycles_out ?? 0} (Optional)`} />
+                      {(reservation.cycles_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && (
+                        <Input label="Engine 2 Cycles In" type="number" step="1" min={reservation.cycles_2_out ?? 0} value={checkinForm.cycles_2_in} onChange={e => setCheckinForm(f => ({ ...f, cycles_2_in: e.target.value }))} placeholder={`>= ${reservation.cycles_2_out ?? 0} (Optional)`} />
                       )}
                     </div>
                   </div>

@@ -117,6 +117,55 @@ const FindTimeModal = ({
     return new Date().toISOString().split('T')[0];
   };
 
+  const getLocationsForEntity = (entityId, entityList) => {
+    if (!entityId) return [];
+    const entity = entityList.find(e => String(e.id) === String(entityId));
+    if (!entity) return [];
+    
+    const locs = new Set();
+    if (entity.default_location_id) locs.add(String(entity.default_location_id));
+    if (entity.calendar_location_ids && Array.isArray(entity.calendar_location_ids)) {
+      entity.calendar_location_ids.forEach(loc => locs.add(String(loc)));
+    }
+    return Array.from(locs);
+  };
+
+  const getFilterLocationsFor = (excludeEntity) => {
+    const locSets = [];
+    
+    if (excludeEntity !== 'student' && selectedStudent) {
+      locSets.push(getLocationsForEntity(selectedStudent, students));
+    }
+    if (excludeEntity !== 'instructor' && selectedInstructor) {
+      locSets.push(getLocationsForEntity(selectedInstructor, instructors));
+    }
+    if (excludeEntity !== 'aircraft' && selectedAircraft) {
+      locSets.push(getLocationsForEntity(selectedAircraft, aircraft));
+    }
+    
+    if (locSets.length === 0) return null;
+    
+    let intersected = locSets[0];
+    for (let i = 1; i < locSets.length; i++) {
+      intersected = intersected.filter(loc => locSets[i].includes(loc));
+    }
+    return intersected;
+  };
+
+  const checkLocationMatch = (entity, targetLocs) => {
+    if (!targetLocs || targetLocs.length === 0) return true;
+    const locs = new Set();
+    if (entity.default_location_id) locs.add(String(entity.default_location_id));
+    if (entity.calendar_location_ids && Array.isArray(entity.calendar_location_ids)) {
+      entity.calendar_location_ids.forEach(loc => locs.add(String(loc)));
+    }
+    
+    for (let loc of targetLocs) {
+      if (locs.has(loc)) return true;
+    }
+    return false;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -173,11 +222,15 @@ const FindTimeModal = ({
                   required
                 >
                   <option value="">Select Student</option>
-                  {students.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.name || student.email}
-                    </option>
-                  ))}
+                  {(() => {
+                    const filterLocs = getFilterLocationsFor('student');
+                    const filtered = filterLocs ? students.filter(s => checkLocationMatch(s, filterLocs)) : students;
+                    return filtered.length > 0 ? filtered.map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {student.name || student.email}
+                      </option>
+                    )) : <option value="" disabled>No students available for this location</option>;
+                  })()}
                 </select>
               )}
             </div>
@@ -202,30 +255,13 @@ const FindTimeModal = ({
                 >
                   <option value="">Select Instructor</option>
                   {(() => {
-                    let filteredInstructors = instructors;
-                    if (selectedStudent) {
-                      const student = students.find(s => String(s.id) === String(selectedStudent));
-                      if (student && student.default_location_id) {
-                        const studentLoc = String(student.default_location_id);
-                        filteredInstructors = instructors.filter(inst => {
-                          if (String(inst.default_location_id) === studentLoc) return true;
-                          if (inst.calendar_location_ids && Array.isArray(inst.calendar_location_ids)) {
-                            return inst.calendar_location_ids.map(String).includes(studentLoc);
-                          }
-                          return false;
-                        });
-                      }
-                    }
-                    
-                    return filteredInstructors.length > 0 ? (
-                      filteredInstructors.map((instructor) => (
-                        <option key={instructor.id} value={instructor.id}>
-                          {instructor.name || instructor.email}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="" disabled>No instructors available for this location</option>
-                    );
+                    const filterLocs = getFilterLocationsFor('instructor');
+                    const filtered = filterLocs ? instructors.filter(i => checkLocationMatch(i, filterLocs)) : instructors;
+                    return filtered.length > 0 ? filtered.map((instructor) => (
+                      <option key={instructor.id} value={instructor.id}>
+                        {instructor.name || instructor.email}
+                      </option>
+                    )) : <option value="" disabled>No instructors available for this location</option>;
                   })()}
                 </select>
               )}
@@ -249,11 +285,15 @@ const FindTimeModal = ({
                   required
                 >
                   <option value="">Select Aircraft</option>
-                  {aircraft.map((ac) => (
-                    <option key={ac.id} value={ac.id}>
-                      {ac.registration || ac.serial_number || ac.name} {ac.model ? `(${ac.model})` : ''}
-                    </option>
-                  ))}
+                  {(() => {
+                    const filterLocs = getFilterLocationsFor('aircraft');
+                    const filtered = filterLocs ? aircraft.filter(a => checkLocationMatch(a, filterLocs)) : aircraft;
+                    return filtered.length > 0 ? filtered.map((ac) => (
+                      <option key={ac.id} value={ac.id}>
+                        {ac.registration || ac.serial_number || ac.name} {ac.model ? `(${ac.model})` : ''}
+                      </option>
+                    )) : <option value="" disabled>No aircraft available for this location</option>;
+                  })()}
                 </select>
               )}
             </div>

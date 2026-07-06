@@ -13,6 +13,10 @@ export const documentService = {
 
   
   async updateDocument(userId, documentId, data) {
+    if (data instanceof FormData) {
+      data.append('_method', 'PUT');
+      return await api.post(`/users/${userId}/documents/${documentId}`, data);
+    }
     return await api.put(`/users/${userId}/documents/${documentId}`, data);
   },
 

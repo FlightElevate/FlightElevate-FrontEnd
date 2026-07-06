@@ -25,6 +25,10 @@ export const useUserForm = (initialData = {}, options = {}) => {
     if (normalized.role && typeof normalized.role === 'object' && normalized.role.name) {
       normalized.role = normalized.role.name;
     }
+    // Extract first role name if roles array exists
+    if (!normalized.role && normalized.roles && normalized.roles.length > 0) {
+      normalized.role = typeof normalized.roles[0] === 'object' ? normalized.roles[0].name : normalized.roles[0];
+    }
     return normalized;
   }, []);
 

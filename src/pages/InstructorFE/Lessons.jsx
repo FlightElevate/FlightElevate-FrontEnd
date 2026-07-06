@@ -874,6 +874,7 @@ const InstructorLessons = () => {
     try {
       const lessonData = {
         ...lessonForm,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         // Convert single IDs to arrays for many-to-many relationship
         student_ids: lessonForm.student_id ? [parseInt(lessonForm.student_id)] : [],
         instructor_ids: [user.id], // Current user is the instructor

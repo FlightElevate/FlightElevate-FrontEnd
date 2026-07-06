@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
@@ -38,6 +39,15 @@ const UserProfile = () => {
   });
   const [selectedEditFile, setSelectedEditFile] = useState(null);
   const [updatingDoc, setUpdatingDoc] = useState(false);
+  const [showAddDocument, setShowAddDocument] = useState(false);
+  const [addingDoc, setAddingDoc] = useState(false);
+  const [addDocumentData, setAddDocumentData] = useState({
+    title: '',
+    expiry_date: '',
+    details: '',
+    file: null,
+  });
+  const [selectedAddFile, setSelectedAddFile] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
 
   // Location settings state
@@ -252,16 +262,65 @@ const UserProfile = () => {
 
       if (response.success) {
         showSuccessToast('Document updated successfully');
-        setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
-        setSelectedEditFile(null);
-        setEditingDocument(null);
         setShowEditDocument(false);
         await fetchDocuments();
+      } else {
+        showErrorToast(response.message || 'Failed to update document');
       }
-    } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to update document');
+    } catch (error) {
+      console.error('Error updating document:', error);
+      showErrorToast(error?.response?.data?.message || 'Error updating document');
     } finally {
       setUpdatingDoc(false);
+    }
+  };
+
+  const handleAddDocumentChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'file' && files && files[0]) {
+      setSelectedAddFile(files[0]);
+      setAddDocumentData(prev => ({ ...prev, file: files[0] }));
+    } else {
+      setAddDocumentData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleCreateDocument = async () => {
+    if (!id) return;
+    if (!addDocumentData.title.trim()) {
+      showErrorToast('Please enter document title');
+      return;
+    }
+
+    setAddingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', addDocumentData.title);
+      if (addDocumentData.expiry_date) {
+        formData.append('expiry_date', addDocumentData.expiry_date);
+      }
+      if (addDocumentData.details) {
+        formData.append('details', addDocumentData.details);
+      }
+      if (addDocumentData.file) {
+        formData.append('file', addDocumentData.file);
+      }
+
+      const response = await documentService.createDocument(id, formData);
+      if (response.success) {
+        showSuccessToast('Document added successfully');
+        setShowAddDocument(false);
+        setAddDocumentData({ title: '', expiry_date: '', details: '', file: null });
+        setSelectedAddFile(null);
+        await fetchDocuments();
+      } else {
+        showErrorToast(response.message || 'Failed to add document');
+      }
+    } catch (error) {
+      console.error('Error adding document:', error);
+      showErrorToast(error?.response?.data?.message || 'Error adding document');
+    } finally {
+      setAddingDoc(false);
     }
   };
 
@@ -324,7 +383,7 @@ const UserProfile = () => {
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
+  }, [openMenu]);
 
   if (loadingUser) {
     return (
@@ -677,9 +736,31 @@ const UserProfile = () => {
           </div>
         ) : (
           <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">User Documents</h3>
+              <button
+                onClick={() => setShowAddDocument(true)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-sm"
+              >
+                <FiPlusCircle size={16} />
+                Add Document
+              </button>
+            </div>
+            
             {loadingDocs ? (
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : documents.length === 0 ? (
+              <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                <p className="text-gray-500 mb-4">No documents have been uploaded for this user yet.</p>
+                <button
+                  onClick={() => setShowAddDocument(true)}
+                  className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-blue-700"
+                >
+                  <FiPlusCircle size={18} />
+                  Upload their first document
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -734,14 +815,98 @@ const UserProfile = () => {
         )}
       </div>
 
-      <EditUserModal 
-        isOpen={editModalOpen} 
-        onClose={() => setEditModalOpen(false)} 
-        onSuccess={handleEditSuccess} 
-        initialData={user} 
-      />
+      {/* --- ADD DOCUMENT MODAL --- */}
+      {showAddDocument && createPortal(
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-gray-900">Add New Document</h3>
+                <button onClick={() => setShowAddDocument(false)} className="text-gray-400 hover:text-gray-600 focus:outline-none">
+                  <FiX size={24} />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Document Title <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={addDocumentData.title}
+                      onChange={handleAddDocumentChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., Medical Certificate"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date (Optional)</label>
+                    <input
+                      type="date"
+                      name="expiry_date"
+                      value={addDocumentData.expiry_date}
+                      onChange={handleAddDocumentChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description / Details (Optional)</label>
+                    <textarea
+                      name="details"
+                      value={addDocumentData.details}
+                      onChange={handleAddDocumentChange}
+                      rows="3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter any additional details..."
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Document File</label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                      <div className="space-y-1 text-center">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <div className="flex text-sm text-gray-600 justify-center">
+                          <label htmlFor="add-file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                            <span>Upload a file</span>
+                            <input id="add-file-upload" name="file" type="file" className="sr-only" onChange={handleAddDocumentChange} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                          </label>
+                        </div>
+                        <p className="text-xs text-gray-500">PDF, DOC, JPG, PNG up to 10MB</p>
+                      </div>
+                    </div>
+                    {selectedAddFile && (
+                      <p className="mt-2 text-sm text-green-600 flex items-center">
+                        <FiCheck className="mr-1" /> {selectedAddFile.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+              <button
+                type="button"
+                disabled={addingDoc}
+                onClick={() => setShowAddDocument(false)}
+                className="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={addingDoc}
+                onClick={handleCreateDocument}
+                className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm disabled:opacity-50"
+              >
+                {addingDoc ? 'Adding...' : 'Add Document'}
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
 
-      {showEditDocument && editingDocument && (
+      {/* --- EDIT DOCUMENT MODAL --- */}
+      {showEditDocument && editingDocument && createPortal(
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
@@ -850,6 +1015,18 @@ const UserProfile = () => {
             </div>
           </div>
         </div>
+      , document.body)}
+
+      {editModalOpen && (
+        <EditUserModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSuccess={(updatedUser) => {
+            setUser(updatedUser);
+            setEditModalOpen(false);
+          }}
+          initialData={user}
+        />
       )}
     </div>
   );

@@ -16,6 +16,7 @@ export const validateUserForm = (formData, options = {}) => {
   const {
     requireUsername = false,
     requirePhone = false,
+    requirePassword = true,
     minPasswordLength = 6,
   } = options;
 
@@ -34,9 +35,9 @@ export const validateUserForm = (formData, options = {}) => {
   }
 
   
-  if (!formData.password) {
+  if (requirePassword && !formData.password) {
     errors.password = 'Password is required';
-  } else if (!isValidPassword(formData.password, minPasswordLength)) {
+  } else if (formData.password && !isValidPassword(formData.password, minPasswordLength)) {
     errors.password = `Password must be at least ${minPasswordLength} characters`;
   }
 

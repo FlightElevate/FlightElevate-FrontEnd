@@ -18,16 +18,17 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSuccessState, setIsSuccessState] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({ level: '', text: '', color: '' });
   
   const navigate = useNavigate();
   const { register, isAuthenticated, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && !isSuccessState) {
       navigate('/dashboard');
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, navigate, isSuccessState]);
 
   const checkPasswordStrength = (password) => {
     if (!password) {
@@ -125,8 +126,7 @@ const Register = () => {
       });
       
       if (result.success) {
-        showSuccessToast('Registration successful! Welcome to FlightElevate.');
-        navigate('/dashboard');
+        setIsSuccessState(true);
       } else {
         setError(result.message || 'Registration failed. Please try again.');
         showErrorToast(result.message || 'Registration failed');
@@ -138,6 +138,27 @@ const Register = () => {
       setLoading(false);
     }
   };
+
+  if (isSuccessState) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center border border-gray-200">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+            <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Registration Successful!</h2>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Thank you for registering with FlightElevate! Your registration has been received. Our team will review your information within 1-2 business days. Once your account is approved, you'll receive complimentary Early Access to FlightElevate during our soft launch and beta program.
+          </p>
+          <Link to="/" className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+            Return to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-gray-50">

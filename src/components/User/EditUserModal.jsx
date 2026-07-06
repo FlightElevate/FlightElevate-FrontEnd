@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FiX, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useUserForm } from '../../hooks/useUserForm';
 import { useRoles } from '../../hooks/useRoles';
@@ -12,7 +13,7 @@ const EditUserModal = ({
   onSuccess,
   initialData = {}
 }) => {
-  const { formData, formErrors, handleChange, validate, reset, setErrors, updateField } = useUserForm(initialData);
+  const { formData, formErrors, handleChange, validate, reset, setErrors, updateField } = useUserForm(initialData, { requirePassword: false });
   const { roles, loading: loadingRoles } = useRoles();
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -85,7 +86,7 @@ const EditUserModal = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
@@ -199,16 +200,30 @@ const EditUserModal = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Schedule Locations</label>
-                  <select multiple name="calendar_location_ids" value={(formData.calendar_location_ids || []).map(String)} 
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions).map((o) => parseInt(o.value, 10));
-                      updateField('calendar_location_ids', selected);
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 bg-white min-h-[100px]"
-                  >
-                    {locationOptions.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">Ctrl/Cmd+click for multiple.</p>
+                  <div className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white max-h-[150px] overflow-y-auto space-y-2">
+                    {locationOptions.length === 0 ? (
+                      <p className="text-sm text-gray-500">No locations available</p>
+                    ) : (
+                      locationOptions.map(l => (
+                        <label key={l.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(formData.calendar_location_ids || []).includes(l.id) || (formData.calendar_location_ids || []).includes(String(l.id))}
+                            onChange={(e) => {
+                              const currentIds = (formData.calendar_location_ids || []).map(Number);
+                              if (e.target.checked) {
+                                updateField('calendar_location_ids', [...currentIds, l.id]);
+                              } else {
+                                updateField('calendar_location_ids', currentIds.filter(id => id !== l.id));
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-700">{l.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -228,7 +243,8 @@ const EditUserModal = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
