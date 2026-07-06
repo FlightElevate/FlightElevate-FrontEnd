@@ -184,7 +184,7 @@ const ReservationDetail = () => {
       setReservation(data);
       if (data?.invoice) setInvoice(data.invoice);
     } catch (err) {
-      setError(err?.message ?? err?.message || .response?.data?.message ?? 'Failed to load reservation');
+      setError(err?.message ?? err?.message ?? 'Failed to load reservation');
     } finally {
       setLoading(false);
     }
@@ -213,7 +213,7 @@ const ReservationDetail = () => {
           // Reload details
           loadDetail();
         } catch (err) {
-          showError(err?.message ?? err?.message || .response?.data?.message ?? 'Payment verification failed');
+          showError(err?.message ?? err?.message ?? 'Payment verification failed');
         } finally {
           setActionLoading(false);
         }
@@ -280,11 +280,11 @@ const ReservationDetail = () => {
     if (typeof err === 'string') {
       msg = err;
     } else {
-      if (err?.message || .response?.data?.errors) {
+      if (err?.message) {
         const firstError = Object.values(err.response.data.errors)[0];
         msg = Array.isArray(firstError) ? firstError[0] : firstError;
       } else {
-        msg = err?.message ?? err?.message || .response?.data?.message ?? 'An error occurred';
+        msg = err?.message ?? err?.message ?? 'An error occurred';
       }
     }
     setActionError(msg); 

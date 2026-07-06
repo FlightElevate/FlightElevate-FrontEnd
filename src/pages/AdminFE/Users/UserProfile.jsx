@@ -178,7 +178,7 @@ const UserProfile = () => {
         showErrorToast(res.message || 'Deposit failed');
       }
     } catch (err) {
-      showErrorToast(err?.message || .response?.data?.message || 'Deposit failed');
+      showErrorToast(err?.message || 'Deposit failed');
     } finally {
       setDepositLoading(false);
     }
@@ -271,7 +271,7 @@ const UserProfile = () => {
       }
     } catch (error) {
       console.error('Error updating document:', error);
-      showErrorToast(error?.message || .response?.data?.message || 'Error updating document');
+      showErrorToast(error?.message || 'Error updating document');
     } finally {
       setUpdatingDoc(false);
     }
@@ -320,7 +320,7 @@ const UserProfile = () => {
       }
     } catch (error) {
       console.error('Error adding document:', error);
-      showErrorToast(error?.message || .response?.data?.message || 'Error adding document');
+      showErrorToast(error?.message || 'Error adding document');
     } finally {
       setAddingDoc(false);
     }
