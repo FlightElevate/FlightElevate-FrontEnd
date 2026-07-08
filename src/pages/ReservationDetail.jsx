@@ -608,7 +608,7 @@ const ReservationDetail = () => {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="w-full mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
               <FiArrowLeft size={18} />
@@ -625,14 +625,14 @@ const ReservationDetail = () => {
 
         {/* Toast messages */}
         {actionSuccess && (
-          <div className="max-w-5xl mx-auto px-4 pb-2">
+          <div className="w-full mx-auto px-4 sm:px-6 pb-2">
             <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-lg px-3 py-2 text-sm">
               <FiCheckCircle size={14} /> {actionSuccess}
             </div>
           </div>
         )}
         {actionError && (
-          <div className="max-w-5xl mx-auto px-4 pb-2">
+          <div className="w-full mx-auto px-4 sm:px-6 pb-2">
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
               <FiAlertTriangle size={14} /> {actionError}
             </div>
@@ -640,7 +640,7 @@ const ReservationDetail = () => {
         )}
 
         {/* Tabs */}
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="w-full mx-auto px-4 sm:px-6">
           <div className="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-800 scrollbar-none">
             {TABS.filter((tab) => !tab.hidden && (tab.id !== 'delete' || isAdmin)).map((tab) => {
               const Icon = tab.icon;
@@ -663,7 +663,7 @@ const ReservationDetail = () => {
         </div>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="w-full mx-auto px-4 sm:px-6 py-6">
 
         {/* ── OVERVIEW TAB ── */}
         {activeTab === 'overview' && (
