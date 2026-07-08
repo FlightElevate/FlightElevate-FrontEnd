@@ -95,7 +95,7 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel, danger }) => {
 const TABS = [
   { id: 'overview', label: 'Overview', icon: FiFileText },
   { id: 'dispatch', label: 'Dispatch', icon: FiSend },
-  { id: 'checkin', label: 'Check-In', icon: FiCheckCircle },
+  { id: 'checkin', label: 'Check-Out', icon: FiCheckCircle },
   { id: 'invoice', label: 'Invoice', icon: FiDollarSign },
   { id: 'logsession', label: 'Log Session', icon: FiBook },
   { id: 'delete', label: 'Delete', icon: FiTrash2 },
@@ -421,7 +421,7 @@ const ReservationDetail = () => {
       const data = res?.data?.data ?? res?.data ?? res;
       setReservation(data);
       if (data?.invoice) setInvoice(data.invoice);
-      showSuccess('Check-in complete! Logbook entries have been generated.');
+      showSuccess('Check-out complete! Logbook entries have been generated.');
       setActiveTab('overview');
     } catch (err) {
       showError(err);
@@ -851,7 +851,7 @@ const ReservationDetail = () => {
                       className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
                     >
                       <FiCheckCircle size={14} />
-                      Go to Check-In
+                      Go to Check-Out
                     </button>
                   )}
                   {canManage && isCompleted && (
@@ -901,11 +901,11 @@ const ReservationDetail = () => {
                   )}
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Hobbs Out" value={reservation.hobbs_out} />
-                  <Field label="Engine 1 Tach Out" value={reservation.tach_out} />
-                  {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
-                  {reservation.cycles_out != null && <Field label="Engine 1 Cycles Out" value={reservation.cycles_out} />}
-                  {reservation.cycles_2_out != null && <Field label="Engine 2 Cycles Out" value={reservation.cycles_2_out} />}
+                  <Field label="Hobbs In" value={reservation.hobbs_out} />
+                  <Field label="Engine 1 Tach In" value={reservation.tach_out} />
+                  {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach In" value={reservation.tach_2_out} />}
+                  {reservation.cycles_out != null && <Field label="Engine 1 Cycles In" value={reservation.cycles_out} />}
+                  {reservation.cycles_2_out != null && <Field label="Engine 2 Cycles In" value={reservation.cycles_2_out} />}
                   <Field label="Weather Briefing" value={reservation.dispatch_weather_briefing} />
                   <Field label="Weather Acknowledged" value={reservation.dispatch_weather_acknowledged ? 'Yes' : 'No'} />
                   <Field label="Aircraft Rate/hr" value={reservation.aircraft_rate_per_hour ? `$${reservation.aircraft_rate_per_hour}` : null} />
@@ -922,11 +922,11 @@ const ReservationDetail = () => {
                   setIsEditingDispatch(false);
                 }} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Hobbs Out" type="number" step="0.1" min="0" value={dispatchForm.hobbs_out} onChange={e => setDispatchForm(f => ({ ...f, hobbs_out: e.target.value }))} required placeholder="e.g. 1234.5" />
-                    <Input label="Engine 1 Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_out} onChange={e => setDispatchForm(f => ({ ...f, tach_out: e.target.value }))} required placeholder="e.g. 1234.5" />
-                    <Input label="Engine 2 Tach Out" type="number" step="0.1" min="0" value={dispatchForm.tach_2_out} onChange={e => setDispatchForm(f => ({ ...f, tach_2_out: e.target.value }))} placeholder="e.g. 1234.5 (Optional)" />
-                    <Input label="Engine 1 Cycles Out" type="number" step="1" min="0" value={dispatchForm.cycles_out} onChange={e => setDispatchForm(f => ({ ...f, cycles_out: e.target.value }))} placeholder="e.g. 100 (Optional)" />
-                    <Input label="Engine 2 Cycles Out" type="number" step="1" min="0" value={dispatchForm.cycles_2_out} onChange={e => setDispatchForm(f => ({ ...f, cycles_2_out: e.target.value }))} placeholder="e.g. 100 (Optional)" />
+                    <Input label="Hobbs In" type="number" step="0.1" min="0" value={dispatchForm.hobbs_out} onChange={e => setDispatchForm(f => ({ ...f, hobbs_out: e.target.value }))} required placeholder="e.g. 1234.5" />
+                    <Input label="Engine 1 Tach In" type="number" step="0.1" min="0" value={dispatchForm.tach_out} onChange={e => setDispatchForm(f => ({ ...f, tach_out: e.target.value }))} required placeholder="e.g. 1234.5" />
+                    <Input label="Engine 2 Tach In" type="number" step="0.1" min="0" value={dispatchForm.tach_2_out} onChange={e => setDispatchForm(f => ({ ...f, tach_2_out: e.target.value }))} placeholder="e.g. 1234.5 (Optional)" />
+                    <Input label="Engine 1 Cycles In" type="number" step="1" min="0" value={dispatchForm.cycles_out} onChange={e => setDispatchForm(f => ({ ...f, cycles_out: e.target.value }))} placeholder="e.g. 100 (Optional)" />
+                    <Input label="Engine 2 Cycles In" type="number" step="1" min="0" value={dispatchForm.cycles_2_out} onChange={e => setDispatchForm(f => ({ ...f, cycles_2_out: e.target.value }))} placeholder="e.g. 100 (Optional)" />
                     <Input label="Aircraft Rate / hr ($)" type="number" step="0.01" min="0" value={dispatchForm.aircraft_rate_per_hour} onChange={e => setDispatchForm(f => ({ ...f, aircraft_rate_per_hour: e.target.value }))} placeholder="e.g. 120.00" />
                     <Input label="Instructor Rate / hr ($)" type="number" step="0.01" min="0" value={dispatchForm.instructor_rate_per_hour} onChange={e => setDispatchForm(f => ({ ...f, instructor_rate_per_hour: e.target.value }))} placeholder="e.g. 45.00" />
                   </div>
@@ -1032,7 +1032,7 @@ const ReservationDetail = () => {
           <div>
             {(reservation.checked_in_at && !isEditingCheckin) ? (
               // Already checked in
-              <Section title="Check-In Info" icon={FiCheckCircle}>
+              <Section title="Check-Out Info" icon={FiCheckCircle}>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm w-full md:w-auto">
                     <FiCheckCircle size={14} /> Checked in at {new Date(reservation.checked_in_at).toLocaleString()}
@@ -1062,23 +1062,23 @@ const ReservationDetail = () => {
                       }}
                       className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
                     >
-                      Edit Check-in
+                      Edit Check-out
                     </button>
                   )}
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Field label="Hobbs Out" value={reservation.hobbs_out} />
-                  <Field label="Hobbs In" value={reservation.hobbs_in} />
+                  <Field label="Hobbs In" value={reservation.hobbs_out} />
+                  <Field label="Hobbs Out" value={reservation.hobbs_in} />
                   <Field label="Hobbs Block Time" value={reservation.hobbs_block_time ? `${reservation.hobbs_block_time} hrs` : null} />
-                  <Field label="Engine 1 Tach Out" value={reservation.tach_out} />
-                  <Field label="Engine 1 Tach In" value={reservation.tach_in} />
+                  <Field label="Engine 1 Tach In" value={reservation.tach_out} />
+                  <Field label="Engine 1 Tach Out" value={reservation.tach_in} />
                   <Field label="Engine 1 Tach Time" value={reservation.tach_block_time ? `${reservation.tach_block_time} hrs` : null} />
-                  {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach Out" value={reservation.tach_2_out} />}
-                  {(reservation.tach_2_in != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach In" value={reservation.tach_2_in} />}
-                  {reservation.cycles_out != null && <Field label="Engine 1 Cycles Out" value={reservation.cycles_out} />}
-                  {reservation.cycles_in != null && <Field label="Engine 1 Cycles In" value={reservation.cycles_in} />}
-                  {reservation.cycles_2_out != null && <Field label="Engine 2 Cycles Out" value={reservation.cycles_2_out} />}
-                  {reservation.cycles_2_in != null && <Field label="Engine 2 Cycles In" value={reservation.cycles_2_in} />}
+                  {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach In" value={reservation.tach_2_out} />}
+                  {(reservation.tach_2_in != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && <Field label="Engine 2 Tach Out" value={reservation.tach_2_in} />}
+                  {reservation.cycles_out != null && <Field label="Engine 1 Cycles In" value={reservation.cycles_out} />}
+                  {reservation.cycles_in != null && <Field label="Engine 1 Cycles Out" value={reservation.cycles_in} />}
+                  {reservation.cycles_2_out != null && <Field label="Engine 2 Cycles In" value={reservation.cycles_2_out} />}
+                  {reservation.cycles_2_in != null && <Field label="Engine 2 Cycles Out" value={reservation.cycles_2_in} />}
                   <Field label="Dual Instruction Hours" value={reservation.instruction_dual_hours ? `${reservation.instruction_dual_hours} hrs` : null} />
                   <Field label="Ground Instruction Hours" value={reservation.instruction_ground_hours ? `${reservation.instruction_ground_hours} hrs` : null} />
                   <Field label="Multi-Engine Hours" value={reservation.instruction_multi_engine_hours ? `${reservation.instruction_multi_engine_hours} hrs` : null} />
@@ -1098,7 +1098,7 @@ const ReservationDetail = () => {
               </Section>
             ) : canCheckin || isEditingCheckin ? (
               // Check-in form
-              <Section title={isEditingCheckin ? "Edit Check-In Info" : "Check-In After Flight"} icon={FiCheckCircle}>
+              <Section title={isEditingCheckin ? "Edit Check-Out Info" : "Check-Out After Flight"} icon={FiCheckCircle}>
                 <p className="text-sm text-gray-500 mb-6">{isEditingCheckin ? "Correct post-flight readings below." : "Record post-flight readings. Logbook and invoice will be auto-generated."}</p>
                 
                 {/* Visual Block Time Widgets */}
@@ -1159,22 +1159,22 @@ const ReservationDetail = () => {
                     </h4>
                     {reservation.hobbs_out && (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 bg-slate-50 border border-slate-200/60 rounded-xl p-3 text-xs text-slate-600">
-                        <div><span className="font-semibold text-slate-500">Hobbs Out: </span><span className="font-bold text-slate-800">{reservation.hobbs_out}</span></div>
-                        <div><span className="font-semibold text-slate-500">Engine 1 Tach Out: </span><span className="font-bold text-slate-800">{reservation.tach_out}</span></div>
-                        {reservation.tach_2_out != null && <div><span className="font-semibold text-slate-500">Engine 2 Tach Out: </span><span className="font-bold text-slate-800">{reservation.tach_2_out}</span></div>}
-                        {reservation.cycles_out != null && <div><span className="font-semibold text-slate-500">Engine 1 Cycles Out: </span><span className="font-bold text-slate-800">{reservation.cycles_out}</span></div>}
-                        {reservation.cycles_2_out != null && <div><span className="font-semibold text-slate-500">Engine 2 Cycles Out: </span><span className="font-bold text-slate-800">{reservation.cycles_2_out}</span></div>}
+                        <div><span className="font-semibold text-slate-500">Hobbs In: </span><span className="font-bold text-slate-800">{reservation.hobbs_out}</span></div>
+                        <div><span className="font-semibold text-slate-500">Engine 1 Tach In: </span><span className="font-bold text-slate-800">{reservation.tach_out}</span></div>
+                        {reservation.tach_2_out != null && <div><span className="font-semibold text-slate-500">Engine 2 Tach In: </span><span className="font-bold text-slate-800">{reservation.tach_2_out}</span></div>}
+                        {reservation.cycles_out != null && <div><span className="font-semibold text-slate-500">Engine 1 Cycles In: </span><span className="font-bold text-slate-800">{reservation.cycles_out}</span></div>}
+                        {reservation.cycles_2_out != null && <div><span className="font-semibold text-slate-500">Engine 2 Cycles In: </span><span className="font-bold text-slate-800">{reservation.cycles_2_out}</span></div>}
                       </div>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Input label="Hobbs In" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
-                      <Input label="Engine 1 Tach In" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
+                      <Input label="Hobbs Out" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
+                      <Input label="Engine 1 Tach Out" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
                       {(reservation.tach_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && (
-                        <Input label="Engine 2 Tach In" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
+                        <Input label="Engine 2 Tach Out" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
                       )}
-                      <Input label="Engine 1 Cycles In" type="number" step="1" min={reservation.cycles_out ?? 0} value={checkinForm.cycles_in} onChange={e => setCheckinForm(f => ({ ...f, cycles_in: e.target.value }))} placeholder={`>= ${reservation.cycles_out ?? 0} (Optional)`} />
+                      <Input label="Engine 1 Cycles Out" type="number" step="1" min={reservation.cycles_out ?? 0} value={checkinForm.cycles_in} onChange={e => setCheckinForm(f => ({ ...f, cycles_in: e.target.value }))} placeholder={`>= ${reservation.cycles_out ?? 0} (Optional)`} />
                       {(reservation.cycles_2_out != null || reservation.aircraft?.has_engine_2 || reservation.aircraft?.engine_type === 'Multi Engine') && (
-                        <Input label="Engine 2 Cycles In" type="number" step="1" min={reservation.cycles_2_out ?? 0} value={checkinForm.cycles_2_in} onChange={e => setCheckinForm(f => ({ ...f, cycles_2_in: e.target.value }))} placeholder={`>= ${reservation.cycles_2_out ?? 0} (Optional)`} />
+                        <Input label="Engine 2 Cycles Out" type="number" step="1" min={reservation.cycles_2_out ?? 0} value={checkinForm.cycles_2_in} onChange={e => setCheckinForm(f => ({ ...f, cycles_2_in: e.target.value }))} placeholder={`>= ${reservation.cycles_2_out ?? 0} (Optional)`} />
                       )}
                     </div>
                   </div>
@@ -1225,7 +1225,7 @@ const ReservationDetail = () => {
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Check-In Notes</label>
+                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Check-Out Notes</label>
                         <textarea
                           rows={3}
                           value={checkinForm.checkin_notes}
@@ -1249,7 +1249,7 @@ const ReservationDetail = () => {
                     )}
                     <button type="submit" disabled={actionLoading} className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
                       {actionLoading ? <FiLoader size={14} className="animate-spin" /> : <FiCheckCircle size={14} />}
-                      {isEditingCheckin ? 'Update Check-In' : 'Complete Check-In'}
+                      {isEditingCheckin ? 'Update Check-Out' : 'Complete Check-Out'}
                     </button>
                   </div>
                 </form>
@@ -1260,7 +1260,7 @@ const ReservationDetail = () => {
                 <p className="text-gray-600 text-sm">
                   {status === 'pending' || status === 'requested'
                     ? 'Please dispatch the reservation first before checking in.'
-                    : 'Check-in is not available for this reservation status.'}
+                    : 'Check-out is not available for this reservation status.'}
                 </p>
               </div>
             )}
@@ -1681,8 +1681,8 @@ const ReservationDetail = () => {
                     {[
                       { label: 'Hobbs Time Start', val: reservation?.hobbs_out || '0.0' },
                       { label: 'End Time', val: checkinForm?.hobbs_in || reservation?.hobbs_in || '0.0' },
-                      { label: 'Check-in Time', val: reservation?.checked_in_at ? new Date(reservation.checked_in_at).toLocaleString() : new Date().toLocaleString() },
-                      { label: 'Check-out Time', val: reservation?.dispatched_at ? new Date(reservation.dispatched_at).toLocaleString() : 'N/A' },
+                      { label: 'Dispatch Time', val: reservation?.dispatched_at ? new Date(reservation.dispatched_at).toLocaleString() : 'N/A' },
+                      { label: 'Check-out Time', val: reservation?.checked_in_at ? new Date(reservation.checked_in_at).toLocaleString() : new Date().toLocaleString() },
                     ].reduce((rows, item, i) => {
                       if (i % 2 === 0) rows.push([item]);
                       else rows[rows.length - 1].push(item);
@@ -1819,18 +1819,6 @@ const ReservationDetail = () => {
                   Download PDF
                 </button>
 
-                <button type="button"
-                  onClick={async (e) => {
-                    await handleSaveInvoice(e);
-                    setShowPreviewModal(false);
-                    setIsEditingInvoice(false);
-                  }}
-                  disabled={actionLoading}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 active:scale-95"
-                  style={{background:'linear-gradient(135deg,#1A365D,#3B6CB7)', boxShadow:'0 4px 14px rgba(43,76,140,0.35)'}}>
-                  {actionLoading ? <FiLoader className="animate-spin" size={16} /> : <FiCheckCircle size={16} />}
-                  Generate &amp; Save Invoice
-                </button>
               </div>
 
             </div>
@@ -1864,7 +1852,11 @@ const BillingHistorySection = ({
   const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
   const pagedRows = allRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const netBilled = chargeRows.reduce((s, t) => s + Math.abs(t.amount), 0);
+  const netBilled = transactions.reduce((s, t) => {
+    if (t.type === 'charge') return s + Math.abs(t.amount);
+    if (t.type === 'refund') return s - Math.abs(t.amount);
+    return s;
+  }, 0);
   const invoiceNumber = 'FE-' + String(invoice.id ?? reservation?.id ?? '').padStart(4, '0');
 
   const fmtDate = (iso) => {
@@ -1906,9 +1898,11 @@ const BillingHistorySection = ({
               const globalIdx = (currentPage - 1) * PAGE_SIZE + idx;
               const isCharge = txn.type === 'charge';
               const isRefundTxn = txn.type === 'refund';
-              const txnNum = isCharge
+              const txnNum = txn.transaction_number || (isCharge
                 ? invoiceNumber
-                : 'CR-' + String(txn.id ?? globalIdx).padStart(4, '0');
+                : 'CR-' + String(txn.id ?? globalIdx).padStart(4, '0'));
+              const relatedTxn = txn.related_transaction_id ? allRows.find(r => r.id === txn.related_transaction_id) : null;
+              const relatedTxnNum = relatedTxn?.transaction_number || invoiceNumber;
               const rowKey = txn.id ?? globalIdx;
               const isExpanded = !!expandedRows[rowKey];
 
@@ -1934,6 +1928,7 @@ const BillingHistorySection = ({
                       </div>
                       <div className="text-xs text-gray-400 truncate">
                         {fmtDate(txn.created_at)}
+                        {isRefundTxn && <span className="ml-1">· Ref: {relatedTxnNum}</span>}
                         {txn.description && <span className="ml-1">· {txn.description}</span>}
                       </div>
                     </div>
@@ -1996,7 +1991,7 @@ const BillingHistorySection = ({
                           <FiFileText size={12} /> PDF
                         </button>
 
-                        {isAdmin && isCharge && !invoice.is_refunded && invoice.status === 'paid' && (
+                        {isAdmin && isCharge && (invoice.status === 'paid' || invoice.status === 'refunded') && (
                           <button
                             onClick={() => {
                               setOpenRefundFor(openRefundFor === rowKey ? null : rowKey);
