@@ -807,7 +807,7 @@ const ReservationDetail = () => {
                 </div>
               </div>
               {!reservation.route_from && !reservation.route_to && (
-                <p className="text-xs text-gray-400 text-center mt-2">Route details will appear after the flight is checked in</p>
+                 <p className="text-xs text-gray-400 text-center mt-2">Route details will appear after the flight is checked out</p>
               )}
             </Section>
 
@@ -824,7 +824,7 @@ const ReservationDetail = () => {
                 {[
                   { key: 'reserved', label: 'Reserved', done: true },
                   { key: 'dispatched', label: 'Dispatched', done: ['dispatched', 'completed'].includes(status), time: reservation.dispatched_at },
-                  { key: 'completed', label: 'Checked In', done: status === 'completed', time: reservation.checked_in_at },
+                  { key: 'completed', label: 'Checked Out', done: status === 'completed', time: reservation.checked_in_at },
                   // { key: 'invoiced', label: 'Invoiced', done: invoice?.status === 'paid' },
                 ].map((step, idx, arr) => (
                   <React.Fragment key={step.key}>
@@ -1047,7 +1047,7 @@ const ReservationDetail = () => {
               <Section title="Check-Out Info" icon={FiCheckCircle}>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2 text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm w-full md:w-auto">
-                    <FiCheckCircle size={14} /> Checked in at {new Date(reservation.checked_in_at).toLocaleString()}
+                    <FiCheckCircle size={14} /> Checked out at {new Date(reservation.checked_in_at).toLocaleString()}
                   </div>
                   {canManage && (
                     <button
@@ -1445,13 +1445,13 @@ const ReservationDetail = () => {
                 {isCompleted ? (
                   <>
                     <FiCheckCircle size={14} className="text-green-500" />
-                    Logbook entries were auto-generated when this reservation was checked in.
+                    Logbook entries were auto-generated when this reservation was checked out.
                     <button onClick={() => navigate('/logbook')} className="text-blue-500 hover:underline ml-1">View Logbook →</button>
                   </>
                 ) : (
                   <>
                     <FiClock size={14} className="text-gray-400" />
-                    Logbook will be auto-generated after check-in is complete.
+                    Logbook will be auto-generated after check-out is complete.
                   </>
                 )}
               </div>

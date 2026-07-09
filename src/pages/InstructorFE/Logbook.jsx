@@ -879,9 +879,9 @@ const Logbook = () => {
                               <button
                                 onClick={() => navigate(`/reservations/${logbook.reservation_id}?tab=checkin`)}
                                 className="text-green-600 hover:text-green-800 p-1 flex items-center font-medium"
-                                title="Go to Reservation Check-In"
+                                title="Go to Reservation Check-Out"
                               >
-                                <FiCheckCircle className="mr-1" /> Check-In
+                                <FiCheckCircle className="mr-1" /> Check-Out
                               </button>
                             )}
                             <button
@@ -937,7 +937,7 @@ const Logbook = () => {
                     }}
                     className="inline-flex items-center px-3 py-1 bg-green-50 border border-green-200 text-green-700 rounded-full text-xs font-semibold hover:bg-green-100 transition-colors"
                   >
-                    <FiCheckCircle className="mr-1" /> Check-In Reservation
+                    <FiCheckCircle className="mr-1" /> Check-Out Reservation
                   </button>
                 )}
               </div>

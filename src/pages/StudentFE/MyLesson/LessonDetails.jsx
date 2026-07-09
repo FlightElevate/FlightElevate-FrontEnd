@@ -442,7 +442,7 @@ const LessonDetails = () => {
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="20 6 9 17 4 12" />
                             </svg>
-                            Go to Check-In
+                            Go to Check-Out
                           </button>
                         )}
                         {['pending', 'requested'].includes(lesson.status?.toLowerCase()) && (
