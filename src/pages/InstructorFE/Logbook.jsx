@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { HiDotsVertical } from "react-icons/hi";
 import { FiSearch, FiEdit2, FiTrash2, FiX, FiPlus, FiDownload, FiFilter, FiEye, FiCheckCircle } from "react-icons/fi";
 import Pagination from "../../components/Pagination";
@@ -15,6 +15,8 @@ import { aircraftCategories, getClassesForCategory, simulatorTypes } from "../..
 
 const Logbook = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reservationIdParam = searchParams.get("reservation_id");
   const { user } = useAuth();
   const { isAdmin, isSuperAdmin } = useRole();
   const isAdminView = isAdmin() || isSuperAdmin();
@@ -97,7 +99,7 @@ const Logbook = () => {
 
   useEffect(() => {
     fetchLogbooks();
-  }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterInstructorId, filterMonth, filterStartDate, filterEndDate, searchTerm]);
+  }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterInstructorId, filterMonth, filterStartDate, filterEndDate, searchTerm, searchParams]);
 
   useEffect(() => {
     if (isAdminView) {
@@ -139,6 +141,7 @@ const Logbook = () => {
         ...(searchTerm ? { search: searchTerm } : {}),
         ...(filterStudentId ? { student_id: filterStudentId } : {}),
         ...(filterInstructorId ? { instructor_id: filterInstructorId } : {}),
+        ...(reservationIdParam ? { reservation_id: reservationIdParam } : {}),
         ...(start_date ? { start_date } : {}),
         ...(end_date ? { end_date } : {}),
       };
@@ -605,6 +608,7 @@ const Logbook = () => {
               setFilterEndDate("");
               setSearchTerm("");
               setCurrentPage(1);
+              setSearchParams({});
             }}
             className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-200 rounded-lg hover:bg-gray-200 transition"
           >
@@ -732,16 +736,35 @@ const Logbook = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            {searchTerm && (
+            {(searchTerm || reservationIdParam) && (
               <button
                 type="button"
-                onClick={() => { setSearchTerm(""); setCurrentPage(1); }}
+                onClick={() => {
+                  setSearchTerm("");
+                  setSearchParams({});
+                  setCurrentPage(1);
+                }}
                 className="text-xs text-blue-600 hover:underline whitespace-nowrap"
               >
-                Clear search
+                {reservationIdParam ? "Clear reservation filter" : "Clear search"}
               </button>
             )}
           </div>
+          {reservationIdParam && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1 w-max">
+              <span>Showing entries for Reservation #{reservationIdParam}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchParams({});
+                  setCurrentPage(1);
+                }}
+                className="hover:text-blue-900 font-bold"
+              >
+                <FiX size={12} className="inline ml-1" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

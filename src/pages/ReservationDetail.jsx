@@ -1446,7 +1446,7 @@ const ReservationDetail = () => {
                   <>
                     <FiCheckCircle size={14} className="text-green-500" />
                     Logbook entries were auto-generated when this reservation was checked out.
-                    <button onClick={() => navigate('/logbook')} className="text-blue-500 hover:underline ml-1">View Logbook →</button>
+                    <button onClick={() => navigate(`/logbook?reservation_id=${reservation.id}`)} className="text-blue-500 hover:underline ml-1">View Logbook →</button>
                   </>
                 ) : (
                   <>
