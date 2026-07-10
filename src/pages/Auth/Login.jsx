@@ -130,6 +130,9 @@ const Login = () => {
           </div>
           
           <div>
+            <div className="mx-auto flex items-center justify-center h-20 w-20 mb-4 rounded-full overflow-hidden bg-white shadow-sm border border-gray-100">
+              <img src="/logo.jpeg" alt="FlightElevate Logo" className="h-full w-full object-cover" />
+            </div>
             <h2 className="text-center text-3xl font-extrabold text-gray-900">
               Sign in to your account
             </h2>
