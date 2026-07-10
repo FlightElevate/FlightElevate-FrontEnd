@@ -95,8 +95,8 @@ const ForgotPassword = () => {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
-              <FiMail className="h-8 w-8 text-blue-600" />
+            <div className="mx-auto flex items-center justify-center h-20 w-20 mb-4 rounded-full overflow-hidden bg-white shadow-sm border border-gray-100">
+              <img src="/logo.jpeg" alt="FlightElevate Logo" className="h-full w-full object-cover" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               Forgot Password?
