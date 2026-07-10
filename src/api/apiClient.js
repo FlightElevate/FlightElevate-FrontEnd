@@ -53,7 +53,8 @@ apiClient.interceptors.response.use(
           // Token is managed by cookie, no need to clear localStorage
           
           const currentPath = window.location.pathname;
-          if (currentPath !== '/' && currentPath !== '/login' && currentPath !== '/register') {
+          const publicAuthPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+          if (!publicAuthPaths.includes(currentPath)) {
             window.location.href = '/';
           }
           errorResponse.message = data?.message || 'Unauthorized. Please login again.';
