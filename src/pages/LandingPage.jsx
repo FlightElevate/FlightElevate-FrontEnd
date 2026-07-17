@@ -194,7 +194,7 @@ const LandingPage = () => {
               About
             </Link>
             <a href="#features-interactive" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
-              Pillars
+              Capabiltities
             </a>
             <a href="#features-list" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               Features
@@ -242,7 +242,7 @@ const LandingPage = () => {
                 About
               </Link>
               <a href="#features-interactive" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
-                Pillars
+                Capabilities
               </a>
               <a href="#features-list" onClick={() => setMobileMenuOpen(false)} className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-55 transition-all">
                 Features
@@ -634,7 +634,7 @@ const LandingPage = () => {
               Centralized Workflows & Command
             </h3>
             <p className="text-sm text-slate-500 font-medium">
-              Explore the three core pillars of our operational approach in real time.
+              Explore the three core capabilities of our operational approach in real time.
             </p>
           </div>
 
