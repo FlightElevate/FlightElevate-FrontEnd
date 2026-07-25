@@ -305,22 +305,26 @@ const LandingPage = () => {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/60 shadow-[0_2px_10px_rgba(29,78,216,0.02)]">
                 <FiZap className="w-3.5 h-3.5 text-blue-700 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-blue-750">Part 61 & Part 141 Flight Operations</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-750">Built for Modern Aviation</span>
               </div>
 
               {/* Title */}
               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.08]">
-                All-in-One Platform for <span className="text-blue-700 relative">Modern Flight</span> Operations
+                  Built for the Next Generation
+                <br />
+                <span className="text-blue-700 relative">
+                 of Aviation Operations
+                </span>
               </h2>
 
               {/* Subheading */}
-              <p className="text-xs sm:text-sm font-extrabold text-blue-700 uppercase tracking-wider leading-relaxed">
-                Built for Part 61 & Part 141 flight schools, with support for personal pilot logbooks, flying clubs, and future expansion into Part 91 and university aviation programs.
+              <p className="text-sm sm:text-base font-bold text-blue-700 leading-relaxed">
+                 Elevate Flight Training. Empower Flight Operations.
               </p>
 
               {/* Supporting Text */}
               <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed max-w-xl">
-                Manage student training, oversee instructors, and streamline aircraft operations—all within a single, intelligent platform.
+                 From flight training to daily operations, FlightElevate brings scheduling, aircraft management, maintenance, and business operations together in one intelligent platform.
               </p>
 
               {/* CTAs */}
