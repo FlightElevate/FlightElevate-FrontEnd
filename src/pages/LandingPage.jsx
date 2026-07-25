@@ -26,6 +26,44 @@ import {
   FiDownload
 } from 'react-icons/fi';
 
+const feFontStyles = `
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/fonts/inter-latin-400-normal.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    src: url('/fonts/inter-latin-500-normal.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    src: url('/fonts/inter-latin-600-normal.woff2') format('woff2');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    src: url('/fonts/inter-latin-700-normal.woff2') format('woff2');
+    font-display: swap;
+  }
+  .fe-page, .fe-page * {
+    font-family: 'Inter', sans-serif;
+  }
+  .fe-serif {
+    font-family: 'Georgia', serif !important;
+    font-weight: 400 !important;
+  }
+`;
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -166,7 +204,8 @@ const LandingPage = () => {
   const paperSaved = Math.round(monthlyFlights * 0.7);
 
   return (
-    <div className="min-h-screen bg-[#FAFBFD] text-slate-800 transition-colors duration-300 font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden pb-12">
+    <div className="fe-page min-h-screen bg-[#FAFBFD] text-slate-800 transition-colors duration-300 font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden pb-12">
+      <style>{feFontStyles}</style>
       
       {/* Light Blurs */}
       <div className="absolute top-0 inset-x-0 h-[800px] overflow-hidden pointer-events-none z-0">
@@ -183,7 +222,7 @@ const LandingPage = () => {
             <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center shadow-md shadow-blue-700/20 text-white font-black text-sm">
               FE
             </div>
-            <span className="text-sm font-extrabold tracking-tight text-slate-900">
+            <span className="fe-serif text-sm tracking-tight text-slate-900">
               Flight<span className="text-blue-700">Elevate</span>
             </span>
           </div>
@@ -307,7 +346,7 @@ const LandingPage = () => {
               </div>
 
               {/* Title */}
-              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.08]">
+              <h2 className="fe-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-slate-900 leading-[1.08]">
                 All-in-One Platform for <span className="text-blue-700 relative">Modern Flight</span> Operations
               </h2>
 
@@ -612,7 +651,7 @@ const LandingPage = () => {
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/60 text-[10px] font-bold uppercase tracking-wider">
             Core Philosophy
           </div>
-          <h3 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+          <h3 className="fe-serif text-2xl sm:text-3xl md:text-4xl tracking-tight text-slate-900 leading-tight">
             Designed for Efficiency. Built to Elevate the Experience.
           </h3>
           <p className="text-sm sm:text-base text-slate-600 font-semibold leading-relaxed">
@@ -630,7 +669,7 @@ const LandingPage = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Capabilities</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="fe-serif text-2xl sm:text-3xl tracking-tight text-slate-900">
               Centralized Workflows & Command
             </h3>
             <p className="text-sm text-slate-500 font-medium">
@@ -675,7 +714,7 @@ const LandingPage = () => {
                     {features[activeFeatureTab].tag}
                   </div>
 
-                  <h4 className="text-xl font-black text-slate-900">{features[activeFeatureTab].description}</h4>
+                  <h4 className="fe-serif text-xl text-slate-900">{features[activeFeatureTab].description}</h4>
                   
                   <p className="text-sm text-slate-500 font-medium leading-relaxed">
                     {features[activeFeatureTab].details}
@@ -706,7 +745,7 @@ const LandingPage = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-2">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">At A Glance</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="fe-serif text-2xl sm:text-3xl tracking-tight text-slate-900">
               Built to Deliver Results
             </h3>
           </div>
@@ -774,7 +813,7 @@ const LandingPage = () => {
             {/* Left Description */}
             <div className="lg:col-span-5 text-left space-y-6">
               <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">ROI Insights</span>
-              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              <h3 className="fe-serif text-2xl sm:text-3xl tracking-tight text-slate-900">
                 Estimate Your Savings with FlightElevate
               </h3>
               <p className="text-sm text-slate-500 font-medium leading-relaxed">
@@ -869,7 +908,7 @@ const LandingPage = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Future Roadmap</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="fe-serif text-2xl sm:text-3xl tracking-tight text-slate-900">
               Coming Soon: Expanding Capabilities
             </h3>
             <p className="text-sm text-slate-500 font-medium">
@@ -910,7 +949,7 @@ const LandingPage = () => {
           
           <div className="text-center mb-12 space-y-2">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Support FAQ</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="fe-serif text-2xl sm:text-3xl tracking-tight text-slate-900">
               Frequently Asked Questions
             </h3>
           </div>
@@ -953,7 +992,7 @@ const LandingPage = () => {
               <div className="w-7 h-7 rounded-lg bg-blue-700 flex items-center justify-center text-white font-extrabold text-xs">
                 FE
               </div>
-              <span className="text-base font-bold tracking-tight text-slate-900">
+              <span className="fe-serif text-base tracking-tight text-slate-900">
                 Flight<span className="text-blue-700">Elevate</span>
               </span>
             </div>
