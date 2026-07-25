@@ -166,7 +166,7 @@ const LandingPage = () => {
   const paperSaved = Math.round(monthlyFlights * 0.7);
 
   return (
-    <div className="min-h-screen bg-[#FAFBFD] text-slate-800 transition-colors duration-300 font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden pb-12">
+    <div className="min-h-screen bg-[#FAFBFD] text-slate-800 transition-colors duration-300 font-serif selection:bg-blue-600 selection:text-white relative overflow-x-hidden pb-12">
       
       {/* Light Blurs */}
       <div className="absolute top-0 inset-x-0 h-[800px] overflow-hidden pointer-events-none z-0">
