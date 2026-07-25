@@ -196,7 +196,7 @@ const LandingPage = () => {
               About
             </Link>
             <a href="#features-interactive" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
-              Capabilitities
+              Capabilities
             </a>
             <a href="#features-list" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
               Features
