@@ -25,7 +25,7 @@ import {
   FiClock,
   FiDownload
 } from 'react-icons/fi';
-
+ 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -39,16 +39,16 @@ const LandingPage = () => {
   // Interactive Savings Calculator State
   const [aircraftCount, setAircraftCount] = useState(8);
   const [monthlyFlights, setMonthlyFlights] = useState(180);
-
+ 
   const menuRef = useRef(null);
-
+ 
   // Redirect authenticated users to dashboard immediately
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
-
+ 
   // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -56,24 +56,24 @@ const LandingPage = () => {
         setMobileMenuOpen(false);
       }
     };
-
+ 
     if (mobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
+ 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [mobileMenuOpen]);
-
+ 
   if (authLoading || isAuthenticated) {
     return null;
   }
-
+ 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
   };
-
+ 
   const features = [
     {
       icon: <FiCheckCircle className="w-5 h-5" />,
@@ -97,7 +97,7 @@ const LandingPage = () => {
       tag: "Admin Control"
     }
   ];
-
+ 
   const faqs = [
     {
       question: "Who is FlightElevate built for?",
@@ -120,7 +120,7 @@ const LandingPage = () => {
       answer: "Mobile apps for iOS and Android are currently in development."
     }
   ];
-
+ 
   const comingSoonFeatures = [
     {
       icon: <FiZap className="w-5 h-5 text-blue-700" />,
@@ -159,37 +159,36 @@ const LandingPage = () => {
       description: "Advanced & Predictive Analytics"
     }
   ];
-
+ 
   // Calculated savings values based on inputs
   const hoursSaved = Math.round(aircraftCount * 8 + (monthlyFlights * 0.4));
   const efficiencyScore = Math.min(98, Math.round(75 + (aircraftCount * 0.5) + (monthlyFlights * 0.03)));
   const paperSaved = Math.round(monthlyFlights * 0.7);
-
+ 
   return (
     <div
       className="min-h-screen bg-[#FAFBFD] text-slate-800 transition-colors duration-300 selection:bg-blue-600 selection:text-white relative overflow-x-hidden pb-12"
-      style={{ fontFamily: "'Georgia', serif" }}
     >      
       {/* Light Blurs */}
       <div className="absolute top-0 inset-x-0 h-[800px] overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-gradient-to-r from-blue-700/5 via-blue-600/8 to-sky-500/5 blur-[160px] rounded-full" />
         <div className="absolute top-[200px] left-[-200px] w-[600px] h-[600px] bg-blue-600/5 blur-[140px] rounded-full" />
       </div>
-
+ 
       {/* Floating Navbar (Pill Design) */}
       <div className="fixed top-5 inset-x-0 z-50 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pointer-events-none">
         <header className="pointer-events-auto max-w-4xl mx-auto rounded-full bg-white/95 border border-slate-100 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] px-6 py-3 flex items-center justify-between">
           
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center shadow-md shadow-blue-700/20 text-white font-black text-sm">
+            <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center shadow-md shadow-blue-700/20 text-white font-bold text-sm">
               FE
             </div>
             <span className="text-sm font-extrabold tracking-tight text-slate-900">
               Flight<span className="text-blue-700">Elevate</span>
             </span>
           </div>
-
+ 
           {/* Desktop Nav Items */}
           <nav className="hidden lg:flex items-center space-x-6">
             <Link to="/about" className="text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-blue-700 transition-colors">
@@ -208,7 +207,7 @@ const LandingPage = () => {
               FAQ
             </a>
           </nav>
-
+ 
           {/* Actions */}
           <div className="flex items-center gap-3">
             <button
@@ -233,9 +232,9 @@ const LandingPage = () => {
               {mobileMenuOpen ? <FiX size={14} /> : <FiMenu size={14} />}
             </button>
           </div>
-
+ 
         </header>
-
+ 
         {/* Mobile Navigation Dropdown Menu */}
         {mobileMenuOpen && (
           <div ref={menuRef} className="pointer-events-auto mt-3 max-w-4xl mx-auto rounded-2xl bg-white border border-slate-100 shadow-xl p-5 space-y-3 lg:hidden">
@@ -273,9 +272,9 @@ const LandingPage = () => {
             </div>
           </div>
         )}
-
+ 
       </div>
-
+ 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-24 lg:pb-32 overflow-hidden bg-white">
         
@@ -305,28 +304,28 @@ const LandingPage = () => {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/60 shadow-[0_2px_10px_rgba(29,78,216,0.02)]">
                 <FiZap className="w-3.5 h-3.5 text-blue-700 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-blue-750">Built for Modern Aviation</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-750">Built for Modern Aviation</span>
               </div>
-
+ 
               {/* Title */}
-              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.08]">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-[1.08]" style={{ fontFamily: "'Georgia', serif" }}>
                   Built for the Next Generation
                 <br />
                 <span className="text-blue-700 relative">
                  of Aviation Operations
                 </span>
               </h2>
-
+ 
               {/* Subheading */}
               <p className="text-sm sm:text-base font-bold text-blue-700 leading-relaxed">
                  Elevate Flight Training. Empower Flight Operations.
               </p>
-
+ 
               {/* Supporting Text */}
               <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed max-w-xl">
                  From flight training to daily operations, FlightElevate brings scheduling, aircraft management, maintenance, and business operations together in one intelligent platform.
               </p>
-
+ 
               {/* CTAs */}
               <div className="flex flex-wrap gap-4 pt-2">
                 <button
@@ -336,7 +335,7 @@ const LandingPage = () => {
                   Explore Platform
                   <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
-
+ 
                 <a
                   href="#features-interactive"
                   className="px-7 py-3.5 text-xs font-bold uppercase tracking-wider rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-55 transition-all flex items-center gap-2"
@@ -345,9 +344,9 @@ const LandingPage = () => {
                   Watch Overview
                 </a>
               </div>
-
+ 
             </div>
-
+ 
             {/* Hero Right - Interactive Premium Mockup */}
             <div className="lg:col-span-6 relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-700/10 to-sky-500/10 rounded-2xl blur-[40px] opacity-30 z-0" />
@@ -369,16 +368,16 @@ const LandingPage = () => {
                     LIVE
                   </span>
                 </div>
-
+ 
                 {/* Simulated Screen with matching Sidebar and Content Pane */}
-                <div className="flex min-h-[420px] text-left">
+                <div className="flex min-h-[300px] sm:min-h-[420px] text-left">
                   
                   {/* Matching Sidebar Frame in exact Brand bg-blue-700 */}
-                  <div className="w-40 bg-blue-700 text-white p-3 flex flex-col justify-between border-r border-blue-800">
+                  <div className="w-28 sm:w-40 bg-blue-700 text-white p-2 sm:p-3 flex flex-col justify-between border-r border-blue-800">
                     <div className="space-y-4">
                       {/* Brand Label */}
                       <div className="flex items-center gap-1.5 border-b border-blue-600/60 pb-2">
-                        <div className="w-5 h-5 rounded bg-white text-blue-700 flex items-center justify-center font-black text-[10px]">FE</div>
+                        <div className="w-5 h-5 rounded bg-white text-blue-700 flex items-center justify-center font-bold text-[10px]">FE</div>
                         <span className="text-[10px] font-extrabold tracking-tight">FlightElevate</span>
                       </div>
                       
@@ -401,21 +400,21 @@ const LandingPage = () => {
                     
                     {/* Trial Status Badge removed as per request */}
                   </div>
-
+ 
                   {/* Main Panel Area */}
-                  <div className="flex-1 p-4 bg-[#F8FAFC] flex flex-col justify-between">
+                  <div className="flex-1 p-2.5 sm:p-4 bg-[#F8FAFC] flex flex-col justify-between">
                     
                     {/* Active View Title */}
                     <div>
                       <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                        <h4 className="text-xs font-black text-slate-800 tracking-tight">
+                        <h4 className="text-xs font-bold text-slate-800 tracking-tight">
                           {activeMockupRole === 'admin' && "Academy Base Command"}
                           {activeMockupRole === 'instructor' && "Instructor Dashboard"}
                           {activeMockupRole === 'student' && "Student Flight Logbook"}
                         </h4>
                         <span className="text-[8px] font-bold text-slate-400">Updates Live</span>
                       </div>
-
+ 
                       {/* View Specific Cards */}
                       {activeMockupRole === 'admin' && (
                         <div className="mt-3 animate-in fade-in duration-200 space-y-3">
@@ -423,33 +422,33 @@ const LandingPage = () => {
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#1751D0' }}>Total Flights</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">128</h2>
+                                <h2 className="text-sm font-bold text-black">128</h2>
                                 <span className="text-[7px] underline" style={{ color: '#1751D0' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#10B981' }}>Upcoming Bookings</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">24</h2>
+                                <h2 className="text-sm font-bold text-black">24</h2>
                                 <span className="text-[7px] underline" style={{ color: '#10B981' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EF4444' }}>Aircraft In Use</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">8</h2>
+                                <h2 className="text-sm font-bold text-black">8</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EF4444' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EC980C' }}>Support Tickets</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">3</h2>
+                                <h2 className="text-sm font-bold text-black">3</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EC980C' }}>View Details</span>
                               </div>
                             </div>
                           </div>
-
+ 
                           <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
                             <div className="flex justify-between items-center mb-2">
                               <h5 className="text-[10px] font-bold text-slate-800">Flight Session Summary</h5>
@@ -458,11 +457,11 @@ const LandingPage = () => {
                             <div className="flex gap-4 mb-3">
                                <div>
                                  <p className="text-[7px] text-slate-500">Single Engine</p>
-                                 <h3 className="text-xs font-black text-slate-900">320.5 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
+                                 <h3 className="text-xs font-bold text-slate-900">320.5 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
                                </div>
                                <div>
                                  <p className="text-[7px] text-slate-500">Multi Engine</p>
-                                 <h3 className="text-xs font-black text-slate-900">145.0 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
+                                 <h3 className="text-xs font-bold text-slate-900">145.0 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
                                </div>
                             </div>
                             <div className="flex items-end justify-between px-2 h-16 border-b border-slate-100 pb-1">
@@ -475,40 +474,40 @@ const LandingPage = () => {
                           </div>
                         </div>
                       )}
-
+ 
                       {activeMockupRole === 'instructor' && (
                         <div className="mt-3 animate-in fade-in duration-200 space-y-3">
                           <div className="grid grid-cols-2 gap-2">
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#1751D0' }}>Total Flight Hours</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">450.5</h2>
+                                <h2 className="text-sm font-bold text-black">450.5</h2>
                                 <span className="text-[7px] underline" style={{ color: '#1751D0' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#10B981' }}>Total Ground Hours</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">85.0</h2>
+                                <h2 className="text-sm font-bold text-black">85.0</h2>
                                 <span className="text-[7px] underline" style={{ color: '#10B981' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EF4444' }}>Single Engine Hours</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">320.5</h2>
+                                <h2 className="text-sm font-bold text-black">320.5</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EF4444' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EC980C' }}>Multi Engine Hours</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">130.0</h2>
+                                <h2 className="text-sm font-bold text-black">130.0</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EC980C' }}>View Details</span>
                               </div>
                             </div>
                           </div>
-
+ 
                           <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
                             <h5 className="text-[10px] font-bold text-slate-800 mb-2">Upcoming Flights</h5>
                             <div className="space-y-2">
@@ -536,40 +535,40 @@ const LandingPage = () => {
                           </div>
                         </div>
                       )}
-
+ 
                       {activeMockupRole === 'student' && (
                         <div className="mt-3 animate-in fade-in duration-200 space-y-3">
                           <div className="grid grid-cols-2 gap-2">
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#1751D0' }}>Total Flights</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">42</h2>
+                                <h2 className="text-sm font-bold text-black">42</h2>
                                 <span className="text-[7px] underline" style={{ color: '#1751D0' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#10B981' }}>Upcoming Flights</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">2</h2>
+                                <h2 className="text-sm font-bold text-black">2</h2>
                                 <span className="text-[7px] underline" style={{ color: '#10B981' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EF4444' }}>Total Flight Hours</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">65.5</h2>
+                                <h2 className="text-sm font-bold text-black">65.5</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EF4444' }}>View Details</span>
                               </div>
                             </div>
                             <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
                               <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EC980C' }}>Ground Training</h6>
                               <div className="mt-1">
-                                <h2 className="text-sm font-black text-black">20.0</h2>
+                                <h2 className="text-sm font-bold text-black">20.0</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EC980C' }}>View Details</span>
                               </div>
                             </div>
                           </div>
-
+ 
                           <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
                             <h5 className="text-[10px] font-bold text-slate-800 mb-2">Syllabus Progress</h5>
                             <div className="space-y-3">
@@ -591,34 +590,34 @@ const LandingPage = () => {
                           </div>
                         </div>
                       )}
-
+ 
                     </div>
-
+ 
                     {/* Micro Navigation Guidance */}
                     <div className="text-[8px] text-slate-400 text-center pt-2 border-t border-slate-100 font-medium mt-3">
                       💡 Click roles in the sidebar to dynamically change dashboard layout!
                     </div>
-
+ 
                   </div>
-
+ 
                 </div>
-
+ 
               </div>
             </div>
-
+ 
           </div>
         </div>
       </section>
-
-
-
+ 
+ 
+ 
       {/* Core Philosophy Section */}
       <section className="py-20 sm:py-24 bg-white relative z-10 border-b border-slate-100" id="philosophy">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/60 text-[10px] font-bold uppercase tracking-wider">
             Core Philosophy
           </div>
-          <h3 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 leading-tight" style={{ fontFamily: "'Georgia', serif" }}>
             Designed for Efficiency. Built to Elevate the Experience.
           </h3>
           <p className="text-sm sm:text-base text-slate-600 font-semibold leading-relaxed">
@@ -629,21 +628,21 @@ const LandingPage = () => {
           </p>
         </div>
       </section>
-
+ 
       {/* Interactive Capabilities Showcase (centralized communication, dashboard etc) */}
       <section className="py-20 sm:py-24 relative z-10" id="features-interactive">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Capabilities</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Centralized Workflows & Command
             </h3>
             <p className="text-sm text-slate-500 font-medium">
               Explore the three core capabilities of our operational approach in real time.
             </p>
           </div>
-
+ 
           <div className="grid lg:grid-cols-12 gap-8 items-stretch">
             
             {/* Interactive Side Tabs */}
@@ -672,7 +671,7 @@ const LandingPage = () => {
                 </button>
               ))}
             </div>
-
+ 
             {/* Capability Detail Card */}
             <div className="lg:col-span-7 flex flex-col">
               <div className="p-8 rounded-2xl border border-slate-100 bg-white shadow-sm flex-1 flex flex-col justify-between text-left relative overflow-hidden">
@@ -680,14 +679,14 @@ const LandingPage = () => {
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-blue-50 text-blue-700 border border-blue-100/50 text-[10px] font-bold uppercase tracking-wider">
                     {features[activeFeatureTab].tag}
                   </div>
-
-                  <h4 className="text-xl font-black text-slate-900">{features[activeFeatureTab].description}</h4>
+ 
+                  <h4 className="text-xl font-bold text-slate-900">{features[activeFeatureTab].description}</h4>
                   
                   <p className="text-sm text-slate-500 font-medium leading-relaxed">
                     {features[activeFeatureTab].details}
                   </p>
                 </div>
-
+ 
                 <div className="pt-6 border-t border-slate-100 mt-6 flex justify-between items-center text-xs">
                   <span className="text-slate-400 font-medium">FlightElevate Operational Standard</span>
                   <button 
@@ -700,23 +699,23 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
-
+ 
           </div>
-
+ 
         </div>
       </section>
-
+ 
       {/* Features and Performance Card Grid */}
       <section className="py-20 sm:py-24 bg-[#F8FAFC] relative z-10 border-t border-b border-slate-100" id="features-list">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-2">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">At A Glance</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Built to Deliver Results
             </h3>
           </div>
-
+ 
           <div className="grid md:grid-cols-2 gap-8">
             
             {/* Features Card */}
@@ -725,7 +724,7 @@ const LandingPage = () => {
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
                   <FiCheck className="w-4 h-4" />
                 </div>
-                <h4 className="text-lg font-black text-slate-900">Platform Features</h4>
+                <h4 className="text-lg font-bold text-slate-900">Platform Features</h4>
               </div>
               <ul className="space-y-3.5">
                 {[
@@ -743,14 +742,14 @@ const LandingPage = () => {
                 ))}
               </ul>
             </div>
-
+ 
             {/* Performance & Availability Card */}
             <div className="p-8 rounded-2xl border border-slate-100 bg-white text-left space-y-6 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
                   <FiActivity className="w-4 h-4" />
                 </div>
-                <h4 className="text-lg font-black text-slate-900">Performance & Availability</h4>
+                <h4 className="text-lg font-bold text-slate-900">Performance & Availability</h4>
               </div>
               <ul className="space-y-3.5">
                 {[
@@ -766,11 +765,11 @@ const LandingPage = () => {
                 ))}
               </ul>
             </div>
-
+ 
           </div>
         </div>
       </section>
-
+ 
       {/* ROI Savings Calculator */}
       <section className="py-20 sm:py-24 bg-white border-b border-slate-100 relative z-10" id="calculator">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -780,13 +779,13 @@ const LandingPage = () => {
             {/* Left Description */}
             <div className="lg:col-span-5 text-left space-y-6">
               <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">ROI Insights</span>
-              <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
                 Estimate Your Savings with FlightElevate
               </h3>
               <p className="text-sm text-slate-500 font-medium leading-relaxed">
                 Adjust your fleet size and average monthly flights to instantly view the calculated scheduling hours saved and operational efficiency metrics.
               </p>
-
+ 
               <div className="space-y-3.5 pt-2">
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center">
@@ -802,7 +801,7 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
-
+ 
             {/* Right Sliders Card */}
             <div className="lg:col-span-7">
               <div className="p-8 rounded-2xl border border-slate-100 bg-[#F8FAFC] space-y-8 shadow-sm">
@@ -812,7 +811,7 @@ const LandingPage = () => {
                   <div className="space-y-2 text-left">
                     <div className="flex justify-between items-center">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Fleet Size</label>
-                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-xs font-black">
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-xs font-bold">
                         {aircraftCount} Aircraft
                       </span>
                     </div>
@@ -825,12 +824,12 @@ const LandingPage = () => {
                       className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-700"
                     />
                   </div>
-
+ 
                   {/* Monthly Flights Slider */}
                   <div className="space-y-2 text-left">
                     <div className="flex justify-between items-center">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Monthly Flights Logged</label>
-                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-xs font-black">
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded text-xs font-bold">
                         {monthlyFlights} Flights
                       </span>
                     </div>
@@ -844,45 +843,45 @@ const LandingPage = () => {
                     />
                   </div>
                 </div>
-
+ 
                 {/* Calculation Outputs */}
                 <div className="grid sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200">
                   <div className="p-4 rounded-xl bg-white border border-slate-100 text-center">
                     <span className="text-[9px] uppercase font-bold text-slate-400 block">Hours Saved / Mo</span>
-                    <p className="text-2xl font-black text-blue-700 mt-1">{hoursSaved} hrs</p>
+                    <p className="text-2xl font-bold text-blue-700 mt-1">{hoursSaved} hrs</p>
                   </div>
                   <div className="p-4 rounded-xl bg-white border border-slate-100 text-center">
                     <span className="text-[9px] uppercase font-bold text-slate-400 block">Efficiency Boost</span>
-                    <p className="text-2xl font-black text-blue-700 mt-1">+{efficiencyScore}%</p>
+                    <p className="text-2xl font-bold text-blue-700 mt-1">+{efficiencyScore}%</p>
                   </div>
                   <div className="p-4 rounded-xl bg-white border border-slate-100 text-center">
                     <span className="text-[9px] uppercase font-bold text-slate-400 block">Paper Eliminated</span>
-                    <p className="text-2xl font-black text-blue-700 mt-1">{paperSaved} lbs</p>
+                    <p className="text-2xl font-bold text-blue-700 mt-1">{paperSaved} lbs</p>
                   </div>
                 </div>
-
+ 
               </div>
             </div>
-
+ 
           </div>
-
+ 
         </div>
       </section>
-
+ 
       {/* Coming Soon: Expanding Capabilities Section */}
       <section className="py-20 sm:py-24 bg-[#F8FAFC] border-t border-b border-slate-100 relative z-10" id="coming-soon">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Future Roadmap</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Coming Soon: Expanding Capabilities
             </h3>
             <p className="text-sm text-slate-500 font-medium">
               We are actively developing premium next-level tools to broaden operational horizons.
             </p>
           </div>
-
+ 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {comingSoonFeatures.map((item, index) => (
               <div key={index} className="p-6 rounded-2xl border border-slate-100 bg-white text-left space-y-3 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 shadow-sm flex flex-col justify-between">
@@ -897,8 +896,8 @@ const LandingPage = () => {
                       {item.category}
                     </span>
                   </div>
-
-                  <h4 className="text-sm font-black text-slate-900 group-hover:text-blue-700 transition-colors">{item.title}</h4>
+ 
+                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{item.title}</h4>
                   <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                     {item.description}
                   </p>
@@ -906,21 +905,21 @@ const LandingPage = () => {
               </div>
             ))}
           </div>
-
+ 
         </div>
       </section>
-
+ 
       {/* Frequently Asked Questions */}
       <section className="py-20 sm:py-24 relative z-10" id="faq">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center mb-12 space-y-2">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Support FAQ</span>
-            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Frequently Asked Questions
             </h3>
           </div>
-
+ 
           <div className="space-y-4">
             {faqs.map((faq, index) => (
               <div
@@ -945,10 +944,10 @@ const LandingPage = () => {
               </div>
             ))}
           </div>
-
+ 
         </div>
       </section>
-
+ 
       {/* Simple Modern Footer */}
       <footer className="bg-white border-t border-slate-100 py-12 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -963,7 +962,7 @@ const LandingPage = () => {
                 Flight<span className="text-blue-700">Elevate</span>
               </span>
             </div>
-
+ 
             {/* Links */}
             <div className="flex flex-wrap justify-center gap-8 text-xs font-bold uppercase tracking-wider">
               <Link to="/user-policy" className="text-slate-500 hover:text-blue-700 transition-colors">
@@ -976,7 +975,7 @@ const LandingPage = () => {
                 Contact
               </a>
             </div>
-
+ 
             {/* Social Icons */}
             <div className="flex gap-2">
               <a href="#" className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-blue-700 transition-colors">
@@ -987,17 +986,18 @@ const LandingPage = () => {
               </a>
             </div>
           </div>
-
+ 
           <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">
             <span>© {new Date().getFullYear()} FlightElevate. All rights reserved.</span>
             <span>Premium Aviation Management Software</span>
           </div>
-
+ 
         </div>
       </footer>
-
+ 
     </div>
   );
 };
-
+ 
 export default LandingPage;
+ 
