@@ -352,8 +352,7 @@ const LandingPage = () => {
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-700/10 to-sky-500/10 rounded-2xl blur-[40px] opacity-30 z-0" />
               
               {/* Premium Dashboard Frame */}
-              <div className="relative z-10 max-w-5xl mx-auto">
-               <div className="aspect-[16/10] w-full max-w-[820px] mx-auto rounded-2xl bg-white border border-slate-100 shadow-xl overflow-hidden">
+              <div className="relative bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden z-10 max-w-xl mx-auto">
                 
                 {/* Browser Title Bar */}
                 <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/80">
@@ -371,10 +370,10 @@ const LandingPage = () => {
                 </div>
  
                 {/* Simulated Screen with matching Sidebar and Content Pane */}
-                <div className="flex h-full text-left">
+                <div className="flex min-h-[300px] sm:min-h-[420px] text-left">
                   
                   {/* Matching Sidebar Frame in exact Brand bg-blue-700 */}
-                  <div className="w-[24%] bg-blue-700 text-white p-2 sm:p-3 flex flex-col justify-between border-r border-blue-800">
+                  <div className="w-28 sm:w-40 bg-blue-700 text-white p-2 sm:p-3 flex flex-col justify-between border-r border-blue-800">
                     <div className="space-y-4">
                       {/* Brand Label */}
                       <div className="flex items-center gap-1.5 border-b border-blue-600/60 pb-2">
@@ -403,8 +402,8 @@ const LandingPage = () => {
                   </div>
  
                   {/* Main Panel Area */}
-                  <div className="flex-1 p-2 sm:p-3 lg:p-4 bg-[#F8FAFC] flex flex-col justify-between overflow-hidden">
-       
+                  <div className="flex-1 p-2.5 sm:p-4 bg-[#F8FAFC] flex flex-col justify-between">
+                    
                     {/* Active View Title */}
                     <div>
                       <div className="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -607,7 +606,6 @@ const LandingPage = () => {
             </div>
  
           </div>
-        </div>
         </div>
       </section>
  
