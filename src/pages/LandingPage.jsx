@@ -209,11 +209,12 @@ const LandingPage = () => {
         border: 'border-gray-200',
         card: 'bg-white border-gray-200'
       };
-
-  <div
-  className={`min-h-screen ${themeClasses.bg} transition-colors duration-300 overflow-x-hidden`}
-  style={{ fontFamily: "'Inter', sans-serif" }}
->
+  
+   return (
+      <div
+        className={`min-h-screen ${themeClasses.bg} transition-colors duration-300 overflow-x-hidden`}
+        style={{ fontFamily: "'Inter', sans-serif" }}
+      >
       <header className="bg-blue-600 border-b border-blue-700 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
