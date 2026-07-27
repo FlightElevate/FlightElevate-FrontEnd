@@ -41,6 +41,31 @@ const LandingPage = () => {
   const [monthlyFlights, setMonthlyFlights] = useState(180);
  
   const menuRef = useRef(null);
+  const mockupRef = useRef(null);
+  const [mockupScale, setMockupScale] = useState(1);
+ 
+  // Measure the mockup container's actual rendered width and compute a
+  // real unitless scale factor. transform: scale() requires a plain number,
+  // not a CSS length, so this can't be done with calc(cqw) alone — it needs
+  // to be measured in JS.
+  useEffect(() => {
+    const el = mockupRef.current;
+    if (!el) return;
+ 
+    const updateScale = () => {
+      const width = el.offsetWidth;
+      if (width > 0) {
+        setMockupScale(width / 560);
+      }
+    };
+ 
+    updateScale();
+ 
+    const resizeObserver = new ResizeObserver(updateScale);
+    resizeObserver.observe(el);
+ 
+    return () => resizeObserver.disconnect();
+  }, []);
  
   // Redirect authenticated users to dashboard immediately
   useEffect(() => {
@@ -308,7 +333,7 @@ const LandingPage = () => {
               </div>
  
               {/* Title */}
-              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-[1.08]" style={{ fontFamily: "'Georgia', serif" }}>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 leading-[1.08]" style={{ fontFamily: "'Georgia', serif" }}>
                   Built for the Next Generation
                 <br />
                 <span className="text-blue-700 relative">
@@ -348,11 +373,32 @@ const LandingPage = () => {
             </div>
  
             {/* Hero Right - Interactive Premium Mockup */}
-            <div className="lg:col-span-6 relative">
+            <div className="lg:col-span-6 relative isolate" style={{ transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}>
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-700/10 to-sky-500/10 rounded-2xl blur-[40px] opacity-30 z-0" />
-              
+ 
+              {/*
+                Fixed-ratio scaling frame: the mockup below is built at a fixed
+                560x420 (4:3) reference size and never changes its internal layout.
+                This outer box uses a CSS container query to compute a single
+                scale factor and shrinks the whole block uniformly to fit any
+                screen width, the way a photo scales rather than reflows.
+              */}
+              <div
+                className="relative mx-auto w-full max-w-xl"
+                ref={mockupRef}
+                style={{ aspectRatio: '560 / 460' }}
+              >
+                <div
+                  className="absolute top-0 left-0"
+                  style={{
+                    width: '560px',
+                    height: '460px',
+                    transform: `scale(${mockupScale})`,
+                    transformOrigin: 'top left',
+                  }}
+                >
               {/* Premium Dashboard Frame */}
-              <div className="relative bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden z-10 max-w-xl mx-auto">
+              <div className="relative bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden z-10 w-full h-full">
                 
                 {/* Browser Title Bar */}
                 <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100 bg-slate-50/80">
@@ -370,10 +416,10 @@ const LandingPage = () => {
                 </div>
  
                 {/* Simulated Screen with matching Sidebar and Content Pane */}
-                <div className="flex min-h-[300px] sm:min-h-[420px] text-left">
+                <div className="flex min-h-[420px] text-left">
                   
                   {/* Matching Sidebar Frame in exact Brand bg-blue-700 */}
-                  <div className="w-28 sm:w-40 bg-blue-700 text-white p-2 sm:p-3 flex flex-col justify-between border-r border-blue-800">
+                  <div className="w-40 bg-blue-700 text-white p-3 flex flex-col justify-between border-r border-blue-800">
                     <div className="space-y-4">
                       {/* Brand Label */}
                       <div className="flex items-center gap-1.5 border-b border-blue-600/60 pb-2">
@@ -402,13 +448,13 @@ const LandingPage = () => {
                   </div>
  
                   {/* Main Panel Area */}
-                  <div className="flex-1 p-2.5 sm:p-4 bg-[#F8FAFC] flex flex-col justify-between">
+                  <div className="flex-1 p-4 bg-[#F8FAFC] flex flex-col justify-between">
                     
                     {/* Active View Title */}
                     <div>
                       <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                         <h4 className="text-xs font-bold text-slate-800 tracking-tight">
-                          {activeMockupRole === 'admin' && "Academy Base Command"}
+                          {activeMockupRole === 'admin' && "Operations Command Center"}
                           {activeMockupRole === 'instructor' && "Instructor Dashboard"}
                           {activeMockupRole === 'student' && "Student Flight Logbook"}
                         </h4>
@@ -419,42 +465,42 @@ const LandingPage = () => {
                       {activeMockupRole === 'admin' && (
                         <div className="mt-3 animate-in fade-in duration-200 space-y-3">
                           <div className="grid grid-cols-2 gap-2">
-                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
-                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#1751D0' }}>Total Flights</h6>
-                              <div className="mt-1">
-                                <h2 className="text-sm font-bold text-black">128</h2>
+                            <div className="p-3 rounded-2xl flex flex-col justify-between" style={{ backgroundColor: '#E9F0FC' }}>
+                              <h6 className="text-[8px] font-medium mb-2" style={{ color: '#1751D0' }}>Total Flights</h6>
+                              <div>
+                                <h2 className="text-base font-bold text-black">12</h2>
                                 <span className="text-[7px] underline" style={{ color: '#1751D0' }}>View Details</span>
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
-                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#10B981' }}>Upcoming Bookings</h6>
-                              <div className="mt-1">
-                                <h2 className="text-sm font-bold text-black">24</h2>
+                            <div className="p-3 rounded-2xl flex flex-col justify-between" style={{ backgroundColor: '#E6F7E6' }}>
+                              <h6 className="text-[8px] font-medium mb-2" style={{ color: '#10B981' }}>Upcoming Bookings</h6>
+                              <div>
+                                <h2 className="text-base font-bold text-black">13</h2>
                                 <span className="text-[7px] underline" style={{ color: '#10B981' }}>View Details</span>
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
-                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EF4444' }}>Aircraft In Use</h6>
-                              <div className="mt-1">
-                                <h2 className="text-sm font-bold text-black">8</h2>
+                            <div className="p-3 rounded-2xl flex flex-col justify-between" style={{ backgroundColor: '#FEE2E2' }}>
+                              <h6 className="text-[8px] font-medium mb-2" style={{ color: '#EF4444' }}>Aircraft In Use</h6>
+                              <div>
+                                <h2 className="text-base font-bold text-black">7</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EF4444' }}>View Details</span>
                               </div>
                             </div>
-                            <div className="p-2.5 rounded-lg flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
-                              <h6 className="text-[8px] font-semibold mb-1" style={{ color: '#EC980C' }}>Support Tickets</h6>
-                              <div className="mt-1">
-                                <h2 className="text-sm font-bold text-black">3</h2>
+                            <div className="p-3 rounded-2xl flex flex-col justify-between" style={{ backgroundColor: '#FFF1DA' }}>
+                              <h6 className="text-[8px] font-medium mb-2" style={{ color: '#EC980C' }}>Support Tickets</h6>
+                              <div>
+                                <h2 className="text-base font-bold text-black">0</h2>
                                 <span className="text-[7px] underline" style={{ color: '#EC980C' }}>View Details</span>
                               </div>
                             </div>
                           </div>
  
-                          <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
-                            <div className="flex justify-between items-center mb-2">
+                          <div className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                            <div className="flex justify-between items-center mb-1.5">
                               <h5 className="text-[10px] font-bold text-slate-800">Flight Session Summary</h5>
                               <span className="text-[7px] text-slate-400 bg-slate-50 px-2 py-1 rounded">Monthly</span>
                             </div>
-                            <div className="flex gap-4 mb-3">
+                            <div className="flex gap-4 mb-2">
                                <div>
                                  <p className="text-[7px] text-slate-500">Single Engine</p>
                                  <h3 className="text-xs font-bold text-slate-900">320.5 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
@@ -464,12 +510,12 @@ const LandingPage = () => {
                                  <h3 className="text-xs font-bold text-slate-900">145.0 <span className="text-[6px] text-green-600 font-normal">Hours</span></h3>
                                </div>
                             </div>
-                            <div className="flex items-end justify-between px-2 h-16 border-b border-slate-100 pb-1">
+                            <div className="flex items-end justify-between px-2 h-8 border-b border-slate-100 pb-1">
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-3 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-1.5 bg-[#1D4ED8] rounded-t-[2px]"/></div>
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-5 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-2.5 bg-[#1D4ED8] rounded-t-[2px]"/></div>
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-4 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-3.5 bg-[#1D4ED8] rounded-t-[2px]"/></div>
                                <div className="flex gap-1 items-end"><div className="w-2.5 h-6 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-3 bg-[#1D4ED8] rounded-t-[2px]"/></div>
-                               <div className="flex gap-1 items-end"><div className="w-2.5 h-10 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-5 bg-[#1D4ED8] rounded-t-[2px]"/></div>
-                               <div className="flex gap-1 items-end"><div className="w-2.5 h-8 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-7 bg-[#1D4ED8] rounded-t-[2px]"/></div>
-                               <div className="flex gap-1 items-end"><div className="w-2.5 h-12 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-6 bg-[#1D4ED8] rounded-t-[2px]"/></div>
-                               <div className="flex gap-1 items-end"><div className="w-2.5 h-14 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-9 bg-[#1D4ED8] rounded-t-[2px]"/></div>
+                               <div className="flex gap-1 items-end"><div className="w-2.5 h-7 bg-[#A5F3FC] rounded-t-[2px]"/><div className="w-2.5 h-4.5 bg-[#1D4ED8] rounded-t-[2px]"/></div>
                             </div>
                           </div>
                         </div>
@@ -508,7 +554,7 @@ const LandingPage = () => {
                             </div>
                           </div>
  
-                          <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                          <div className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">
                             <h5 className="text-[10px] font-bold text-slate-800 mb-2">Upcoming Flights</h5>
                             <div className="space-y-2">
                                <div className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
@@ -569,9 +615,9 @@ const LandingPage = () => {
                             </div>
                           </div>
  
-                          <div className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
-                            <h5 className="text-[10px] font-bold text-slate-800 mb-2">Syllabus Progress</h5>
-                            <div className="space-y-3">
+                          <div className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                            <h5 className="text-[10px] font-bold text-slate-800 mb-3">Syllabus Progress</h5>
+                            <div className="space-y-4">
                                <div>
                                  <div className="flex justify-between text-[7px] font-bold mb-1">
                                     <span>Private Pilot - Stage 1</span>
@@ -585,6 +631,13 @@ const LandingPage = () => {
                                     <span className="text-blue-700">65% Active</span>
                                  </div>
                                  <div className="w-full h-1.5 bg-slate-100 rounded-full"><div className="h-1.5 bg-blue-700 rounded-full" style={{ width: '65%' }}></div></div>
+                               </div>
+                               <div>
+                                 <div className="flex justify-between text-[7px] font-bold mb-1">
+                                    <span>Private Pilot - Stage 3</span>
+                                    <span className="text-slate-400">Not Started</span>
+                                 </div>
+                                 <div className="w-full h-1.5 bg-slate-100 rounded-full"><div className="h-1.5 bg-slate-300 rounded-full" style={{ width: '0%' }}></div></div>
                                </div>
                             </div>
                           </div>
@@ -603,6 +656,8 @@ const LandingPage = () => {
                 </div>
  
               </div>
+                </div>
+              </div>
             </div>
  
           </div>
@@ -617,7 +672,7 @@ const LandingPage = () => {
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/60 text-[10px] font-bold uppercase tracking-wider">
             Core Philosophy
           </div>
-          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 leading-tight" style={{ fontFamily: "'Georgia', serif" }}>
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 leading-tight" style={{ fontFamily: "'Georgia', serif" }}>
             Designed for Efficiency. Built to Elevate the Experience.
           </h3>
           <p className="text-sm sm:text-base text-slate-600 font-semibold leading-relaxed">
@@ -635,7 +690,7 @@ const LandingPage = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Capabilities</span>
-            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
+            <h3 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Centralized Workflows & Command
             </h3>
             <p className="text-sm text-slate-500 font-medium">
@@ -711,7 +766,7 @@ const LandingPage = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-2">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">At A Glance</span>
-            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
+            <h3 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Built to Deliver Results
             </h3>
           </div>
@@ -779,7 +834,7 @@ const LandingPage = () => {
             {/* Left Description */}
             <div className="lg:col-span-5 text-left space-y-6">
               <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">ROI Insights</span>
-              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
+              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
                 Estimate Your Savings with FlightElevate
               </h3>
               <p className="text-sm text-slate-500 font-medium leading-relaxed">
@@ -874,7 +929,7 @@ const LandingPage = () => {
           
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Future Roadmap</span>
-            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
+            <h3 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Coming Soon: Expanding Capabilities
             </h3>
             <p className="text-sm text-slate-500 font-medium">
@@ -915,7 +970,7 @@ const LandingPage = () => {
           
           <div className="text-center mb-12 space-y-2">
             <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Support FAQ</span>
-            <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
+            <h3 className="text-2xl sm:text-3xl font-bold text-slate-900" style={{ fontFamily: "'Georgia', serif" }}>
               Frequently Asked Questions
             </h3>
           </div>
@@ -1001,3 +1056,4 @@ const LandingPage = () => {
  
 export default LandingPage;
  
+
