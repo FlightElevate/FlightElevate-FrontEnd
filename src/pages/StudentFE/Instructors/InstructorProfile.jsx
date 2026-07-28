@@ -358,11 +358,22 @@ const InstructorProfile = () => {
     setOpenMenu(openMenu === index ? null : index);
   };
 
-  const certificates = [
-    { name: "CFI", color: "bg-blue-100 text-blue-700" },
-    { name: "CFII", color: "bg-red-100 text-red-700" },
-    { name: "MEI", color: "bg-yellow-100 text-yellow-700" },
-  ];
+  const CERT_COLORS = {
+    CFI: "bg-blue-100 text-blue-700",
+    CFII: "bg-red-100 text-red-700",
+    MEI: "bg-yellow-100 text-yellow-700",
+    ATP: "bg-purple-100 text-purple-700",
+    Commercial: "bg-green-100 text-green-700",
+    Private: "bg-teal-100 text-teal-700",
+    Student: "bg-gray-100 text-gray-700",
+  };
+
+  const certificates = user?.certificate_level
+    ? user.certificate_level.split(',').map(c => c.trim()).filter(Boolean).map(name => ({
+        name,
+        color: CERT_COLORS[name] || "bg-gray-100 text-gray-700",
+      }))
+    : [];
 
   
   const filteredFlightLogs = flightLogs.filter((log) => {

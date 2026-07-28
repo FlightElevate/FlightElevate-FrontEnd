@@ -10,6 +10,7 @@ import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { reservationService } from '../api/services/reservationService';
 import { useAuth } from '../context/AuthContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 // ─── Status badge helper ──────────────────────────────────────────────────────
 const STATUS_COLORS = {
@@ -1626,18 +1627,22 @@ const ReservationDetail = () => {
                   <div className="px-6 pt-6 pb-4 flex items-start justify-between" style={{borderBottom: '1px solid #f1f5f9'}}>
                     <div className="flex items-center gap-2.5">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background: 'linear-gradient(135deg,#1A365D,#3B6CB7)'}}>
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L21 16z"/>
-                        </svg>
+                        {user?.organization?.logo ? (
+                          <img src={getImageUrl(user.organization.logo)} alt="Logo" className="w-full h-full object-cover rounded-xl" />
+                        ) : (
+                          <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5L21 16z"/>
+                          </svg>
+                        )}
                       </div>
                       <div>
-                        <span className="font-bold text-[#1A365D] text-lg leading-none">FlightElevate</span>
+                        <span className="font-bold text-[#1A365D] text-lg leading-none">{user?.organization?.name || 'FlightElevate'}</span>
                         <p className="text-xs text-slate-400 mt-0.5">Aviation Training Platform</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">Invoice</span>
-                      <p className="text-lg font-black text-[#1A365D]">FE-{reservation?.id + 2000 || '2029'}</p>
+                      <p className="text-lg font-black text-[#1A365D]">INV-{reservation?.invoice?.invoice_number || reservation?.invoice?.id || reservation?.id + 2000}</p>
                     </div>
                   </div>
 
@@ -1662,7 +1667,7 @@ const ReservationDetail = () => {
                   <div className="grid grid-cols-2 divide-x" style={{borderBottom:'1px solid #f1f5f9', background:'#f8fafc'}}>
                     <div className="px-5 py-4 space-y-2.5">
                       {[
-                        ['Reference No', reservation?.reservation_no],
+                        ['Invoice No', `INV-${reservation?.invoice?.invoice_number || reservation?.invoice?.id || reservation?.id + 2000}`],
                         ['Invoice Date', new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric'})],
                         ['Pilot', reservation?.students?.[0]?.name || 'N/A'],
                         ['Location', reservation?.location?.name || '—'],
