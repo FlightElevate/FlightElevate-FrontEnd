@@ -1053,9 +1053,7 @@ const Logbook = () => {
                       onChange={(e) => handleFormChange('instructor_id', e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">Select Instructor</option>
-                      {isAdminView
-                        ? instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)
-                        : <option value={user?.id || ''}>{user?.name || 'Current User'}</option>}
+                      {instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                     </select>
                     {editForm.instructor_id && String(editForm.instructor_id) !== String(user?.id) && !editingLogbook && (
                       <div className="mt-2 flex items-center">
