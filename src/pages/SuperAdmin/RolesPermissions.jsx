@@ -551,6 +551,15 @@ const RolesPermissions = () => {
     perm.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const formatPermissionName = (perm) => {
+    if (!perm) return "";
+    return perm
+      .replace(/[._]/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const getPermissionDisplay = (role) => {
     if (!role.permissions || role.permissions.length === 0) {
       return <span className="text-gray-400 text-sm">No permissions</span>;
@@ -574,7 +583,7 @@ const RolesPermissions = () => {
             key={idx}
             className="inline-block px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-800"
           >
-            {perm}
+            {formatPermissionName(perm)}
           </span>
         ))}
         {role.permissions.length > 4 && (
@@ -768,7 +777,7 @@ const RolesPermissions = () => {
                             } hover:bg-blue-50`}
                           >
                             <td className="px-4 py-3 text-sm text-gray-800 font-medium">
-                              {permission}
+                              {formatPermissionName(permission)}
                             </td>
                             {roles.map((role) => {
                               const isChecked = hasPermission(role.id, permission);
@@ -867,7 +876,7 @@ const RolesPermissions = () => {
                             style={{ minWidth: '12px', minHeight: '12px', maxWidth: '14px', maxHeight: '14px' }}
                           />
                           <label className="ml-3 text-sm text-gray-700 cursor-pointer flex-1">
-                            {permission}
+                            {formatPermissionName(permission)}
                           </label>
                         </div>
                       ))}

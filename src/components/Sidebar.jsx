@@ -40,15 +40,28 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       return roleName === 'super admin' || roleName === 'super-admin';
     });
 
+    const isInstructorOrStudent = user.roles.some(r => {
+      const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+      return roleName === 'instructor' || roleName === 'student';
+    });
+
     if (isExpired && !isSuperAdmin) {
-      // Keep only Subscription for expired accounts
-      return [
-        {
-          icon: FiDollarSign,
-          label: "Subscription",
-          link: "/subscription",
-        }
-      ];
+      if (isInstructorOrStudent) {
+        // Use permission-based filtering first
+        let items = getNavigationItemsByPermissions(user.permissions, user.roles);
+        // Keep only Logbook for expired instructor/student accounts
+        items = items.filter(item => ['Logbook'].includes(item.label));
+        return items;
+      } else {
+        // For Admin, keep only Subscription
+        return [
+          {
+            icon: FiDollarSign,
+            label: "Subscription",
+            link: "/subscription",
+          }
+        ];
+      }
     }
 
     // Use permission-based filtering (supports custom roles)
