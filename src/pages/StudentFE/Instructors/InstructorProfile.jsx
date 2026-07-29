@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiMoreVertical, FiX, FiCalendar, FiClock } from "react-icons/fi";
-import { useParams } from "react-router-dom";
+import { FiSearch, FiMoreVertical, FiX, FiCalendar, FiClock, FiArrowLeft } from "react-icons/fi";
+import { useParams, useNavigate } from "react-router-dom";
 import gear from "../../../assets/SVG/gear.svg";
 import profileImg from "../../../assets/img/profile.jpg";
 import { userService } from "../../../api/services/userService";
@@ -16,6 +16,7 @@ import { FLIGHT_TYPES } from "../../../config/flightTypes";
 
 const InstructorProfile = () => {
   const { id: instructorId } = useParams();
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   
   const [user, setUser] = useState(null);
@@ -404,6 +405,11 @@ const InstructorProfile = () => {
 
   return (
     <div className="md:mt-5 mx-auto">
+      <div className="mb-4">
+        <button onClick={() => navigate(-1)} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+          <FiArrowLeft className="mr-2" /> Back
+        </button>
+      </div>
       <div className="bg-white inset-shadow-sm shadow-sm rounded-lg">
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">

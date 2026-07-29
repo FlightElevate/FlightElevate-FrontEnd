@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck } from "react-icons/fi";
-import { useParams } from "react-router-dom";
+import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck, FiArrowLeft } from "react-icons/fi";
+import { useParams, useNavigate } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
 import profileImg from "../../../assets/img/profile.jpg";
 import { userService } from "../../../api/services/userService";
@@ -18,8 +18,9 @@ import EditUserModal from "../../../components/User/EditUserModal";
 import { useAuth } from "../../../context/AuthContext";
 
 const UserProfile = () => {
-  const { user: currentUser } = useAuth();
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -404,6 +405,11 @@ const UserProfile = () => {
 
   return (
     <div className="md:mt-5 mx-auto">
+      <div className="mb-4">
+        <button onClick={() => navigate(-1)} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors">
+          <FiArrowLeft className="mr-2" /> Back
+        </button>
+      </div>
       <div className="bg-white inset-shadow-sm shadow-sm rounded-lg">
         
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
