@@ -242,26 +242,49 @@ const AddUserModal = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Certificate Level / Ratings
                 </label>
-                <div className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white max-h-[150px] overflow-y-auto space-y-2">
-                  {["Student", "Private", "Commercial", "ATP", "CFI", "CFII", "MEI"].map(cert => (
-                    <label key={cert} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                      <input
-                        type="checkbox"
-                        checked={(formData.certificate_level || '').split(',').map(s => s.trim()).includes(cert)}
-                        onChange={(e) => {
-                          let current = (formData.certificate_level || '').split(',').map(s => s.trim()).filter(Boolean);
-                          if (e.target.checked) {
-                            if (!current.includes(cert)) current.push(cert);
-                          } else {
-                            current = current.filter(c => c !== cert);
-                          }
-                          updateField('certificate_level', current.join(', '));
-                        }}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="text-sm text-gray-700">{cert}</span>
-                    </label>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Pilot Certificate</p>
+                    <div className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white space-y-2">
+                      {["Student", "Private", "Commercial", "ATP"].map(cert => (
+                        <label key={cert} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(formData.certificate_level || '').split(',').map(s => s.trim()).includes(cert)}
+                            onChange={(e) => {
+                              let current = (formData.certificate_level || '').split(',').map(s => s.trim()).filter(Boolean);
+                              if (e.target.checked) { if (!current.includes(cert)) current.push(cert); }
+                              else { current = current.filter(c => c !== cert); }
+                              updateField('certificate_level', current.join(', '));
+                            }}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-700">{cert}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Flight Instructor Certificate</p>
+                    <div className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white space-y-2">
+                      {["CFI", "CFII", "MEI"].map(cert => (
+                        <label key={cert} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(formData.certificate_level || '').split(',').map(s => s.trim()).includes(cert)}
+                            onChange={(e) => {
+                              let current = (formData.certificate_level || '').split(',').map(s => s.trim()).filter(Boolean);
+                              if (e.target.checked) { if (!current.includes(cert)) current.push(cert); }
+                              else { current = current.filter(c => c !== cert); }
+                              updateField('certificate_level', current.join(', '));
+                            }}
+                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-700">{cert}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">Used for Acting PIC default (Student → Instructor PIC; Private+ → Student PIC)</p>
               </div>

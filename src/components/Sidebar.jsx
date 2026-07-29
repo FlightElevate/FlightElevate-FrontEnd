@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getNavigationItemsByRole } from "../config/navigation";
+import { getNavigationItemsByPermissions, getNavigationItemsByRole } from "../config/navigation";
 import { settingsService } from "../api/services/settingsService";
 import { authService } from "../api/services/authService";
 import { subscriptionPlanService } from "../api/services/subscriptionPlanService";
@@ -51,7 +51,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ];
     }
 
-    let items = getNavigationItemsByRole(user.roles);
+    // Use permission-based filtering (supports custom roles)
+    // Falls back to role-based if no menu.* permissions found
+    let items = getNavigationItemsByPermissions(user.permissions, user.roles);
     
     const seen = new Set();
     return items.filter(item => {
@@ -61,7 +63,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       seen.add(item.link);
       return true;
     });
-  }, [user?.roles, user?.has_active_subscription, user?.is_trial_active, user?.trial_ends_at]);
+  }, [user?.roles, user?.permissions, user?.has_active_subscription, user?.is_trial_active, user?.trial_ends_at]);
 
   
   useEffect(() => {
