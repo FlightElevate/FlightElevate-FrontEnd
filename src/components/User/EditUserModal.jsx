@@ -196,7 +196,7 @@ const EditUserModal = ({
                             else { current = current.filter(c => c !== cert); }
                             updateField('certificate_level', current.join(', '));
                           }}
-                          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-fuchsia-600 focus:ring-fuchsia-500 border-gray-300 rounded"
                         />
                         <span className="text-sm text-gray-700">{cert}</span>
                       </label>

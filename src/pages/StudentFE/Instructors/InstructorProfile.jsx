@@ -483,7 +483,7 @@ const InstructorProfile = () => {
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Flight Instructor Certificate</p>
                       {instructorCerts.length > 0
-                        ? <div className="flex flex-wrap gap-1">{instructorCerts.map(c => <span key={c} className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded">{c}</span>)}</div>
+                        ? <div className="flex flex-wrap gap-1">{instructorCerts.map(c => <span key={c} className="px-2 py-0.5 text-xs font-medium bg-fuchsia-100 text-fuchsia-700 rounded">{c}</span>)}</div>
                         : <p className="text-sm font-medium text-gray-900">—</p>
                       }
                     </div>
