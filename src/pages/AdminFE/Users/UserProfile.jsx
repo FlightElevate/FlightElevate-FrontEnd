@@ -1052,12 +1052,8 @@ const UserProfile = () => {
         <EditUserModal
           isOpen={editModalOpen}
           onClose={() => setEditModalOpen(false)}
-          onSuccess={(updatedUser) => {
-            if (updatedUser) {
-              setUser(updatedUser);
-            } else {
-              fetchUser();
-            }
+          onSuccess={() => {
+            fetchUser();
             setEditModalOpen(false);
           }}
           initialData={user}
