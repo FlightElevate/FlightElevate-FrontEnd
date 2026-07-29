@@ -116,7 +116,7 @@ export const navigationItems = [
     label: "Support",
     link: "/support",
     permission: "menu.support",
-    roles: ["super admin", "admin"], 
+    roles: ["super admin", "admin", "instructor", "student"], 
   },
   {
     icon: FiDollarSign,
