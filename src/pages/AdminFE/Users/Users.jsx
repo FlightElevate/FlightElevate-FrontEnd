@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { FiSearch, FiPlus } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 import { HiDotsVertical, HiChevronDown } from "react-icons/hi";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { userService } from "../../../api/services/userService";
 import { organizationService } from "../../../api/services/organizationService";
 import { useAuth } from "../../../context/AuthContext";
@@ -14,10 +14,13 @@ import { isSuperAdmin } from "../../../utils/roleUtils";
 
 const Users = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser } = useAuth();
   
   
-  const [selected, setSelected] = useState("Instructor");
+  const queryParams = new URLSearchParams(location.search);
+  const initialRole = queryParams.get('role') || "Instructor";
+  const [selected, setSelected] = useState(initialRole);
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   
@@ -117,7 +120,8 @@ const Users = () => {
     setSelected(role);
     setSelectedIds([]);
     setCurrentPage(1);
-  }, []);
+    navigate(`?role=${encodeURIComponent(role)}`, { replace: true });
+  }, [navigate]);
 
   
   const handleSortChange = useCallback((field) => {
