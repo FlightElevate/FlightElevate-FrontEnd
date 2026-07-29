@@ -89,10 +89,7 @@ const Instructors = () => {
     if (instructor.avatar || instructor.image || instructor.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
     }
-    
-    const imageIds = [1, 5, 8, 12, 15, 20, 25, 33, 47, 51, 68, 70];
-    const imageId = imageIds[instructor.id % imageIds.length] || 1;
-    return `https://i.pravatar.cc/150?img=${imageId}`;
+    return null;
   };
 
   const fetchInstructors = async () => {
@@ -333,20 +330,17 @@ const Instructors = () => {
                 className="group relative cursor-pointer border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-lg transition-all"
               >
                 <div onClick={() => handleInstructorClick(instructor.id)}>
-                  <img
-                    src={getInstructorImage(instructor)}
-                    alt={instructor.name}
-                    className="w-full h-[250px] object-cover"
-                    onError={(e) => {
-                      
-                      e.target.style.display = 'none';
-                      const parent = e.target.parentElement;
-                      const fallback = document.createElement('div');
-                      fallback.className = 'w-full h-[250px] bg-blue-500 flex items-center justify-center text-white text-4xl font-bold';
-                      fallback.textContent = instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
-                      parent.insertBefore(fallback, e.target);
-                    }}
-                  />
+                  {getInstructorImage(instructor) ? (
+                    <img
+                      src={getInstructorImage(instructor)}
+                      alt={instructor.name}
+                      className="w-full h-[250px] object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-[250px] bg-blue-500 flex items-center justify-center text-white text-4xl font-bold">
+                      {instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'IN'}
+                    </div>
+                  )}
                   <div className="px-3 py-2">
                     <p className="text-base fw5 leading-6 tracking-[0%] text-[#3D3D3D]">{instructor.name}</p>
                   </div>
@@ -432,20 +426,17 @@ const Instructors = () => {
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200">
-                            <img
-                              src={getInstructorImage(instructor)}
-                              alt={instructor.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                
-                                e.target.style.display = 'none';
-                                const parent = e.target.parentElement;
-                                const fallback = document.createElement('div');
-                                fallback.className = 'w-full h-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold';
-                                fallback.textContent = instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
-                                parent.appendChild(fallback);
-                              }}
-                            />
+                            {getInstructorImage(instructor) ? (
+                              <img
+                                src={getInstructorImage(instructor)}
+                                alt={instructor.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
+                                {instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'IN'}
+                              </div>
+                            )}
                           </div>
                           <span className="text-sm font-medium text-gray-800">
                             {instructor.name}

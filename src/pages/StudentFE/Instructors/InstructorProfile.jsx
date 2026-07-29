@@ -91,10 +91,7 @@ const InstructorProfile = () => {
     if (instructor?.avatar || instructor?.image || instructor?.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
     }
-    
-    const imageIds = [1, 5, 8, 12, 15, 20, 25, 33, 47, 51, 68, 70];
-    const imageId = imageIds[instructor?.id % imageIds.length] || 1;
-    return `https://i.pravatar.cc/150?img=${imageId}`;
+    return null;
   };
 
   const fetchFlightLogs = async () => {
@@ -414,20 +411,17 @@ const InstructorProfile = () => {
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200">
-              <img 
-                src={getInstructorImage(user)} 
-                alt={user?.name || 'Instructor'} 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  
-                  e.target.style.display = 'none';
-                  const parent = e.target.parentElement;
-                  const fallback = document.createElement('div');
-                  fallback.className = 'w-full h-full bg-blue-500 flex items-center justify-center text-white text-xl font-bold';
-                  fallback.textContent = user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
-                  parent.appendChild(fallback);
-                }}
-              />
+              {getInstructorImage(user) ? (
+                <img 
+                  src={getInstructorImage(user)} 
+                  alt={user?.name || 'Instructor'} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-xl font-bold">
+                  {user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'IN'}
+                </div>
+              )}
             </div>
             <div className="flex flex-col">
               <h1 className="text-2xl font-bold text-gray-900">{user?.name}</h1>
