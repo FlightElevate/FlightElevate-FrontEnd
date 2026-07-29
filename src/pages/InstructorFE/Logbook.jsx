@@ -56,6 +56,7 @@ const Logbook = () => {
     simulator_device_type: '',
     student_id: '',
     instructor_id: '',
+    send_copy_to_instructor: false,
     flight_date: '',
     route_from: '',
     route_to: '',
@@ -246,6 +247,7 @@ const Logbook = () => {
       simulator_device_type: logbook.simulator_device_type || '',
       student_id: logbook.student_id || '',
       instructor_id: logbook.instructor_id || user?.id || '',
+      send_copy_to_instructor: false,
       flight_date: logbook.flight_date || '',
       route_from: logbook.route_from || '',
       route_to: logbook.route_to || '',
@@ -1045,7 +1047,7 @@ const Logbook = () => {
                       {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
-                  <div>
+                  <div className="flex flex-col">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Instructor</label>
                     <select value={editForm.instructor_id || ''}
                       onChange={(e) => handleFormChange('instructor_id', e.target.value)}
@@ -1055,6 +1057,20 @@ const Logbook = () => {
                         ? instructors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)
                         : <option value={user?.id || ''}>{user?.name || 'Current User'}</option>}
                     </select>
+                    {editForm.instructor_id && String(editForm.instructor_id) !== String(user?.id) && !editingLogbook && (
+                      <div className="mt-2 flex items-center">
+                        <input
+                          type="checkbox"
+                          id="send_copy_to_instructor"
+                          checked={editForm.send_copy_to_instructor || false}
+                          onChange={(e) => handleFormChange('send_copy_to_instructor', e.target.checked)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="send_copy_to_instructor" className="ml-2 block text-xs text-gray-700">
+                          Send a copy to instructor's logbook
+                        </label>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
