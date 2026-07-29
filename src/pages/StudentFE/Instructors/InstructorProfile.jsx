@@ -358,22 +358,7 @@ const InstructorProfile = () => {
     setOpenMenu(openMenu === index ? null : index);
   };
 
-  const CERT_COLORS = {
-    CFI: "bg-blue-100 text-blue-700",
-    CFII: "bg-red-100 text-red-700",
-    MEI: "bg-yellow-100 text-yellow-700",
-    ATP: "bg-purple-100 text-purple-700",
-    Commercial: "bg-green-100 text-green-700",
-    Private: "bg-teal-100 text-teal-700",
-    Student: "bg-gray-100 text-gray-700",
-  };
 
-  const certificates = user?.certificate_level
-    ? user.certificate_level.split(',').map(c => c.trim()).filter(Boolean).map(name => ({
-        name,
-        color: CERT_COLORS[name] || "bg-gray-100 text-gray-700",
-      }))
-    : [];
 
   
   const filteredFlightLogs = flightLogs.filter((log) => {
@@ -474,7 +459,31 @@ const InstructorProfile = () => {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mb-8">
               <div><p className="text-sm text-gray-500 mb-1">Name</p><p className="text-sm font-medium text-gray-900">{user?.name || 'N/A'}</p></div>
-              <div><p className="text-sm text-gray-500 mb-1">Certificates</p><div className="flex gap-2">{certificates.map((cert, i) => (<span key={i} className={`px-2 py-0.5 text-xs font-medium rounded ${cert.color}`}>{cert.name}</span>))}</div></div>
+              {(() => {
+                const PILOT_CERTS = ['Student', 'Private', 'Commercial', 'ATP'];
+                const INSTRUCTOR_CERTS = ['CFI', 'CFII', 'MEI'];
+                const allCerts = (user?.certificate_level || '').split(',').map(c => c.trim()).filter(Boolean);
+                const pilotCerts = allCerts.filter(c => PILOT_CERTS.includes(c));
+                const instructorCerts = allCerts.filter(c => INSTRUCTOR_CERTS.includes(c));
+                return (
+                  <>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Pilot Certificate</p>
+                      {pilotCerts.length > 0
+                        ? <div className="flex flex-wrap gap-1">{pilotCerts.map(c => <span key={c} className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">{c}</span>)}</div>
+                        : <p className="text-sm font-medium text-gray-900">—</p>
+                      }
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Flight Instructor Certificate</p>
+                      {instructorCerts.length > 0
+                        ? <div className="flex flex-wrap gap-1">{instructorCerts.map(c => <span key={c} className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded">{c}</span>)}</div>
+                        : <p className="text-sm font-medium text-gray-900">—</p>
+                      }
+                    </div>
+                  </>
+                );
+              })()}
               <div><p className="text-sm text-gray-500 mb-1">Location</p><p className="text-sm font-medium text-gray-900">{user?.organization?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Phone</p><p className="text-sm font-medium text-gray-900">{user?.phone || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Email</p><p className="text-sm font-medium text-gray-900">{user?.email || 'N/A'}</p></div>

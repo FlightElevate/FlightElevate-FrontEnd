@@ -358,11 +358,7 @@ const UserProfile = () => {
     setOpenMenu(openMenu === index ? null : index);
   };
 
-  const certificates = [
-    { name: "CFI", color: "bg-blue-100 text-blue-700" },
-    { name: "CFII", color: "bg-red-100 text-red-700" },
-    { name: "MEI", color: "bg-yellow-100 text-yellow-700" },
-  ];
+
 
   
   const filteredFlightLogs = flightLogs.filter((log) => {
