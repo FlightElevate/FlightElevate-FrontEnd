@@ -178,7 +178,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         className={`fixed top-0 left-0 z-40 bg-blue-700 text-white shadow-md
           h-screen transform transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:static md:h-auto md:w-1/5 lg:w-1/6`}
+          md:translate-x-0 md:static md:h-auto md:w-1/5 lg:w-1/6 md:min-w-[180px]`}
       >
         {}
         <div className="border-b border-blue-600 relative">
