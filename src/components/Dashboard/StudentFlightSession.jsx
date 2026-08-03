@@ -163,23 +163,23 @@ const StudentFlightSession = () => {
               iconSize={10}
             />
             <Line
-              type="monotone"
-              dataKey="hours"
-              name="Total Hours Spent"
-              stroke="#3B82F6"
-              strokeWidth={2}
-              dot={{ fill: "#3B82F6", r: 4 }}
-              activeDot={{ r: 6 }}
+             type="monotone"
+             dataKey="hours"
+             name="Total Hours Spent"
+             stroke="#14B8A6"
+             strokeWidth={2}
+             dot={{ fill: "#14B8A6", r: 4 }}
+             activeDot={{ r: 6 }}
             />
             <Line
-              type="monotone"
-              dataKey="flights"
-              name="Flights Logged"
-              stroke="#9CA3AF"
-              strokeWidth={2}
-              dot={{ fill: "#9CA3AF", r: 4 }}
-              activeDot={{ r: 6 }}
-            />
+             type="monotone"
+             dataKey="flights"
+             name="Flights Logged"
+             stroke="#6366F1"
+             strokeWidth={2}
+             dot={{ fill: "#6366F1", r: 4 }}
+             activeDot={{ r: 6 }}
+           />
           </LineChart>
         </ResponsiveContainer>
       </div>
