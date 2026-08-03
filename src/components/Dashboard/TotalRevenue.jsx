@@ -54,9 +54,40 @@ const TotalRevenue = () => {
     return new Date().toISOString().split('T')[0];
   });
 
-  const [timePeriod, setTimePeriod] = useState("Weekly");
+  const [timePeriod, setTimePeriod] = useState("Last 30 days");
   const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Auto-update dates when period changes (except Custom)
+  useEffect(() => {
+    if (timePeriod === 'Custom') return;
+    
+    const end = new Date();
+    const start = new Date();
+    
+    switch (timePeriod) {
+      case 'Last 30 days':
+        start.setDate(end.getDate() - 30);
+        break;
+      case 'Last 3 months':
+        start.setMonth(end.getMonth() - 3);
+        break;
+      case 'Last 6 months':
+        start.setMonth(end.getMonth() - 6);
+        break;
+      case 'Last year':
+        start.setFullYear(end.getFullYear() - 1);
+        break;
+      case 'All time':
+        start.setFullYear(2020);
+        break;
+      default:
+        start.setDate(end.getDate() - 30);
+    }
+    
+    setEndDate(end.toISOString().split('T')[0]);
+    setStartDate(start.toISOString().split('T')[0]);
+  }, [timePeriod]);
 
   // Memoize current date to prevent re-renders (fixes React error #310)
   const currentDate = useMemo(() => getCurrentDate(), []);
@@ -116,15 +147,27 @@ const TotalRevenue = () => {
 
   
   const filteredData = useMemo(() => {
-    // Helper to format Date based on timePeriod
+    const [sy, sm, sd] = startDate.split('-');
+    const start = new Date(sy, sm - 1, sd);
+    
+    const [ey, em, ed] = endDate.split('-');
+    const end = new Date(ey, em - 1, ed);
+    
+    // Determine grouping based on date range
+    const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    let grouping = 'Monthly';
+    if (diffDays <= 35) grouping = 'Daily';
+    else if (diffDays <= 120) grouping = 'Weekly';
+
+    // Helper to format Date based on grouping
     const getPeriodKeyAndLabel = (dateObj) => {
       let periodKey = '';
       let periodLabel = '';
       
-      if (timePeriod === "Daily") {
+      if (grouping === "Daily") {
         periodKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
         periodLabel = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (timePeriod === "Weekly") {
+      } else if (grouping === "Weekly") {
         const weekStart = new Date(dateObj);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         periodKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
@@ -138,12 +181,7 @@ const TotalRevenue = () => {
 
     const dataMap = {};
     
-    // Parse start and end dates safely
-    const [sy, sm, sd] = startDate.split('-');
-    const start = new Date(sy, sm - 1, sd);
-    
-    const [ey, em, ed] = endDate.split('-');
-    const end = new Date(ey, em - 1, ed);
+    // Dates are already parsed at the top of the memo
 
     // Populate dataMap with all intervals initialized to 0
     let current = new Date(start);
@@ -182,26 +220,31 @@ const TotalRevenue = () => {
   }, [filteredData]);
 
   // Export function
-  const handleExport = async () => {
+  const handleExport = () => {
+    if (filteredData.length === 0) {
+      showErrorToast('No data to export');
+      return;
+    }
+    
     try {
-      const response = await logbookService.exportEntries({
-        start_date: startDate,
-        end_date: endDate
+      const csvRows = [];
+      csvRows.push(['Date', 'Revenue'].join(','));
+      
+      filteredData.forEach(row => {
+        csvRows.push([`"${row.date}"`, row.revenue].join(','));
       });
-
-      if (response) {
-        // Create blob and download (response is already the blob data from apiClient)
-        const blob = response instanceof Blob ? response : new Blob([response], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `revenue-report-${startDate}-to-${endDate}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        showSuccessToast('Report exported successfully');
-      }
+      
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `revenue-report-${startDate}-to-${endDate}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      showSuccessToast('Report exported successfully');
     } catch (error) {
       console.error('Error exporting report:', error);
       showErrorToast('Failed to export report');
@@ -221,29 +264,34 @@ const TotalRevenue = () => {
               onChange={(e) => setTimePeriod(e.target.value)}
               className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
             >
-              <option value="Daily">Daily</option>
-              <option value="Weekly">Weekly</option>
-              <option value="Monthly">Monthly</option>
+              <option value="Last 30 days">Last 30 days</option>
+              <option value="Last 3 months">Last 3 months</option>
+              <option value="Last 6 months">Last 6 months</option>
+              <option value="Last year">Last year</option>
+              <option value="All time">All time</option>
+              <option value="Custom">Custom</option>
             </select>
           </div>
           
-          {}
-          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-            />
-            <span className="text-gray-500 text-sm whitespace-nowrap">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-            />
-          </div>
+          {/* Date range pickers (only visible if Custom is selected) */}
+          {timePeriod === 'Custom' && (
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+              />
+              <span className="text-gray-500 text-sm whitespace-nowrap">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+              />
+            </div>
+          )}
           
           {}
           <button 

@@ -194,14 +194,20 @@ const FSession = () => {
       {}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10 mb-6">
         <div>
-          <p className="text-sm text-gray-500">Single Engine</p>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
+            <p className="text-sm text-gray-500 m-0 leading-none">Single Engine</p>
+          </div>
           <h3 className="text-2xl font-semibold text-gray-900">
             {summary.totalSingle.toLocaleString()}{" "}
             <span className="text-sm text-green-600 font-normal">Hours</span>
           </h3>
         </div>
         <div>
-          <p className="text-sm text-gray-500">Multi Engine</p>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-3 h-3 rounded-full bg-[#3B82F6]"></div>
+            <p className="text-sm text-gray-500 m-0 leading-none">Multi Engine</p>
+          </div>
           <h3 className="text-2xl font-semibold text-gray-900">
             {summary.totalMulti.toLocaleString()}{" "}
             <span className="text-sm text-green-600 font-normal">Hours</span>
@@ -225,26 +231,20 @@ const FSession = () => {
               tickLine={false}
             />
             <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} />
-            <Legend
-              verticalAlign="top"
-              align="right"
-              iconType="circle"
-              iconSize={10}
-            />
 
-            {}
+            {/* Bars */}
             <Bar
               dataKey="single"
               name="Single Engine"
-              fill="#14B8A6"
+              fill="#10B981"
               shape={<CustomBarShape />}
             />
 
-            {}
+            {/* Bars */}
             <Bar
               dataKey="multi"
               name="Multi Engine"
-              fill="#6366F1"
+              fill="#3B82F6"
               shape={<CustomBarShape />}
             />
           </BarChart>

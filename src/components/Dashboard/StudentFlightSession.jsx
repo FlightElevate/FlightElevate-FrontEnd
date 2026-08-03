@@ -142,13 +142,19 @@ const StudentFlightSession = () => {
     <div className="border border-gray-200 bg-white rounded-xl p-6">
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Flight Session Summary</h3>
-        <div className="flex flex-wrap gap-4 text-sm">
+        <div className="flex flex-wrap gap-6 text-sm">
           <div>
-            <span className="font-semibold text-gray-900">Single Engine </span>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
+              <span className="font-semibold text-gray-900 leading-none">Single Engine </span>
+            </div>
             <span className="text-green-600 font-semibold">{summary.singleEngine} Hours</span>
           </div>
           <div>
-            <span className="font-semibold text-gray-900">Multi Engine </span>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-3 h-3 rounded-full bg-[#3B82F6]"></div>
+              <span className="font-semibold text-gray-900 leading-none">Multi Engine </span>
+            </div>
             <span className="text-green-600 font-semibold">{summary.multiEngine} Hours</span>
           </div>
         </div>
@@ -175,21 +181,18 @@ const StudentFlightSession = () => {
               borderRadius: "8px",
             }}
           />
-          <Legend
-            wrapperStyle={{ paddingTop: "20px" }}
-            iconType="circle"
-          />
+          {/* Bars */}
           <Bar
             dataKey="single"
             name="Single Engine"
-            fill="#14B8A6"
+            fill="#10B981"
             shape={<CustomBarShape />}
             radius={[6, 6, 0, 0]}
           />
           <Bar
             dataKey="multi"
             name="Multi Engine"
-            fill="#6366F1"
+            fill="#3B82F6"
             shape={<CustomBarShape />}
             radius={[6, 6, 0, 0]}
           />
