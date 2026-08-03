@@ -193,14 +193,14 @@ const InstructorFlightSession = () => {
           <Bar
             dataKey="single"
             name="Single Engine"
-            fill="#3B82F6"
+            fill="#14B8A6"
             shape={<CustomBarShape />}
             radius={[6, 6, 0, 0]}
           />
           <Bar
             dataKey="multi"
             name="Multi Engine"
-            fill="#1E40AF"
+            fill="#6366F1"
             shape={<CustomBarShape />}
             radius={[6, 6, 0, 0]}
           />
