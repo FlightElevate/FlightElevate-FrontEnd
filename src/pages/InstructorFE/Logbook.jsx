@@ -18,7 +18,7 @@ const Logbook = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const reservationIdParam = searchParams.get("reservation_id");
   const { user } = useAuth();
-  const { isAdmin, isSuperAdmin } = useRole();
+  const { isAdmin, isSuperAdmin, isStudent, isInstructor } = useRole();
   const isAdminView = isAdmin() || isSuperAdmin();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -245,8 +245,8 @@ const Logbook = () => {
       aircraft_category: logbook.aircraft_category || '',
       aircraft_class: logbook.aircraft_class || '',
       simulator_device_type: logbook.simulator_device_type || '',
-      student_id: logbook.student_id || '',
-      instructor_id: logbook.instructor_id || user?.id || '',
+      student_id: logbook.student_id || (isStudent() ? (user?.id || '') : ''),
+      instructor_id: logbook.instructor_id || (isInstructor() ? (user?.id || '') : ''),
       send_copy_to_instructor: false,
       flight_date: logbook.flight_date || '',
       route_from: logbook.route_from || '',
@@ -382,7 +382,8 @@ const Logbook = () => {
     setEditForm({
       ...blankForm,
       flight_date: new Date().toISOString().split('T')[0],
-      instructor_id: user?.id || '',
+      student_id: isStudent() ? (user?.id || '') : '',
+      instructor_id: isInstructor() ? (user?.id || '') : '',
     });
     setAvailableModels([]);
     setAvailableClasses([]);
