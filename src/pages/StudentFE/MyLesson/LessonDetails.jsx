@@ -126,7 +126,7 @@ const LessonDetails = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col px-3 sm:px-6 gap-4 sm:gap-6">
+      <div className="flex flex-col px-2 gap-4 sm:gap-6">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
@@ -136,7 +136,7 @@ const LessonDetails = () => {
 
   if (error || !lesson) {
     return (
-      <div className="flex flex-col px-3 sm:px-6 gap-4 sm:gap-6">
+      <div className="flex flex-col px-2 gap-4 sm:gap-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800 break-words">{error || "Lesson not found"}</p>
           <button
@@ -240,7 +240,7 @@ const LessonDetails = () => {
   };
 
   return (
-    <div className="flex flex-col px-3 sm:px-6 gap-4 sm:gap-6">
+    <div className="flex flex-col px-2 gap-4 sm:gap-6">
       <div className="flex flex-wrap text-sm text-gray-500 gap-2 sm:gap-4 leading-5.5 tracking-[0px] fw6 font-inter">
         <Link to="/" className="flex items-center  ">
           <RiHome6Line className="text-gray-500 w-5 h-5" />
