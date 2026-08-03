@@ -1020,7 +1020,7 @@ const InstructorLessons = () => {
 
   if (loading) {
     return (
-      <div className="p-3">
+      <div className="p-3 -mx-4">
         <div className="border border-gray-200 bg-white rounded-xl p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading lessons...</p>
@@ -1030,7 +1030,7 @@ const InstructorLessons = () => {
   }
 
   return (
-    <div className="p-3">
+    <div className="p-3 -mx-4">
       <div className="border border-gray-200 bg-white rounded-xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#F3F4F6] p-4 gap-4">
           <h2 className="text-xl font-semibold text-gray-800">
