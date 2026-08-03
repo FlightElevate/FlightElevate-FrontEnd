@@ -167,7 +167,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     <>
       {}
       <div
-        className={`fixed inset-0 bg-black/90 z-45 transition-opacity md:hidden ${
+        className={`fixed inset-0 bg-black/90 z-[45] transition-opacity md:hidden ${
          isOpen ? "block" : "hidden"
         }`}
         onClick={() => setIsOpen(false)}
@@ -227,10 +227,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 )}
               </div>
               <div className="text-white flex-1 min-w-0">
-                <div className="text-lg font-bold truncate flex items-center gap-2">
-                  {displayName}
+                <div className="text-lg font-bold flex items-start gap-2">
+                  <span className="break-words">{displayName}</span>
                   {activeMemberships.length > 1 && (
-                    <HiChevronDown size={16} className={`transition-transform flex-shrink-0 ${showOrgSwitcher ? 'rotate-180' : ''}`} />
+                    <HiChevronDown size={16} className={`transition-transform flex-shrink-0 mt-1 ${showOrgSwitcher ? 'rotate-180' : ''}`} />
                   )}
                 </div>
                 <div className="text-sm text-blue-200">FlightElevate</div>
