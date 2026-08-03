@@ -31,7 +31,7 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="p-4 sm:p-6 bg-white inset-shadow-sm shadow-xl rounded-lg">
+    <div className="p-4 sm:p-6 -mx-4 bg-white inset-shadow-sm shadow-xl rounded-lg">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
