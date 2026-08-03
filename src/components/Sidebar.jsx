@@ -167,15 +167,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     <>
       {}
       <div
-        className={`fixed inset-0 bg-opacity-90 z-30 transition-opacity md:hidden ${
-          isOpen ? "block" : "hidden"
+        className={`fixed inset-0 bg-black/90 z-45 transition-opacity md:hidden ${
+         isOpen ? "block" : "hidden"
         }`}
         onClick={() => setIsOpen(false)}
       />
 
       {}
       <aside
-        className={`fixed top-0 left-0 z-40 bg-blue-700 text-white shadow-md
+        className={`fixed top-0 left-0 z-50 bg-blue-700 text-white shadow-md
           h-screen transform transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0 md:static md:h-auto md:w-1/5 lg:w-1/6 md:min-w-[180px]`}
