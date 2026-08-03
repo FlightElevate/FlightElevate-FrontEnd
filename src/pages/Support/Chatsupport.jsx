@@ -578,7 +578,7 @@ const ChatSupport = () => {
 
   if (loading) {
     return (
-      <div className="mx-auto p-6 bg-[#F9F9F9] min-h-screen font-sans flex items-center justify-center">
+      <div className="p-2 bg-[#F9F9F9] font-sans...">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -586,7 +586,7 @@ const ChatSupport = () => {
 
   if (!ticketId || !ticket) {
     return (
-      <div className="mx-auto p-6 bg-[#F9F9F9] min-h-screen font-sans">
+      <div className="p-2 bg-[#F9F9F9] font-sans...">
         <div className="bg-white p-6 rounded shadow">
           <p className="text-gray-600">No ticket selected. Please select a ticket from the support list.</p>
           <button
@@ -608,7 +608,7 @@ const ChatSupport = () => {
   };
 
   return (
-    <div className="mx-auto p-6 bg-[#F9F9F9] min-h-screen font-sans">
+    <div className="p-2 bg-[#F9F9F9] font-sans...">
       <h1 className="text-2xl font-semibold text-gray-800 mb-6">
         Support Detail
       </h1>
