@@ -236,7 +236,7 @@ const Header = ({ toggleSidebar }) => {
             {}
             <button 
               onClick={toggleSidebar}
-              className="lg:hidden text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors p-2 rounded-lg flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="md:hidden text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors p-2 rounded-lg flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Toggle sidebar"
             >
               <FiMenu size={22} className="sm:w-6 sm:h-6" />
