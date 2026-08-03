@@ -224,7 +224,7 @@ const FSession = () => {
             <Bar
               dataKey="single"
               name="Single Engine"
-              fill="#A5F3FC"
+              fill="#14B8A6"
               shape={<CustomBarShape />}
             />
 
@@ -232,7 +232,7 @@ const FSession = () => {
             <Bar
               dataKey="multi"
               name="Multi Engine"
-              fill="#1D4ED8"
+              fill="#6366F1"
               shape={<CustomBarShape />}
             />
           </BarChart>
