@@ -1273,7 +1273,7 @@ const Calendar = () => {
   ];
 
   return (
-    <div className="w-full px-0 md:mt-5 mx-auto" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+    <div className="w-full px-0 sm:px-2 md:px-4 lg:px-6 md:mt-5 mx-auto" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
       {!modalOnly && (
       <div className="bg-white shadow-sm rounded-lg w-full" style={{ overflowX: 'visible', width: '100%', maxWidth: '100%', minWidth: 0 }}>
         {/* Header */}
