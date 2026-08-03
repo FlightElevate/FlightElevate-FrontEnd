@@ -1476,7 +1476,7 @@ const Calendar = () => {
       );
     }
     return (
-      <div className="w-full max-w-full px-2 sm:px-4 md:px-6 md:mt-5 mx-auto">
+      <div className="w-full max-w-full px-0 md:mt-5 mx-auto">
         <div className="bg-white shadow-sm rounded-lg p-8 sm:p-12">
           <div className="flex justify-center items-center">
             <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600"></div>
