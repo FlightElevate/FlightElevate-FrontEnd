@@ -1,5 +1,3 @@
-
-Header · JSX
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
