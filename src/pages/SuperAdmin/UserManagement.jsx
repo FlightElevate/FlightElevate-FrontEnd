@@ -19,7 +19,6 @@ const UserManagement = () => {
   const [selected, setSelected] = useState(tabParam && roleFilters.includes(tabParam) ? tabParam : "Instructor");
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [nameFilter, setNameFilter] = useState("");
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +41,7 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, itemsPerPage, selected, searchTerm, nameFilter]);
+  }, [currentPage, itemsPerPage, selected, searchTerm]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -69,7 +68,6 @@ const UserManagement = () => {
           page: currentPage,
           per_page: itemsPerPage,
           search: searchTerm,
-          name: nameFilter,
           sort: 'created_at',
           order: 'desc',
           ...(selected === "Request" ? { verification_status: 'pending' } : {})
@@ -80,7 +78,6 @@ const UserManagement = () => {
           per_page: itemsPerPage,
           role: selected,
           search: searchTerm,
-          name: nameFilter,
           sort: 'created_at',
           order: 'desc'
         });
@@ -278,7 +275,7 @@ const UserManagement = () => {
               <FiSearch className="text-gray-400 mr-2" size={16} />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search by Name, Email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
@@ -286,17 +283,6 @@ const UserManagement = () => {
               <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded">
                 ⌘
               </span>
-            </div>
-            
-            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm flex-grow sm:flex-grow-0 sm:w-[200px]">
-              <FiSearch className="text-gray-400 mr-2" size={16} />
-              <input
-                type="text"
-                placeholder="Search by Name..."
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
-              />
             </div>
             
           </div>

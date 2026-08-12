@@ -23,7 +23,6 @@ const Users = () => {
   const [selected, setSelected] = useState(initialRole);
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [nameFilter, setNameFilter] = useState("");
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +56,6 @@ const Users = () => {
         page: currentPage,
         per_page: itemsPerPage,
         search: searchTerm,
-        name: nameFilter,
         sort: sortField,
         order: sortOrder
       };
@@ -80,7 +78,7 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, selected, searchTerm, nameFilter, sortField, sortOrder]);
+  }, [currentPage, itemsPerPage, selected, searchTerm, sortField, sortOrder]);
 
   
   useEffect(() => {
@@ -243,23 +241,12 @@ const Users = () => {
               <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search by Name, Email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full min-w-0"
               />
               <span className="ml-2 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded flex-shrink-0 hidden sm:inline">⌘</span>
-            </div>
-            
-            <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm w-full sm:w-[200px] min-h-[44px]">
-              <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
-              <input
-                type="text"
-                placeholder="Search by Name..."
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-                className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full min-w-0"
-              />
             </div>
             
             {}
