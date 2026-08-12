@@ -245,8 +245,22 @@ const Inbox = () => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setShowActionMenu(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    
+    let userChannel = null;
+    if (user?.id) {
+      userChannel = echo.private(`user.${user.id}`);
+      userChannel.listen('.new.message', () => {
+        getChats();
+      });
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (userChannel) {
+        userChannel.stopListening('.new.message');
+      }
+    };
+  }, [user?.id]);
 
   // Refresh users when user list is shown
   useEffect(() => {
@@ -280,7 +294,7 @@ const Inbox = () => {
     const channelName = `chat.${selectedChat.conversation_id}`;
     const channel = echo.private(channelName);
 
-    channel.listen('ChatMessageStored', payload => {
+    channel.listen('.chat.message', payload => {
       const message = payload.message;
       if (message.chat_user?.user?.id !== user.id) {
         setSelectedChat(prev => ({

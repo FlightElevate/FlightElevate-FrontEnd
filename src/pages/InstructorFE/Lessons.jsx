@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { HiDotsVertical, HiChevronDown } from "react-icons/hi";
-import { FiSearch, FiCheck, FiX, FiPlus } from "react-icons/fi";
+import { HiDotsVertical, HiChevronDown, HiDownload } from "react-icons/hi";
+import { FiSearch, FiEdit2, FiTrash2, FiX, FiCheckCircle, FiCheck, FiPlus } from "react-icons/fi";
+import { MdFilterList, MdCheck, MdClose } from "react-icons/md";
 import { FLIGHT_TYPES } from "../../config/flightTypes";
-import { MdFilterList } from "react-icons/md";
 import Pagination from "../../components/Pagination";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -10,8 +10,9 @@ import { useRole } from "../../hooks/useRole";
 import { lessonService } from "../../api/services/lessonService";
 import { userService } from "../../api/services/userService";
 import { aircraftService } from "../../api/services/aircraftService";
-import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../utils/notifications";
+import { showSuccessToast, showErrorToast, showDeleteConfirm, showInfoToast } from "../../utils/notifications";
 import { safeDisplay } from "../../utils/safeDisplay";
+import echo from "../../echo";
 
 const getStatusColor = (status) => {
   if (!status) return "bg-gray-100 text-gray-600";
@@ -55,6 +56,7 @@ const InstructorLessons = () => {
   const [showRequests, setShowRequests] = useState(false);
   const [showLessons, setShowLessons] = useState(false); // Default to not selected
   const [statusFilter, setStatusFilter] = useState('all'); // all, pending, ongoing, completed
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const sortRef = useRef(null);
   const [acceptingId, setAcceptingId] = useState(null);
@@ -724,8 +726,28 @@ const InstructorLessons = () => {
     };
 
     fetchLessons();
-  }, [user?.id, currentPage, itemsPerPage, showRequests, showLessons, statusFilter, isAdmin, isSuperAdmin]);
+  }, [user?.id, currentPage, itemsPerPage, showRequests, showLessons, statusFilter, isAdmin, isSuperAdmin, refreshTrigger]);
 
+  // Real-time listener for new reservations requests
+  useEffect(() => {
+    if (user?.id) {
+      const channel = echo.private(`user.${user.id}`);
+      
+      const handleNewRequest = () => {
+        // Only refetch if we are currently looking at the requests tab
+        if (showRequests) {
+          setRefreshTrigger(prev => prev + 1);
+        }
+      };
+
+      channel.listen('.reservation.requested', handleNewRequest);
+
+      return () => {
+        channel.stopListening('.reservation.requested', handleNewRequest);
+      };
+    }
+  }, [user?.id, showRequests]);
+  
   
   const handleLessonFormChange = (e) => {
     const { name, value } = e.target;

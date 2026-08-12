@@ -1297,12 +1297,8 @@ const Calendar = () => {
       }
     }
 
-    // Only Admin and Super Admin can create lessons directly
-    if (isStudent()) {
-      showErrorToast('Only Admin can create lessons. Students can request sessions.');
-      setSubmitting(false);
-      return;
-    }
+    // Admin and Super Admin can create lessons directly. Students can request sessions.
+    // We removed the block here so students can proceed with the request.
 
     // Location is required for reservations
     if (!reservationForm.location_id || String(reservationForm.location_id).trim() === '') {
@@ -1329,7 +1325,7 @@ const Calendar = () => {
       const lessonData = {
         ...reservationForm,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        is_request: false,
+        is_request: isStudent(),
         // Convert single IDs to arrays for many-to-many relationship
         student_ids: reservationForm.student_id ? [parseInt(reservationForm.student_id)] : [],
         instructor_ids: reservationForm.instructor_id ? [parseInt(reservationForm.instructor_id)] : [],

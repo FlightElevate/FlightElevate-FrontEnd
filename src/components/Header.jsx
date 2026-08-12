@@ -4,10 +4,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { FiSearch, FiMenu, FiX } from 'react-icons/fi';
 import { HiBell } from 'react-icons/hi';
 import { HiChevronDown } from 'react-icons/hi';
-import { showConfirmDialog } from '../utils/notifications';
+import { showConfirmDialog, showSuccessToast, showInfoToast } from '../utils/notifications';
 import { userService } from '../api/services/userService';
 import { settingsService } from '../api/services/settingsService';
 import { getImageUrl } from '../utils/imageUtils';
+import echo from '../echo';
  
 const Header = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
@@ -20,10 +21,32 @@ const Header = ({ toggleSidebar }) => {
   const [searchUsers, setSearchUsers] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
   const searchResultsRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      const channel = echo.private(`user.${user.id}`);
+      
+      channel.listen('.reservation.requested', (data) => {
+        showSuccessToast(`Student ${data.student_names || 'Someone'} has requested a new flight session!`);
+        setUnreadNotifications(prev => prev + 1);
+      });
+
+      channel.listen('.new.message', (data) => {
+        showInfoToast(`New message from ${data.sender_name || 'Someone'}`);
+        setUnreadNotifications(prev => prev + 1);
+      });
+
+      return () => {
+        channel.stopListening('.reservation.requested');
+        channel.stopListening('.new.message');
+      };
+    }
+  }, [user?.id]);
  
   // Fetch profile image from settings API (same as settings page)
   useEffect(() => {
@@ -360,9 +383,17 @@ const Header = ({ toggleSidebar }) => {
             <button
               className="hidden min-[360px]:flex text-gray-600 hover:text-gray-900 transition-colors relative min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg hover:bg-gray-100"
               aria-label="Notifications"
+              onClick={() => {
+                setUnreadNotifications(0);
+                navigate('/inbox');
+              }}
             >
               <HiBell size={20} />
-              {}
+              {unreadNotifications > 0 && (
+                <span className="absolute top-2 right-2 flex items-center justify-center h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
             </button>
  
             {}
