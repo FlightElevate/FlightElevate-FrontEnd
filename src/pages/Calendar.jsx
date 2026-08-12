@@ -33,6 +33,19 @@ const parseTimeParts = (t) => {
 };
 
 const eventStartEndMs = (event) => {
+  // If backend provided exact UTC times, use them for perfect timezone rendering
+  if (event.start_time_utc && event.end_time_utc) {
+    const start = new Date(event.start_time_utc);
+    const end = new Date(event.end_time_utc);
+    return { 
+      start, 
+      end, 
+      startMs: start.getTime(), 
+      endMs: end.getTime() 
+    };
+  }
+
+  // Fallback for legacy events without UTC
   const [sh, sm] = parseTimeParts(event.start_time);
   const startDate = (event.date || '').toString().slice(0, 10);
   const start = new Date(`${startDate}T${pad2(sh)}:${pad2(sm)}:00`);
