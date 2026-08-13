@@ -246,30 +246,13 @@ const Instructors = () => {
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {}
-            <div className="flex items-center border border-gray-200 bg-white rounded-lg shadow-sm overflow-hidden">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`px-3 py-2 transition ${
-                  viewMode === "grid"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-                title="Grid View"
-              >
-                <FiGrid size={18} />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`px-3 py-2 transition border-l border-gray-200 ${
-                  viewMode === "list"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-                title="List View"
-              >
-                <FiList size={18} />
-              </button>
-            </div>
+            <button
+              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+              className="px-3 py-2 transition bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 flex items-center justify-center"
+              title={viewMode === "grid" ? "List View" : "Grid View"}
+            >
+              {viewMode === "grid" ? <FiList size={18} /> : <FiGrid size={18} />}
+            </button>
             
             {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 w-full">

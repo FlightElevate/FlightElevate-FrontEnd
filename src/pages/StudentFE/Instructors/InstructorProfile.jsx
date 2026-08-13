@@ -265,8 +265,7 @@ const InstructorProfile = () => {
       return;
     }
 
-    
-    if (!requestForm.lesson_date || !requestForm.lesson_time || !requestForm.flight_type) {
+    if (!requestForm.lesson_date || !requestForm.lesson_time || !requestForm.flight_type || requestForm.flight_type === 'Other') {
       showErrorToast('Please fill in all required fields');
       return;
     }
@@ -604,7 +603,7 @@ const InstructorProfile = () => {
               </button>
             </div>
 
-            <form onSubmit={handleRequestSubmit} className="p-6">
+            <form onSubmit={handleRequestSubmit} className="p-6" noValidate>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
