@@ -71,6 +71,7 @@ const Setting = () => {
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [newLocationName, setNewLocationName] = useState('');
   const [newLocationAddress, setNewLocationAddress] = useState('');
+  const [newLocationTimezone, setNewLocationTimezone] = useState('');
   const [savingLocation, setSavingLocation] = useState(false);
   const [deletingLocationId, setDeletingLocationId] = useState(null);
 
@@ -95,11 +96,12 @@ const Setting = () => {
     }
     setSavingLocation(true);
     try {
-      const res = await locationService.createLocation({ name: newLocationName.trim(), address: newLocationAddress.trim() });
+      const res = await locationService.createLocation({ name: newLocationName.trim(), address: newLocationAddress.trim(), timezone: newLocationTimezone.trim() });
       if (res.success) {
         showSuccessToast('Location added successfully');
         setNewLocationName('');
         setNewLocationAddress('');
+        setNewLocationTimezone('');
         fetchLocations();
       } else {
         showErrorToast(res.message || 'Failed to add location');
@@ -2150,13 +2152,27 @@ const Setting = () => {
                       value={newLocationAddress}
                       onChange={(e) => setNewLocationAddress(e.target.value)}
                       placeholder="Address (optional)"
-                      className="col-span-1 sm:col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="col-span-1 sm:col-span-3 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onKeyDown={(e) => e.key === 'Enter' && handleAddLocation()}
                     />
+                    <select
+                      value={newLocationTimezone}
+                      onChange={(e) => setNewLocationTimezone(e.target.value)}
+                      className="col-span-1 sm:col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Default Timezone</option>
+                      <option value="America/New_York">Eastern Time (EST/EDT)</option>
+                      <option value="America/Chicago">Central Time (CST/CDT)</option>
+                      <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                      <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                      <option value="America/Anchorage">Alaska Time (AKT)</option>
+                      <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
                     <button
                       onClick={handleAddLocation}
                       disabled={savingLocation || !newLocationName.trim()}
-                      className="col-span-1 sm:col-span-3 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="col-span-1 sm:col-span-2 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FiPlus size={16} />
                       {savingLocation ? 'Adding...' : 'Add Location'}

@@ -10,6 +10,7 @@ import { useRole } from "../../hooks/useRole";
 import { lessonService } from "../../api/services/lessonService";
 import { userService } from "../../api/services/userService";
 import { aircraftService } from "../../api/services/aircraftService";
+import { locationService } from "../../api/services/locationService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm, showInfoToast } from "../../utils/notifications";
 import { safeDisplay } from "../../utils/safeDisplay";
 import echo from "../../echo";
@@ -66,6 +67,7 @@ const InstructorLessons = () => {
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [aircraft, setAircraft] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [showStartSessionModal, setShowStartSessionModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -81,6 +83,7 @@ const InstructorLessons = () => {
   const [lessonForm, setLessonForm] = useState({
     student_id: '',
     aircraft_id: '',
+    location_id: '',
     flight_type: '',
     lesson_date: '',
     lesson_time: '',
@@ -624,6 +627,13 @@ const InstructorLessons = () => {
 
     if (showAddLessonModal) {
       fetchAircraft();
+
+      // Fetch locations for timezone resolution
+      locationService.getLocations().then(res => {
+        if (res.success && Array.isArray(res.data)) {
+          setLocations(res.data);
+        }
+      }).catch(() => {});
     }
   }, [user?.organization_id, user?.organization?.id, showAddLessonModal]);
 
@@ -894,13 +904,18 @@ const InstructorLessons = () => {
 
     setSubmitting(true);
     try {
+      // Determine timezone from the selected location
+      const selectedLocation = locations.find(loc => String(loc.id) === String(lessonForm.location_id));
+      const resolvedTimezone = selectedLocation?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       const lessonData = {
         ...lessonForm,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone: resolvedTimezone,
         // Convert single IDs to arrays for many-to-many relationship
         student_ids: lessonForm.student_id ? [parseInt(lessonForm.student_id)] : [],
         instructor_ids: [user.id], // Current user is the instructor
         aircraft_id: lessonForm.aircraft_id ? parseInt(lessonForm.aircraft_id) : null,
+        location_id: lessonForm.location_id ? parseInt(lessonForm.location_id) : null,
         duration_minutes: parseInt(lessonForm.duration_minutes) || 60,
         status: 'pending',
       };
@@ -1945,6 +1960,26 @@ const InstructorLessons = () => {
                         required
                       />
                     </div>
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location
+                    </label>
+                    <select
+                      name="location_id"
+                      value={lessonForm.location_id}
+                      onChange={handleLessonFormChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                    >
+                      <option value="">Select location (optional)</option>
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name}{loc.timezone ? ` (${loc.timezone.split('/').pop()?.replace('_', ' ')})` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

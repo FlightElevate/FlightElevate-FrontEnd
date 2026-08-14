@@ -32,9 +32,9 @@ const parseTimeParts = (t) => {
   return [Number.isNaN(h) ? 0 : h, Number.isNaN(m) ? 0 : m];
 };
 
-const eventStartEndMs = (event) => {
-  // If backend provided exact UTC times, use them for perfect timezone rendering
-  if (event.start_time_utc && event.end_time_utc) {
+const eventStartEndMs = (event, useLocalTimezone = false) => {
+  // If user wants local timezone, use UTC (browser will auto-convert to local time)
+  if (useLocalTimezone && event.start_time_utc && event.end_time_utc) {
     const start = new Date(event.start_time_utc);
     const end = new Date(event.end_time_utc);
     return { 
@@ -45,7 +45,7 @@ const eventStartEndMs = (event) => {
     };
   }
 
-  // Fallback for legacy events without UTC
+  // Otherwise, use literal location time (default)
   const [sh, sm] = parseTimeParts(event.start_time);
   const startDate = (event.date || '').toString().slice(0, 10);
   const start = new Date(`${startDate}T${pad2(sh)}:${pad2(sm)}:00`);
@@ -62,15 +62,17 @@ const eventStartEndMs = (event) => {
   };
 };
 
-const eventOverlapsCalendarDay = (event, dateStr) => {
-  const { startMs, endMs } = eventStartEndMs(event);
+const eventOverlapsCalendarDay = (event, dateStr, useLocalTimezone = false) => {
+  const { startMs, endMs } = eventStartEndMs(event, useLocalTimezone);
+  // In local timezone mode, we compare against wall-clock midnight for the selected date
+  // new Date(`${dateStr}T00:00:00`) is interpreted as local midnight by the browser — correct behavior.
   const dayStart = new Date(`${dateStr}T00:00:00`).getTime();
   const dayEnd = new Date(`${dateStr}T23:59:59.999`).getTime();
   return startMs <= dayEnd && endMs >= dayStart;
 };
 
-const portionOnDayMs = (event, dateStr) => {
-  const { startMs, endMs } = eventStartEndMs(event);
+const portionOnDayMs = (event, dateStr, useLocalTimezone = false) => {
+  const { startMs, endMs } = eventStartEndMs(event, useLocalTimezone);
   const dayStart = new Date(`${dateStr}T00:00:00`).getTime();
   const dayEnd = dayStart + 86400000; // Exactly 24 hours later
   const segStart = Math.max(startMs, dayStart);
@@ -79,28 +81,28 @@ const portionOnDayMs = (event, dateStr) => {
   return { segStart, segEnd };
 };
 
-const firstVisibleHourOnDay = (event, dateStr) => {
-  const p = portionOnDayMs(event, dateStr);
+const firstVisibleHourOnDay = (event, dateStr, useLocalTimezone = false) => {
+  const p = portionOnDayMs(event, dateStr, useLocalTimezone);
   if (!p) return null;
   return new Date(p.segStart).getHours();
 };
 
-const getEventForCellHour = (item, hour, dateStr) => {
+const getEventForCellHour = (item, hour, dateStr, useLocalTimezone = false) => {
   if (!item.events || item.events.length === 0) return null;
   const hourStart = new Date(`${dateStr}T${pad2(hour)}:00:00`).getTime();
   const hourEnd = new Date(`${dateStr}T${pad2(hour)}:59:59.999`).getTime();
   const matches = item.events.filter((e) => {
-    if (!eventOverlapsCalendarDay(e, dateStr)) return false;
-    const p = portionOnDayMs(e, dateStr);
+    if (!eventOverlapsCalendarDay(e, dateStr, useLocalTimezone)) return false;
+    const p = portionOnDayMs(e, dateStr, useLocalTimezone);
     if (!p) return false;
     return p.segStart < hourEnd && p.segEnd > hourStart;
   });
   if (matches.length === 0) return null;
-  return matches.sort((a, b) => eventStartEndMs(a).startMs - eventStartEndMs(b).startMs)[0];
+  return matches.sort((a, b) => eventStartEndMs(a, useLocalTimezone).startMs - eventStartEndMs(b, useLocalTimezone).startMs)[0];
 };
 
-const getEventSpanHours = (event, dateStr) => {
-  const p = portionOnDayMs(event, dateStr);
+const getEventSpanHours = (event, dateStr, useLocalTimezone = false) => {
+  const p = portionOnDayMs(event, dateStr, useLocalTimezone);
   if (!p) return 1;
   const durationMin = Math.max(1, Math.ceil((p.segEnd - p.segStart) / 60000));
   return Math.min(24, Math.max(1, Math.ceil(durationMin / 60)));
@@ -135,6 +137,7 @@ const Calendar = () => {
   const [filteredUserSchedule, setFilteredUserSchedule] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
+  const [useLocalTimezone, setUseLocalTimezone] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarViewMode, setCalendarViewMode] = useState('day'); // 'week' | 'day' | 'custom'
   const [customStartDate, setCustomStartDate] = useState(() => {
@@ -948,8 +951,8 @@ const Calendar = () => {
   const getEventsForDay = (item, dateStr) => {
     if (!item.events || item.events.length === 0) return [];
     return item.events
-      .filter((e) => eventOverlapsCalendarDay(e, dateStr))
-      .sort((a, b) => eventStartEndMs(a).startMs - eventStartEndMs(b).startMs);
+      .filter((e) => eventOverlapsCalendarDay(e, dateStr, useLocalTimezone))
+      .sort((a, b) => eventStartEndMs(a, useLocalTimezone).startMs - eventStartEndMs(b, useLocalTimezone).startMs);
   };
 
   const getEventColor = (event, itemType = null) => {
@@ -1193,7 +1196,7 @@ const Calendar = () => {
             const endDateTime = new Date(selectedDateTime.getTime() + reservationForm.duration_minutes * 60000);
             
             const conflictingEvent = eventsToCheck.find((event) => {
-              const { startMs, endMs } = eventStartEndMs(event);
+              const { startMs, endMs } = eventStartEndMs(event, useLocalTimezone);
               const selStart = selectedDateTime.getTime();
               const selEnd = endDateTime.getTime();
               return selStart < endMs && selEnd > startMs;
@@ -1322,9 +1325,13 @@ const Calendar = () => {
         locationId = createLocRes.data.id;
       }
 
+      // Determine correct timezone from the selected location, fall back to browser timezone
+      const selectedLocation = locationsList.find(loc => String(loc.id) === String(locationId));
+      const resolvedTimezone = selectedLocation?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       const lessonData = {
         ...reservationForm,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone: resolvedTimezone,
         is_request: isStudent(),
         // Convert single IDs to arrays for many-to-many relationship
         student_ids: reservationForm.student_id ? [parseInt(reservationForm.student_id)] : [],
@@ -1508,8 +1515,8 @@ const Calendar = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 whitespace-nowrap">Schedule</h2>
-              <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-600 rounded-md whitespace-nowrap">
-                {Intl.DateTimeFormat().resolvedOptions().timeZone}
+              <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-600 rounded-md whitespace-nowrap" title={useLocalTimezone ? 'Showing times in your local timezone' : 'Showing times in the event\'s location timezone'}>
+                {useLocalTimezone ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Location Time'}
               </span>
             </div>
           
@@ -1672,6 +1679,28 @@ const Calendar = () => {
                   </span>
                 )}
               </div>
+              
+              {/* Timezone Toggle */}
+              <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-auto bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">
+                <span className={`text-xs font-medium ${!useLocalTimezone ? 'text-blue-600' : 'text-gray-500'}`}>
+                  Location Time
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setUseLocalTimezone(!useLocalTimezone)}
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${useLocalTimezone ? 'bg-blue-600' : 'bg-gray-300'}`}
+                  role="switch"
+                  aria-checked={useLocalTimezone}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${useLocalTimezone ? 'translate-x-4' : 'translate-x-0'}`}
+                  />
+                </button>
+                <span className={`text-xs font-medium ${useLocalTimezone ? 'text-blue-600' : 'text-gray-500'}`}>
+                  My Local Time
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1758,8 +1787,8 @@ const Calendar = () => {
 
                           {/* Events */}
                           {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
-                            const fullRange = eventStartEndMs(event);
-                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            const fullRange = eventStartEndMs(event, useLocalTimezone);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate), useLocalTimezone);
                             if (!p) return null;
                             const dStart = new Date(p.segStart);
                             const startHour = dStart.getHours() + dStart.getMinutes() / 60;
@@ -1792,8 +1821,8 @@ const Calendar = () => {
                           })}
                           {/* Mobile events */}
                           {getEventsForDay(aircraft, formatDateStr(currentDate)).map((event, idx) => {
-                            const fullRange = eventStartEndMs(event);
-                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            const fullRange = eventStartEndMs(event, useLocalTimezone);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate), useLocalTimezone);
                             if (!p) return null;
                             const dStart = new Date(p.segStart);
                             const startHour = dStart.getHours() + dStart.getMinutes() / 60;
@@ -1855,8 +1884,8 @@ const Calendar = () => {
 
 
                           {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
-                            const fullRange = eventStartEndMs(event);
-                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            const fullRange = eventStartEndMs(event, useLocalTimezone);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate), useLocalTimezone);
                             if (!p) return null;
                             const dStart = new Date(p.segStart);
                             const startHour = dStart.getHours() + dStart.getMinutes() / 60;
@@ -1889,8 +1918,8 @@ const Calendar = () => {
                           })}
                           {/* Mobile events */}
                           {getEventsForDay(user, formatDateStr(currentDate)).map((event, idx) => {
-                            const fullRange = eventStartEndMs(event);
-                            const p = portionOnDayMs(event, formatDateStr(currentDate));
+                            const fullRange = eventStartEndMs(event, useLocalTimezone);
+                            const p = portionOnDayMs(event, formatDateStr(currentDate), useLocalTimezone);
                             if (!p) return null;
                             const dStart = new Date(p.segStart);
                             const startHour = dStart.getHours() + dStart.getMinutes() / 60;
@@ -2126,7 +2155,19 @@ const Calendar = () => {
               </div>
             )}
             <div>
-              {formatEventTimeForDisplay(hoveredEvent.start_time)} - {formatEventTimeForDisplay(hoveredEvent.end_time)}
+              {useLocalTimezone && hoveredEvent.start_time_utc && hoveredEvent.end_time_utc ? (
+                <>
+                  {new Date(hoveredEvent.start_time_utc).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: calendarSettings.time_format !== '24h' })}
+                  {' — '}
+                  {new Date(hoveredEvent.end_time_utc).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: calendarSettings.time_format !== '24h' })}
+                  <span className="ml-1 text-gray-400">(Local)</span>
+                </>
+              ) : (
+                <>
+                  {formatEventTimeForDisplay(hoveredEvent.start_time)} - {formatEventTimeForDisplay(hoveredEvent.end_time)}
+                  {hoveredEvent.timezone && <span className="ml-1 text-gray-400">({hoveredEvent.timezone.split('/').pop()?.replace('_', ' ') || hoveredEvent.timezone})</span>}
+                </>
+              )}
             </div>
           </div>
         </div>
