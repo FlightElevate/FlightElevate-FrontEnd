@@ -27,7 +27,7 @@ const OrganizationDetail = () => {
   const [studentsPage, setStudentsPage] = useState(1);
   const [joinRequestsPage, setJoinRequestsPage] = useState(1);
   const [actionLoading, setActionLoading] = useState(null);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   
   const fetchType = searchParams.get('type') || 'user';
@@ -477,6 +477,7 @@ const OrganizationDetail = () => {
                 currentPage={currentListData.page}
                 setPage={currentListData.setPage}
                 itemsPerPage={itemsPerPage}
+                setPerPage={setItemsPerPage}
                 totalItems={currentListData.total}
                 emptyMessage={currentListData.emptyMessage}
                 showActions={currentListData.showActions}

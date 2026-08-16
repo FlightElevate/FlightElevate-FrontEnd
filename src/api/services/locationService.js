@@ -14,4 +14,7 @@ export const locationService = {
   async deleteLocation(id) {
     return await api.delete(ENDPOINTS.LOCATIONS.DELETE(id));
   },
+  async getNearbyAirports(id) {
+    return await api.get(ENDPOINTS.LOCATIONS.NEARBY_AIRPORTS(id));
+  },
 };

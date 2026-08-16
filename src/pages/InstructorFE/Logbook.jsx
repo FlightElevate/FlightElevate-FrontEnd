@@ -935,13 +935,13 @@ const Logbook = () => {
       </div>
 
       {/* Pagination */}
-      {totalItems > itemsPerPage && (
+      {totalItems > 0 && (
         <Pagination
-          currentPage={currentPage}
+          page={currentPage}
           totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
+          perPage={itemsPerPage}
+          setPage={setCurrentPage}
+          setPerPage={setItemsPerPage}
         />
       )}
 

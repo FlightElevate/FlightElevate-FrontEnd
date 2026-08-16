@@ -43,5 +43,9 @@ export const calendarService = {
   async getAvailableTimeSlots(params = {}) {
     return await api.get(ENDPOINTS.CALENDAR.AVAILABLE_SLOTS, params);
   },
+
+  async getLocationTime(icao) {
+    return await api.get(ENDPOINTS.CALENDAR.LOCATION_TIME(icao));
+  },
 };
 

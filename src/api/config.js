@@ -100,6 +100,7 @@ export const ENDPOINTS = {
     CREATE: '/locations',
     UPDATE: (id) => `/locations/${id}`,
     DELETE: (id) => `/locations/${id}`,
+    NEARBY_AIRPORTS: (id) => `/locations/${id}/nearby-airports`,
   },
 
   RESERVATIONS: {
@@ -187,6 +188,7 @@ export const ENDPOINTS = {
     AVAILABLE_SLOTS: '/calendar/available-slots',
     EVENTS: '/calendar/events',
     CREATE: '/calendar/events',
+    LOCATION_TIME: (icao) => `/airports/${icao}/time`,
   },
 
 

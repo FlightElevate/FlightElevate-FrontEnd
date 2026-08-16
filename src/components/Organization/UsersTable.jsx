@@ -8,6 +8,7 @@ export const UsersTable = memo(({
   currentPage = 1,
   setPage,
   itemsPerPage = 10,
+  setPerPage,
   totalItems = 0,
   emptyMessage = 'No users found',
   showActions = false,
@@ -113,13 +114,13 @@ export const UsersTable = memo(({
         </table>
       </div>
 
-      {totalItems > itemsPerPage && (
+      {totalItems > 0 && (
         <div className="mt-6 flex justify-center">
           <Pagination
             page={currentPage}
             setPage={setPage}
             perPage={itemsPerPage}
-            setPerPage={() => {}}
+            setPerPage={setPerPage}
             totalItems={totalItems}
           />
         </div>

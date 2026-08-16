@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { FiChevronLeft, FiChevronRight, FiSettings, FiX, FiCheck } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSettings, FiX, FiCheck, FiCalendar, FiChevronDown } from 'react-icons/fi';
 import { calendarService } from '../api/services/calendarService';
 import { lessonService } from '../api/services/lessonService';
 import { userService } from '../api/services/userService';
@@ -151,6 +151,7 @@ const Calendar = () => {
   const [hoveredEvent, setHoveredEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const tooltipRef = useRef(null);
+  const dateInputRef = useRef(null);
 
   // Modal states
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -162,6 +163,16 @@ const Calendar = () => {
 
   // Calendar settings state
   const [selectedCalendarLocationId, setSelectedCalendarLocationId] = useState('');
+  
+  // Activity Tags color-picker cards default collapsed; expand on click.
+  const [expandedActivityTags, setExpandedActivityTags] = useState(() => new Set());
+  const toggleActivityTagExpanded = (type) => {
+    setExpandedActivityTags((prev) => {
+      const next = new Set(prev);
+      next.has(type) ? next.delete(type) : next.add(type);
+      return next;
+    });
+  };
 
   const [calendarSettings, setCalendarSettings] = useState({
     time_format: '12h',
@@ -282,6 +293,19 @@ const Calendar = () => {
     loadHeaderLocations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [locationTime, setLocationTime] = useState(null);
+
+  useEffect(() => {
+    if (!calendarSettings.show_location_time) { setLocationTime(null); return; }
+    const loc = allLocations.find((l) => String(l.id) === String(selectedCalendarLocationId));
+    if (!loc?.icao) { setLocationTime(null); return; } // no linked airport — fall back below
+    let cancelled = false;
+    calendarService.getLocationTime(loc.icao)
+      .then((res) => { if (!cancelled && res) setLocationTime(res.success ? res.data : res); })
+      .catch(() => { if (!cancelled) setLocationTime(null); });
+    return () => { cancelled = true; };
+  }, [selectedCalendarLocationId, calendarSettings.show_location_time, allLocations]);
 
   // Fetch schedule when date, organization, view mode, or custom range changes
   useEffect(() => {
@@ -1515,8 +1539,10 @@ const Calendar = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 whitespace-nowrap">Schedule</h2>
-              <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-600 rounded-md whitespace-nowrap" title={useLocalTimezone ? 'Showing times in your local timezone' : 'Showing times in the event\'s location timezone'}>
-                {useLocalTimezone ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Location Time'}
+              <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-600 rounded-md whitespace-nowrap">
+                {locationTime
+                  ? `${locationTime.icao} · ${new Date(locationTime.location_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : Intl.DateTimeFormat().resolvedOptions().timeZone}
               </span>
             </div>
           
@@ -1590,23 +1616,38 @@ const Calendar = () => {
                 <button
                   type="button"
                   onClick={() => setCalendarViewMode('week')}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'week' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+                  title="Week view"
+                  aria-label="Week view"
+                  className={`p-1.5 sm:p-2 rounded-md transition flex items-center justify-center ${calendarViewMode === 'week' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
                 >
-                  Week
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 sm:w-[18px] sm:h-[18px]">
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <path d="M9.3 4v16M14.7 4v16" />
+                  </svg>
                 </button>
                 <button
                   type="button"
                   onClick={() => setCalendarViewMode('day')}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'day' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+                  title="Day view"
+                  aria-label="Day view"
+                  className={`p-1.5 sm:p-2 rounded-md transition flex items-center justify-center ${calendarViewMode === 'day' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
                 >
-                  Day
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 sm:w-[18px] sm:h-[18px]">
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <rect x="9" y="4" width="6" height="16" fill="currentColor" stroke="none" />
+                  </svg>
                 </button>
                 <button
                   type="button"
                   onClick={() => setCalendarViewMode('custom')}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition ${calendarViewMode === 'custom' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
+                  title="Custom range"
+                  aria-label="Custom range"
+                  className={`p-1.5 sm:p-2 rounded-md transition flex items-center justify-center ${calendarViewMode === 'custom' ? 'bg-white shadow text-blue-600 border border-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
                 >
-                  Custom
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 sm:w-[18px] sm:h-[18px]">
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <rect x="7" y="10" width="10" height="4" rx="1" fill="currentColor" stroke="none" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -1645,11 +1686,28 @@ const Calendar = () => {
                       <FiChevronLeft size={18} className="sm:w-5 sm:h-5" />
                     </button>
                     
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="hidden lg:inline text-xs sm:text-sm font-semibold text-gray-700">
+                    <div className="relative flex items-center flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = dateInputRef.current;
+                          if (el?.showPicker) {
+                            el.showPicker();
+                          } else if (el) {
+                            // Safari / older browsers without showPicker() support — verify
+                            // during QA that focus+click still opens the native picker.
+                            el.focus();
+                            el.click();
+                          }
+                        }}
+                        className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition"
+                        aria-haspopup="dialog"
+                      >
+                        <FiCalendar size={14} className="text-blue-600 flex-shrink-0" />
                         {getDateRangeLabel()}
-                      </span>
+                      </button>
                       <input
+                        ref={dateInputRef}
                         type="date"
                         value={formatDateStr(currentDate)}
                         onChange={(e) => {
@@ -1659,8 +1717,9 @@ const Calendar = () => {
                             setCurrentDate(new Date(y, m - 1, d));
                           }
                         }}
-                        className="px-2 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        aria-label="Select date"
+                        className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+                        tabIndex={-1}
+                        aria-hidden="true"
                       />
                     </div>
 
@@ -2255,6 +2314,20 @@ const Calendar = () => {
                     </label>
                   </div>
 
+                  {/* Show Location Time */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="show_location_time"
+                      checked={calendarSettings.show_location_time}
+                      onChange={(e) => setCalendarSettings({ ...calendarSettings, show_location_time: e.target.checked })}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="show_location_time" className="text-sm font-medium text-gray-700">
+                      Show Location Time (based on selected airport)
+                    </label>
+                  </div>
+
                   {/* Activity Type Colors */}
                   <div className="pt-8 border-t border-gray-100 mt-8">
                     <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-2">
@@ -2267,93 +2340,103 @@ const Calendar = () => {
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 max-h-[60vh] overflow-y-auto pr-2 pb-4 custom-scrollbar">
                       {flightTypes.map(type => {
                         const currentSelection = calendarSettings.activity_colors?.[type] || 'blue';
+                        const isExpanded = expandedActivityTags.has(type);
                         return (
                           <div key={type} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] hover:border-blue-100 transition-all duration-300 group">
-                            <div className="flex justify-between items-center mb-5 border-b border-gray-50 pb-3">
+                            <button
+                              type="button"
+                              onClick={() => toggleActivityTagExpanded(type)}
+                              className={`w-full flex justify-between items-center ${isExpanded ? 'mb-5 border-b border-gray-50 pb-3' : ''}`}
+                            >
                               <span className="text-base font-bold text-gray-800">{type}</span>
-                              <div className={`w-4 h-4 rounded-full shadow-sm ring-4 ring-opacity-20 animate-pulse ${
-                                    currentSelection === 'slate' ? 'bg-slate-100 ring-slate-400' :
-                                    currentSelection === 'gray' ? 'bg-gray-100 ring-gray-400' :
-                                    currentSelection === 'zinc' ? 'bg-zinc-100 ring-zinc-400' :
-                                    currentSelection === 'red' ? 'bg-red-100 ring-red-400' :
-                                    currentSelection === 'orange' ? 'bg-orange-100 ring-orange-400' :
-                                    currentSelection === 'amber' ? 'bg-amber-100 ring-amber-400' :
-                                    currentSelection === 'yellow' ? 'bg-yellow-100 ring-yellow-400' :
-                                    currentSelection === 'lime' ? 'bg-lime-100 ring-lime-400' :
-                                    currentSelection === 'green' ? 'bg-green-100 ring-green-400' :
-                                    currentSelection === 'emerald' ? 'bg-emerald-100 ring-emerald-400' :
-                                    currentSelection === 'teal' ? 'bg-teal-100 ring-teal-400' :
-                                    currentSelection === 'cyan' ? 'bg-cyan-100 ring-cyan-400' :
-                                    currentSelection === 'sky' ? 'bg-sky-100 ring-sky-400' :
-                                    currentSelection === 'blue' ? 'bg-blue-100 ring-blue-400' :
-                                    currentSelection === 'indigo' ? 'bg-indigo-100 ring-indigo-400' :
-                                    currentSelection === 'violet' ? 'bg-violet-100 ring-violet-400' :
-                                    currentSelection === 'purple' ? 'bg-purple-100 ring-purple-400' :
-                                    currentSelection === 'fuchsia' ? 'bg-fuchsia-100 ring-fuchsia-400' :
-                                    currentSelection === 'pink' ? 'bg-pink-100 ring-pink-400' :
-                                    currentSelection === 'rose' ? 'bg-rose-100 ring-rose-400' :
-                                    currentSelection === 'black' ? 'bg-gray-800 ring-gray-900' :
-                                    'bg-blue-100 ring-blue-400'
-                              }`}></div>
-                            </div>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-4 h-4 rounded-full shadow-sm ring-4 ring-opacity-20 ${
+                                      currentSelection === 'slate' ? 'bg-slate-100 ring-slate-400' :
+                                      currentSelection === 'gray' ? 'bg-gray-100 ring-gray-400' :
+                                      currentSelection === 'zinc' ? 'bg-zinc-100 ring-zinc-400' :
+                                      currentSelection === 'red' ? 'bg-red-100 ring-red-400' :
+                                      currentSelection === 'orange' ? 'bg-orange-100 ring-orange-400' :
+                                      currentSelection === 'amber' ? 'bg-amber-100 ring-amber-400' :
+                                      currentSelection === 'yellow' ? 'bg-yellow-100 ring-yellow-400' :
+                                      currentSelection === 'lime' ? 'bg-lime-100 ring-lime-400' :
+                                      currentSelection === 'green' ? 'bg-green-100 ring-green-400' :
+                                      currentSelection === 'emerald' ? 'bg-emerald-100 ring-emerald-400' :
+                                      currentSelection === 'teal' ? 'bg-teal-100 ring-teal-400' :
+                                      currentSelection === 'cyan' ? 'bg-cyan-100 ring-cyan-400' :
+                                      currentSelection === 'sky' ? 'bg-sky-100 ring-sky-400' :
+                                      currentSelection === 'blue' ? 'bg-blue-100 ring-blue-400' :
+                                      currentSelection === 'indigo' ? 'bg-indigo-100 ring-indigo-400' :
+                                      currentSelection === 'violet' ? 'bg-violet-100 ring-violet-400' :
+                                      currentSelection === 'purple' ? 'bg-purple-100 ring-purple-400' :
+                                      currentSelection === 'fuchsia' ? 'bg-fuchsia-100 ring-fuchsia-400' :
+                                      currentSelection === 'pink' ? 'bg-pink-100 ring-pink-400' :
+                                      currentSelection === 'rose' ? 'bg-rose-100 ring-rose-400' :
+                                      currentSelection === 'black' ? 'bg-gray-800 ring-gray-900' :
+                                      'bg-blue-100 ring-blue-400'
+                                }`}></div>
+                                <FiChevronDown size={16} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                              </div>
+                            </button>
                             
-                            <div className="grid grid-cols-7 gap-2">
-                              {[
-                                'slate', 'gray', 'zinc', 
-                                'red', 'orange', 'amber', 'yellow', 'lime', 
-                                'green', 'emerald', 'teal', 
-                                'cyan', 'sky', 'blue', 'indigo', 
-                                'violet', 'purple', 'fuchsia', 'pink', 'rose', 
-                                'black'
-                              ].map(c => {
-                                const isSelected = calendarSettings.activity_colors?.[type] === c;
-                                const checkColor = 'text-gray-900';
-                                
-                                return (
-                                  <button
-                                    key={c}
-                                    onClick={() => setCalendarSettings({
-                                      ...calendarSettings,
-                                      activity_colors: {
-                                        ...(calendarSettings.activity_colors || {}),
-                                        [type]: c
-                                      }
-                                    })}
-                                    className={`relative aspect-square w-full rounded-xl flex items-center justify-center transition-all duration-300 ${
-                                      isSelected 
-                                        ? 'ring-2 ring-offset-2 ring-gray-900 scale-[1.15] z-10 shadow-md' 
-                                        : 'hover:scale-[1.15] hover:shadow-sm hover:z-10 opacity-70 hover:opacity-100 cursor-pointer'
-                                    } ${
-                                      c === 'slate' ? 'bg-slate-100 border border-slate-200' :
-                                      c === 'gray' ? 'bg-gray-100 border border-gray-200' :
-                                      c === 'zinc' ? 'bg-zinc-100 border border-zinc-200' :
-                                      c === 'red' ? 'bg-red-100 border border-red-200' :
-                                      c === 'orange' ? 'bg-orange-100 border border-orange-200' :
-                                      c === 'amber' ? 'bg-amber-100 border border-amber-200' :
-                                      c === 'yellow' ? 'bg-yellow-100 border border-yellow-200' :
-                                      c === 'lime' ? 'bg-lime-100 border border-lime-200' :
-                                      c === 'green' ? 'bg-green-100 border border-green-200' :
-                                      c === 'emerald' ? 'bg-emerald-100 border border-emerald-200' :
-                                      c === 'teal' ? 'bg-teal-100 border border-teal-200' :
-                                      c === 'cyan' ? 'bg-cyan-100 border border-cyan-200' :
-                                      c === 'sky' ? 'bg-sky-100 border border-sky-200' :
-                                      c === 'blue' ? 'bg-blue-100 border border-blue-200' :
-                                      c === 'indigo' ? 'bg-indigo-100 border border-indigo-200' :
-                                      c === 'violet' ? 'bg-violet-100 border border-violet-200' :
-                                      c === 'purple' ? 'bg-purple-100 border border-purple-200' :
-                                      c === 'fuchsia' ? 'bg-fuchsia-100 border border-fuchsia-200' :
-                                      c === 'pink' ? 'bg-pink-100 border border-pink-200' :
-                                      c === 'rose' ? 'bg-rose-100 border border-rose-200' :
-                                      c === 'black' ? 'bg-gray-800' :
-                                      'bg-blue-100 border border-blue-200'
-                                    }`}
-                                    title={c}
-                                  >
-                                    {isSelected && <FiCheck className={`${checkColor}`} size={16} strokeWidth={3} />}
-                                  </button>
-                                );
-                              })}
-                            </div>
+                            {isExpanded && (
+                              <div className="grid grid-cols-7 gap-2">
+                                {[
+                                  'slate', 'gray', 'zinc', 
+                                  'red', 'orange', 'amber', 'yellow', 'lime', 
+                                  'green', 'emerald', 'teal', 
+                                  'cyan', 'sky', 'blue', 'indigo', 
+                                  'violet', 'purple', 'fuchsia', 'pink', 'rose', 
+                                  'black'
+                                ].map(c => {
+                                  const isSelected = calendarSettings.activity_colors?.[type] === c;
+                                  const checkColor = 'text-gray-900';
+                                  
+                                  return (
+                                    <button
+                                      key={c}
+                                      onClick={() => setCalendarSettings({
+                                        ...calendarSettings,
+                                        activity_colors: {
+                                          ...(calendarSettings.activity_colors || {}),
+                                          [type]: c
+                                        }
+                                      })}
+                                      className={`relative aspect-square w-full rounded-xl flex items-center justify-center transition-all duration-300 ${
+                                        isSelected 
+                                          ? 'ring-2 ring-offset-2 ring-gray-900 scale-[1.15] z-10 shadow-md' 
+                                          : 'hover:scale-[1.15] hover:shadow-sm hover:z-10 opacity-70 hover:opacity-100 cursor-pointer'
+                                      } ${
+                                        c === 'slate' ? 'bg-slate-100 border border-slate-200' :
+                                        c === 'gray' ? 'bg-gray-100 border border-gray-200' :
+                                        c === 'zinc' ? 'bg-zinc-100 border border-zinc-200' :
+                                        c === 'red' ? 'bg-red-100 border border-red-200' :
+                                        c === 'orange' ? 'bg-orange-100 border border-orange-200' :
+                                        c === 'amber' ? 'bg-amber-100 border border-amber-200' :
+                                        c === 'yellow' ? 'bg-yellow-100 border border-yellow-200' :
+                                        c === 'lime' ? 'bg-lime-100 border border-lime-200' :
+                                        c === 'green' ? 'bg-green-100 border border-green-200' :
+                                        c === 'emerald' ? 'bg-emerald-100 border border-emerald-200' :
+                                        c === 'teal' ? 'bg-teal-100 border border-teal-200' :
+                                        c === 'cyan' ? 'bg-cyan-100 border border-cyan-200' :
+                                        c === 'sky' ? 'bg-sky-100 border border-sky-200' :
+                                        c === 'blue' ? 'bg-blue-100 border border-blue-200' :
+                                        c === 'indigo' ? 'bg-indigo-100 border border-indigo-200' :
+                                        c === 'violet' ? 'bg-violet-100 border border-violet-200' :
+                                        c === 'purple' ? 'bg-purple-100 border border-purple-200' :
+                                        c === 'fuchsia' ? 'bg-fuchsia-100 border border-fuchsia-200' :
+                                        c === 'pink' ? 'bg-pink-100 border border-pink-200' :
+                                        c === 'rose' ? 'bg-rose-100 border border-rose-200' :
+                                        c === 'black' ? 'bg-gray-800' :
+                                        'bg-blue-100 border border-blue-200'
+                                      }`}
+                                      title={c}
+                                    >
+                                      {isSelected && <FiCheck className={`${checkColor}`} size={16} strokeWidth={3} />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

@@ -140,6 +140,7 @@ const AirCraftProfile = () => {
       current_hobbs: 0,
       current_tach: 0,
       current_tach_2: 0,
+      has_engine_2: false,
       aircraft_class: '',
       other_category: '',
       other_class: '',
@@ -173,6 +174,7 @@ const AirCraftProfile = () => {
       current_hobbs: aircraft.current_hobbs || 0,
       current_tach: aircraft.current_tach || 0,
       current_tach_2: aircraft.current_tach_2 || 0,
+      has_engine_2: !!aircraft.has_engine_2,
       aircraft_class: aircraft.aircraft_class || '',
       other_category: '',
       other_class: '',
@@ -272,7 +274,8 @@ const AirCraftProfile = () => {
             dataToSend.append(key, JSON.stringify(finalFormData[key]));
           } else if (key !== 'image' || !finalFormData.image) {
             if (finalFormData[key] !== null && finalFormData[key] !== undefined && key !== 'calendar_location_ids') {
-              dataToSend.append(key, finalFormData[key]);
+              const val = typeof finalFormData[key] === 'boolean' ? (finalFormData[key] ? 1 : 0) : finalFormData[key];
+              dataToSend.append(key, val);
             }
           }
         });
@@ -634,6 +637,19 @@ const AirCraftProfile = () => {
                   </div>
                 )}
 
+                <div className="flex items-center gap-2 mt-3 mb-4">
+                  <input
+                    type="checkbox"
+                    id="has_engine_2"
+                    checked={!!formData.has_engine_2}
+                    onChange={(e) => setFormData({ ...formData, has_engine_2: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="has_engine_2" className="text-sm font-medium text-gray-700">
+                    This aircraft has a second engine
+                  </label>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number *</label>
                   <input
@@ -813,7 +829,7 @@ const AirCraftProfile = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {formData.aircraft_class?.includes('Multi') ? 'Tach 1' : 'Current Tach'}
+                      {formData.has_engine_2 ? 'Tach 1' : 'Current Tach'}
                     </label>
                     <input
                       type="number"
@@ -826,7 +842,7 @@ const AirCraftProfile = () => {
                   </div>
                 </div>
 
-                {formData.aircraft_class?.includes('Multi') && (
+                {formData.has_engine_2 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Tach 2</label>
                     <input

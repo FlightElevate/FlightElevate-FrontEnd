@@ -16,9 +16,26 @@ const Pagination = ({
 
   return (
     <div
-      className={`flex flex-col md:flex-row justify-center gap-2 py-3 text-[#6C6C6C] 
+      className={`flex flex-col md:flex-row items-center justify-between gap-4 py-3 text-[#6C6C6C] 
         ${fullWidth ? "w-full" : "w-1/2"}`}
     >
+      <div className="flex items-center gap-2 text-sm">
+        <span>Rows per page:</span>
+        <select
+          value={perPage}
+          onChange={(e) => {
+            setPerPage(Number(e.target.value));
+            setPage(1);
+          }}
+          className="border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#1751D0]"
+        >
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="flex items-center justify-center flex-wrap gap-2 h-auto">
 
         <button

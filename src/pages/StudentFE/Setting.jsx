@@ -75,6 +75,44 @@ const Setting = () => {
   const [savingLocation, setSavingLocation] = useState(false);
   const [deletingLocationId, setDeletingLocationId] = useState(null);
 
+  const [editingAirportId, setEditingAirportId] = useState(null);
+  const [nearbyAirportOptions, setNearbyAirportOptions] = useState([]);
+  const [loadingNearbyAirports, setLoadingNearbyAirports] = useState(false);
+  const [selectedOverrideIcao, setSelectedOverrideIcao] = useState('');
+  const [savingAirportOverride, setSavingAirportOverride] = useState(false);
+
+  const handleStartEditingAirport = async (loc) => {
+    setEditingAirportId(loc.id);
+    setSelectedOverrideIcao(loc.airport_icao_override || loc.nearest_airport_icao || '');
+    setLoadingNearbyAirports(true);
+    try {
+      const res = await locationService.getNearbyAirports(loc.id);
+      setNearbyAirportOptions(res.success ? res.data : []);
+    } catch (e) {
+      setNearbyAirportOptions([]);
+    } finally {
+      setLoadingNearbyAirports(false);
+    }
+  };
+
+  const handleSaveAirportOverride = async (locId) => {
+    setSavingAirportOverride(true);
+    try {
+      const res = await locationService.updateLocation(locId, { airport_icao_override: selectedOverrideIcao || null });
+      if (res.success) {
+        showSuccessToast('Location time airport updated');
+        setEditingAirportId(null);
+        fetchLocations();
+      } else {
+        showErrorToast(res.message || 'Failed to update airport');
+      }
+    } catch (e) {
+      showErrorToast(e.response?.data?.message || 'Failed to update airport');
+    } finally {
+      setSavingAirportOverride(false);
+    }
+  };
+
   const fetchLocations = async () => {
     setLoadingLocations(true);
     try {
@@ -2199,6 +2237,41 @@ const Setting = () => {
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{loc.name}</p>
                             {loc.address && <p className="text-xs text-gray-500">{loc.address}</p>}
+                            {editingAirportId === loc.id ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                {loadingNearbyAirports ? (
+                                  <span className="text-xs text-gray-400">Finding nearby airports...</span>
+                                ) : nearbyAirportOptions.length > 0 ? (
+                                  <select
+                                    value={selectedOverrideIcao}
+                                    onChange={(e) => setSelectedOverrideIcao(e.target.value)}
+                                    className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="">No airport (use browser time)</option>
+                                    {nearbyAirportOptions.map((a) => (
+                                      <option key={a.icao} value={a.icao}>
+                                        {a.icao} — {a.name}{a.city ? `, ${a.city}` : ''} ({a.distance_km} km)
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="text-xs text-gray-400">No address on file — add one above to find nearby airports.</span>
+                                )}
+                                <button onClick={() => handleSaveAirportOverride(loc.id)} disabled={savingAirportOverride} className="text-xs font-medium text-blue-600 hover:text-blue-700">Save</button>
+                                <button onClick={() => setEditingAirportId(null)} className="text-xs font-medium text-gray-400 hover:text-gray-600">Cancel</button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleStartEditingAirport(loc)}
+                                className="text-xs text-gray-400 hover:text-blue-600 mt-0.5 text-left block"
+                              >
+                                {loc.airport_icao_override
+                                  ? `✏️ ${loc.airport_icao_override} (manual)`
+                                  : loc.nearest_airport_icao
+                                    ? `📍 ${loc.nearest_airport_icao} (auto-detected — click to change)`
+                                    : 'No airport linked — click to set one'}
+                              </button>
+                            )}
                           </div>
                         </div>
                         <button
