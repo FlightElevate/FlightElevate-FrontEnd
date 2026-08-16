@@ -120,9 +120,9 @@ export const RolesProvider = ({ children }) => {
           console.warn('[RolesContext] Error fetching roles, using cached data:', errorMessage);
         }
       }
-      
-      console.error('[RolesContext] Error fetching roles:', err);
-      
+      if (import.meta.env.DEV) {
+        console.error('[RolesContext] Error fetching roles:', err);
+      }
       
       return rolesRef.current.length > 0 ? rolesRef.current : [];
     } finally {

@@ -77,7 +77,9 @@ apiClient.interceptors.response.use(
                 });
               }
             } catch (err) {
-              console.error('Failed to parse user roles in apiClient:', err);
+              if (import.meta.env.DEV) {
+                console.error('Failed to parse user roles in apiClient:', err);
+              }
             }
 
             if (!isInstructorOrStudent) {

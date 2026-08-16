@@ -29,7 +29,7 @@ const RolesPermissions = () => {
   const userIsSuperAdmin = useMemo(() => {
     const isSuper = user?.roles ? isSuperAdmin(user.roles) : false;
     if (import.meta.env.DEV) {
-      console.log('[RolesPermissions] User Super Admin check:', {
+      if (import.meta.env.DEV) console.log('[RolesPermissions] User Super Admin check:', {
         userRoles: user?.roles,
         isSuperAdmin: isSuper,
         userObject: user ? { id: user.id, name: user.name, organization_id: user.organization_id, roles: user.roles } : null
@@ -134,7 +134,7 @@ const RolesPermissions = () => {
       // Fetch from API if context has no roles OR if force refresh is requested
       if (!rolesData || rolesData.length === 0 || forceRefresh) {
         if (import.meta.env.DEV) {
-          console.log('[RolesPermissions] Fetching roles from API', { forceRefresh, hasContextRoles: !!rolesData });
+          if (import.meta.env.DEV) console.log('[RolesPermissions] Fetching roles from API', { forceRefresh, hasContextRoles: !!rolesData });
         }
         // Force refresh context cache to get latest data
         if (forceRefresh) {
@@ -144,13 +144,13 @@ const RolesPermissions = () => {
         }
       } else {
         if (import.meta.env.DEV) {
-          console.log('[RolesPermissions] Using roles from context');
+          if (import.meta.env.DEV) console.log('[RolesPermissions] Using roles from context');
         }
       }
       
       // Debug: Log raw roles data and user info
       if (import.meta.env.DEV) {
-        console.log('[RolesPermissions] Raw roles data:', {
+        if (import.meta.env.DEV) console.log('[RolesPermissions] Raw roles data:', {
           count: rolesData?.length || 0,
           roles: rolesData?.map(r => ({ 
             id: r.id, 
@@ -177,7 +177,7 @@ const RolesPermissions = () => {
 
       // Debug: Log before filtering
       if (import.meta.env.DEV) {
-        console.log('[RolesPermissions] Before filtering:', {
+        if (import.meta.env.DEV) console.log('[RolesPermissions] Before filtering:', {
           userIsSuperAdmin,
           rolesCount: rolesData?.length || 0,
           roles: rolesData?.map(r => ({ id: r.id, name: r.name, admin_identify_id: r.admin_identify_id })) || []
@@ -233,7 +233,7 @@ const RolesPermissions = () => {
               
               // Debug logging
               if (import.meta.env.DEV) {
-                console.log('[RolesPermissions] Checking admin-created role:', {
+                if (import.meta.env.DEV) console.log('[RolesPermissions] Checking admin-created role:', {
                   roleName: role.name,
                   roleId: role.id,
                   roleAdminId: roleOrgId,
@@ -250,7 +250,7 @@ const RolesPermissions = () => {
             } else {
               // User has no organization_id - log this case
               if (import.meta.env.DEV) {
-                console.log('[RolesPermissions] Admin-created role filtered out - user has no organization_id:', {
+                if (import.meta.env.DEV) console.log('[RolesPermissions] Admin-created role filtered out - user has no organization_id:', {
                   roleName: role.name,
                   roleId: role.id,
                   roleAdminId: role.admin_identify_id,
@@ -281,7 +281,7 @@ const RolesPermissions = () => {
         });
         
         if (import.meta.env.DEV) {
-          console.log('[RolesPermissions] Filtered roles for Admin:', {
+          if (import.meta.env.DEV) console.log('[RolesPermissions] Filtered roles for Admin:', {
             totalRoles: contextRoles?.length || 0,
             filteredRoles: rolesData.length,
             userOrgId: user?.organization_id,
@@ -291,7 +291,7 @@ const RolesPermissions = () => {
       } else {
         // Super Admin: No filtering - should see ALL roles
         if (import.meta.env.DEV) {
-          console.log('[RolesPermissions] Super Admin - showing all roles without filtering:', {
+          if (import.meta.env.DEV) console.log('[RolesPermissions] Super Admin - showing all roles without filtering:', {
             userIsSuperAdmin,
             hasSuperAdminRole,
             hasMultipleOrgRoles,
@@ -312,7 +312,7 @@ const RolesPermissions = () => {
       
       // Always log in dev mode to debug role visibility issues
       if (import.meta.env.DEV) {
-        console.log('[RolesPermissions] Setting roles to state:', {
+        if (import.meta.env.DEV) console.log('[RolesPermissions] Setting roles to state:', {
           count: rolesData?.length || 0,
           userIsSuperAdmin,
           userOrgId: user?.organization_id,
@@ -334,7 +334,7 @@ const RolesPermissions = () => {
       // Filtered permissions will be set via useMemo
     } catch (err) {
       const errorMessage = err.message || err.message || err.response?.data?.message || 'Error loading data';
-      console.error('[RolesPermissions] Error fetching data:', err);
+      if (import.meta.env.DEV) console.error('[RolesPermissions] Error fetching data:', err);
       setError(errorMessage);
       
       // Only show toast if we have no cached roles
