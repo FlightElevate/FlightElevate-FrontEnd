@@ -1,74 +1,123 @@
-import React, { useState } from "react";
-import arrow_left from "../assets/SVG/arrow_left.svg";
-import arrow_right from "../assets/SVG/arrow_right.svg";
+import React, { useState, useEffect } from "react";
 
 const Pagination = ({
   page,
   setPage,
-  perPage,
+  perPage = 10,
   setPerPage,
   totalItems,
   options = [10, 25, 50],
   fullWidth = true,
 }) => {
-  const [open, setOpen] = useState(false);
-  const totalPages = Math.ceil(totalItems / perPage);
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+  const start = totalItems === 0 ? 0 : (page - 1) * perPage + 1;
+  const end = Math.min(page * perPage, totalItems);
+
+  const [inputVal, setInputVal] = useState(String(page));
+
+  useEffect(() => {
+    setInputVal(String(page));
+  }, [page]);
+
+  const handlePerPageChange = (e) => {
+    const next = Number(e.target.value);
+    if (typeof setPerPage === "function") {
+      setPerPage(next);
+      setPage(1);
+    }
+  };
+
+  const handleInputSubmit = (e) => {
+    if (e.key && e.key !== 'Enter') return;
+    let newPage = parseInt(inputVal, 10);
+    if (isNaN(newPage) || newPage < 1) newPage = 1;
+    if (newPage > totalPages) newPage = totalPages;
+    setPage(newPage);
+    setInputVal(String(newPage));
+  };
 
   return (
     <div
-      className={`flex flex-col md:flex-row items-center justify-between gap-4 py-3 text-[#6C6C6C] 
-        ${fullWidth ? "w-full" : "w-1/2"}`}
+      className={`flex flex-col lg:flex-row items-center justify-between gap-4 py-3 text-[#6C6C6C] ${
+        fullWidth ? "w-full" : "w-auto"
+      }`}
     >
-      <div className="flex items-center gap-2 text-sm">
-        <span>Rows per page:</span>
-        <select
-          value={perPage}
-          onChange={(e) => {
-            setPerPage(Number(e.target.value));
-            setPage(1);
-          }}
-          className="border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#1751D0]"
-        >
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
+      <div className="text-sm">
+        Showing <span className="font-semibold text-slate-800">{start}-{end}</span> from{" "}
+        <span className="font-semibold text-slate-800">{totalItems}</span>
       </div>
-      <div className="flex items-center justify-center flex-wrap gap-2 h-auto">
 
+      <div className="flex items-center gap-2">
         <button
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-300 transition disabled:opacity-50 hover:bg-gray-50"
+          className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 transition hover:bg-gray-100 disabled:opacity-50"
+          onClick={() => setPage(1)}
+          disabled={page === 1}
+          title="First Page"
+        >
+          &laquo;
+        </button>
+        <button
+          className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 transition hover:bg-gray-100 disabled:opacity-50"
           onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
           disabled={page === 1}
+          title="Previous Page"
         >
-          <img src={arrow_left} alt="Prev" className="w-4 h-4 sm:w-5 sm:h-5" style={{ minWidth: '16px', minHeight: '16px' }} />
+          &lsaquo;
         </button>
 
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-          <button
-            key={num}
-            className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg font-medium text-xs sm:text-sm text-[#4F4D55] transition 
-              ${
-                num === page
-                  ? "border border-[#1751D0] text-[#1751D0] font-semibold"
-                  : "border border-transparent hover:border-[#1751D0] hover:bg-[#eaf0fc]"
-              }`}
-            onClick={() => setPage(num)}
-          >
-            {num}
-          </button>
-        ))}
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={totalPages}
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onKeyDown={handleInputSubmit}
+            onBlur={handleInputSubmit}
+            className="w-14 h-8 px-2 text-center text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+            aria-label="Page number"
+          />
+          <span className="text-sm">of {totalPages}</span>
+        </div>
 
         <button
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-300 transition disabled:opacity-50 hover:bg-gray-50"
+          className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 transition hover:bg-gray-100 disabled:opacity-50"
           onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
           disabled={page === totalPages}
+          title="Next Page"
         >
-          <img src={arrow_right} alt="Next" className="w-4 h-4 sm:w-5 sm:h-5" style={{ minWidth: '16px', minHeight: '16px' }} />
+          &rsaquo;
+        </button>
+        <button
+          className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 transition hover:bg-gray-100 disabled:opacity-50"
+          onClick={() => setPage(totalPages)}
+          disabled={page === totalPages}
+          title="Last Page"
+        >
+          &raquo;
         </button>
       </div>
+
+      {typeof setPerPage === "function" ? (
+        <div className="flex items-center gap-2 text-sm">
+          <span>Show</span>
+          <select
+            value={perPage}
+            onChange={handlePerPageChange}
+            className="border border-gray-300 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:border-blue-500"
+            aria-label="Rows per page"
+          >
+            {options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+          <span>rows</span>
+        </div>
+      ) : (
+        <div className="hidden lg:block w-32"></div>
+      )}
     </div>
   );
 };

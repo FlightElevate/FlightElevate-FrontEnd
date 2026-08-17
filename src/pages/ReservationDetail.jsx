@@ -264,15 +264,20 @@ const ReservationDetail = () => {
       const h = reservation.aircraft.current_hobbs;
       const t = reservation.aircraft.current_tach;
       const t2 = reservation.aircraft.current_tach_2;
-      if (h == null && t == null && t2 == null) return f;
+      const c1 = reservation.aircraft.engine_1_cycles ?? reservation.aircraft.total_cycles;
+      const c2 = reservation.aircraft.engine_2_cycles;
+
+      if (h == null && t == null && t2 == null && c1 == null && c2 == null) return f;
       return {
         ...f,
         hobbs_out: h != null ? String(h) : f.hobbs_out,
         tach_out: t != null ? String(t) : f.tach_out,
         tach_2_out: t2 != null ? String(t2) : f.tach_2_out,
+        cycles_out: c1 != null ? String(c1) : f.cycles_out,
+        cycles_2_out: c2 != null ? String(c2) : f.cycles_2_out,
       };
     });
-  }, [reservation?.id, reservation?.dispatched_at, reservation?.aircraft?.current_hobbs, reservation?.aircraft?.current_tach]);
+  }, [reservation?.id, reservation?.dispatched_at, reservation?.aircraft?.current_hobbs, reservation?.aircraft?.current_tach, reservation?.aircraft?.engine_1_cycles, reservation?.aircraft?.engine_2_cycles, reservation?.aircraft?.total_cycles]);
 
   // ── Load invoice separately when tab opened ──
   useEffect(() => {
@@ -391,6 +396,7 @@ const ReservationDetail = () => {
     instruction_night_hours: '',
     instruction_instrument_hours: '',
     route_from: '',
+    route_via: '',
     route_to: '',
     landings_day: '',
     landings_night: '',
@@ -421,6 +427,7 @@ const ReservationDetail = () => {
         instruction_night_hours: checkinForm.instruction_night_hours ? parseFloat(checkinForm.instruction_night_hours) : null,
         instruction_instrument_hours: checkinForm.instruction_instrument_hours ? parseFloat(checkinForm.instruction_instrument_hours) : null,
         route_from: checkinForm.route_from || null,
+        route_via: checkinForm.route_via || null,
         route_to: checkinForm.route_to || null,
         landings_day: checkinForm.landings_day ? parseInt(checkinForm.landings_day) : 0,
         landings_night: checkinForm.landings_night ? parseInt(checkinForm.landings_night) : 0,
@@ -775,17 +782,23 @@ const ReservationDetail = () => {
                   )}
                 </div>
 
-                {/* Arrow connector */}
-                <div className="flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="h-px w-10 sm:w-4 bg-gray-300 hidden sm:block" />
-                    <div className="text-gray-400">
-                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {/* Arrow connector / Via */}
+                <div className="flex flex-col items-center justify-center min-w-[80px]">
+                  {reservation.route_via && (
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Via</span>
+                  )}
+                  <div className="flex items-center w-full">
+                    <div className="h-px flex-1 bg-gray-300" />
+                    <div className="text-gray-400 px-2">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                       </svg>
                     </div>
-                    <div className="h-px w-10 sm:w-4 bg-gray-300 hidden sm:block" />
+                    <div className="h-px flex-1 bg-gray-300" />
                   </div>
+                  {reservation.route_via && (
+                    <span className="text-sm font-black text-gray-700 mt-1">{reservation.route_via}</span>
+                  )}
                 </div>
 
                 {/* Arrival */}
@@ -895,6 +908,8 @@ const ReservationDetail = () => {
                           hobbs_out: reservation.hobbs_out != null ? String(reservation.hobbs_out) : '',
                           tach_out: reservation.tach_out != null ? String(reservation.tach_out) : '',
                           tach_2_out: reservation.tach_2_out != null ? String(reservation.tach_2_out) : '',
+                          cycles_out: reservation.cycles_out != null ? String(reservation.cycles_out) : '',
+                          cycles_2_out: reservation.cycles_2_out != null ? String(reservation.cycles_2_out) : '',
                           dispatch_weather_briefing: reservation.dispatch_weather_briefing || '',
                           dispatch_weather_acknowledged: !!reservation.dispatch_weather_acknowledged,
                           dispatch_notes: reservation.dispatch_notes || '',
@@ -934,7 +949,7 @@ const ReservationDetail = () => {
                     <Input label="Hobbs In" type="number" step="0.1" min="0" value={dispatchForm.hobbs_out} onChange={e => setDispatchForm(f => ({ ...f, hobbs_out: e.target.value }))} required placeholder="e.g. 1234.5" />
                     <Input label="Engine 1 Tach In" type="number" step="0.1" min="0" value={dispatchForm.tach_out} onChange={e => setDispatchForm(f => ({ ...f, tach_out: e.target.value }))} required placeholder="e.g. 1234.5" />
                     {(dispatchForm.tach_2_out != null || isMultiEngine) && (
-                      <Input label="Engine 2 Tach In" type="number" step="0.1" min="0" value={dispatchForm.tach_2_out} onChange={e => setDispatchForm(f => ({ ...f, tach_2_out: e.target.value }))} placeholder="e.g. 1234.5 (Optional)" />
+                      <Input label="Engine 2 Tach In" type="number" step="0.1" min="0" value={dispatchForm.tach_2_out} onChange={e => setDispatchForm(f => ({ ...f, tach_2_out: e.target.value }))} required={isMultiEngine} placeholder="e.g. 1234.5 (Optional)" />
                     )}
                     <Input label="Engine 1 Cycles In" type="number" step="1" min="0" value={dispatchForm.cycles_out} onChange={e => setDispatchForm(f => ({ ...f, cycles_out: e.target.value }))} placeholder="e.g. 100 (Optional)" />
                     {(dispatchForm.cycles_2_out != null || isMultiEngine) && (
@@ -1065,7 +1080,10 @@ const ReservationDetail = () => {
                           instruction_night_hours: reservation.instruction_night_hours != null ? String(reservation.instruction_night_hours) : '',
                           instruction_instrument_hours: reservation.instruction_instrument_hours != null ? String(reservation.instruction_instrument_hours) : '',
                           route_from: reservation.route_from || '',
+                          route_via: reservation.route_via || '',
                           route_to: reservation.route_to || '',
+                          cycles_in: reservation.cycles_in != null ? String(reservation.cycles_in) : '',
+                          cycles_2_in: reservation.cycles_2_in != null ? String(reservation.cycles_2_in) : '',
                           landings_day: reservation.landings_day != null ? String(reservation.landings_day) : '',
                           landings_night: reservation.landings_night != null ? String(reservation.landings_night) : '',
                           checkin_notes: reservation.checkin_notes || '',
@@ -1100,6 +1118,7 @@ const ReservationDetail = () => {
                   <Field label="Night" value={reservation.instruction_night_hours ? `${reservation.instruction_night_hours} hrs` : null} />
                   <Field label="Instrument" value={reservation.instruction_instrument_hours ? `${reservation.instruction_instrument_hours} hrs` : null} />
                   <Field label="From" value={reservation.route_from} />
+                  <Field label="Via" value={reservation.route_via} />
                   <Field label="To" value={reservation.route_to} />
                   <Field label="Day Landings" value={reservation.landings_day} />
                   <Field label="Night Landings" value={reservation.landings_night} />
@@ -1183,7 +1202,7 @@ const ReservationDetail = () => {
                       <Input label="Hobbs Out" type="number" step="0.1" min={reservation.hobbs_out ?? 0} value={checkinForm.hobbs_in} onChange={e => setCheckinForm(f => ({ ...f, hobbs_in: e.target.value }))} required placeholder={`>= ${reservation.hobbs_out ?? 0}`} />
                       <Input label="Engine 1 Tach Out" type="number" step="0.1" min={reservation.tach_out ?? 0} value={checkinForm.tach_in} onChange={e => setCheckinForm(f => ({ ...f, tach_in: e.target.value }))} required placeholder={`>= ${reservation.tach_out ?? 0}`} />
                       {(reservation.tach_2_out != null || isMultiEngine) && (
-                        <Input label="Engine 2 Tach Out" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
+                        <Input label="Engine 2 Tach Out" type="number" step="0.1" min={reservation.tach_2_out ?? 0} value={checkinForm.tach_2_in} onChange={e => setCheckinForm(f => ({ ...f, tach_2_in: e.target.value }))} required={isMultiEngine} placeholder={`>= ${reservation.tach_2_out ?? 0}`} />
                       )}
                       <Input label="Engine 1 Cycles Out" type="number" step="1" min={reservation.cycles_out ?? 0} value={checkinForm.cycles_in} onChange={e => setCheckinForm(f => ({ ...f, cycles_in: e.target.value }))} placeholder={`>= ${reservation.cycles_out ?? 0} (Optional)`} />
                       {(reservation.cycles_2_out != null || isMultiEngine) && (
@@ -1215,6 +1234,7 @@ const ReservationDetail = () => {
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <Input label="From" type="text" value={checkinForm.route_from} onChange={e => setCheckinForm(f => ({ ...f, route_from: e.target.value }))} placeholder="e.g. KJFK" />
+                      <Input label="Via" type="text" value={checkinForm.route_via} onChange={e => setCheckinForm(f => ({ ...f, route_via: e.target.value }))} placeholder="e.g. V394" />
                       <Input label="To" type="text" value={checkinForm.route_to} onChange={e => setCheckinForm(f => ({ ...f, route_to: e.target.value }))} placeholder="e.g. KLAX" />
                       <Input label="Day Landings" type="number" min="0" value={checkinForm.landings_day} onChange={e => setCheckinForm(f => ({ ...f, landings_day: e.target.value }))} placeholder="0" />
                       <Input label="Night Landings" type="number" min="0" value={checkinForm.landings_night} onChange={e => setCheckinForm(f => ({ ...f, landings_night: e.target.value }))} placeholder="0" />

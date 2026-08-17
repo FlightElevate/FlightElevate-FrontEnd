@@ -127,7 +127,7 @@ const ACDetails = ({ aircraft }) => {
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Cycles</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Flight Cycles</p>
               <p className="text-sm font-semibold text-slate-700">
                 {aircraft.total_cycles != null && !isNaN(parseInt(aircraft.total_cycles))
                   ? parseInt(aircraft.total_cycles)
@@ -135,12 +135,26 @@ const ACDetails = ({ aircraft }) => {
               </p>
             </div>
             {aircraft.aircraft_class?.includes('Multi') && (
-              <div className="space-y-1">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Current Tach 2</p>
-                <p className="text-sm font-semibold text-slate-700">
-                  {aircraft.current_tach_2 != null ? parseFloat(aircraft.current_tach_2).toFixed(1) : '0.0'}
-                </p>
-              </div>
+              <>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Current Tach 2</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {aircraft.current_tach_2 != null ? parseFloat(aircraft.current_tach_2).toFixed(1) : '0.0'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Engine 1 Cycles</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {aircraft.engine_1_cycles != null ? aircraft.engine_1_cycles : 'N/A'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Engine 2 Cycles</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {aircraft.engine_2_cycles != null ? aircraft.engine_2_cycles : 'N/A'}
+                  </p>
+                </div>
+              </>
             )}
           </div>
         </div>
