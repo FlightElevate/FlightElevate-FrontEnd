@@ -398,6 +398,8 @@ const ReservationDetail = () => {
     route_from: '',
     route_via: '',
     route_to: '',
+    takeoffs_day: '',
+    takeoffs_night: '',
     landings_day: '',
     landings_night: '',
     checkin_notes: '',
@@ -429,6 +431,8 @@ const ReservationDetail = () => {
         route_from: checkinForm.route_from || null,
         route_via: checkinForm.route_via || null,
         route_to: checkinForm.route_to || null,
+        takeoffs_day: checkinForm.takeoffs_day ? parseInt(checkinForm.takeoffs_day) : 0,
+        takeoffs_night: checkinForm.takeoffs_night ? parseInt(checkinForm.takeoffs_night) : 0,
         landings_day: checkinForm.landings_day ? parseInt(checkinForm.landings_day) : 0,
         landings_night: checkinForm.landings_night ? parseInt(checkinForm.landings_night) : 0,
         checkin_notes: checkinForm.checkin_notes || null,
@@ -1084,6 +1088,8 @@ const ReservationDetail = () => {
                           route_to: reservation.route_to || '',
                           cycles_in: reservation.cycles_in != null ? String(reservation.cycles_in) : '',
                           cycles_2_in: reservation.cycles_2_in != null ? String(reservation.cycles_2_in) : '',
+                          takeoffs_day: reservation.takeoffs_day != null ? String(reservation.takeoffs_day) : '',
+                          takeoffs_night: reservation.takeoffs_night != null ? String(reservation.takeoffs_night) : '',
                           landings_day: reservation.landings_day != null ? String(reservation.landings_day) : '',
                           landings_night: reservation.landings_night != null ? String(reservation.landings_night) : '',
                           checkin_notes: reservation.checkin_notes || '',
@@ -1120,6 +1126,8 @@ const ReservationDetail = () => {
                   <Field label="From" value={reservation.route_from} />
                   <Field label="Via" value={reservation.route_via} />
                   <Field label="To" value={reservation.route_to} />
+                  <Field label="Day Takeoffs" value={reservation.takeoffs_day} />
+                  <Field label="Night Takeoffs" value={reservation.takeoffs_night} />
                   <Field label="Day Landings" value={reservation.landings_day} />
                   <Field label="Night Landings" value={reservation.landings_night} />
                 </div>
@@ -1227,15 +1235,18 @@ const ReservationDetail = () => {
                     </div>
                   </div>
 
-                  {/* Group 3: Route & Landings */}
+                  {/* Group 3: Route, Takeoffs & Landings */}
                   <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-2">
-                      <FiMapPin size={14} className="text-emerald-500" /> 3. Route & Landings
+                      <FiMapPin size={14} className="text-emerald-500" /> 3. Route, Takeoffs & Landings
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <Input label="From" type="text" value={checkinForm.route_from} onChange={e => setCheckinForm(f => ({ ...f, route_from: e.target.value }))} placeholder="e.g. KJFK" />
                       <Input label="Via" type="text" value={checkinForm.route_via} onChange={e => setCheckinForm(f => ({ ...f, route_via: e.target.value }))} placeholder="e.g. V394" />
                       <Input label="To" type="text" value={checkinForm.route_to} onChange={e => setCheckinForm(f => ({ ...f, route_to: e.target.value }))} placeholder="e.g. KLAX" />
+                      
+                      <Input label="Day Takeoffs" type="number" min="0" value={checkinForm.takeoffs_day} onChange={e => setCheckinForm(f => ({ ...f, takeoffs_day: e.target.value }))} placeholder="0" />
+                      <Input label="Night Takeoffs" type="number" min="0" value={checkinForm.takeoffs_night} onChange={e => setCheckinForm(f => ({ ...f, takeoffs_night: e.target.value }))} placeholder="0" />
                       <Input label="Day Landings" type="number" min="0" value={checkinForm.landings_day} onChange={e => setCheckinForm(f => ({ ...f, landings_day: e.target.value }))} placeholder="0" />
                       <Input label="Night Landings" type="number" min="0" value={checkinForm.landings_night} onChange={e => setCheckinForm(f => ({ ...f, landings_night: e.target.value }))} placeholder="0" />
                     </div>

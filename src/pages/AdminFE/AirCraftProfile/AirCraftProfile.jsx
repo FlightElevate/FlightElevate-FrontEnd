@@ -37,6 +37,8 @@ const AirCraftProfile = () => {
     current_hobbs: 0,
     current_tach: 0,
     current_tach_2: 0,
+    engine_1_cycles: 0,
+    engine_2_cycles: 0,
     aircraft_class: '',
     other_category: '',
     other_class: '',
@@ -140,6 +142,8 @@ const AirCraftProfile = () => {
       current_hobbs: 0,
       current_tach: 0,
       current_tach_2: 0,
+      engine_1_cycles: 0,
+      engine_2_cycles: 0,
       has_engine_2: false,
       aircraft_class: '',
       other_category: '',
@@ -174,6 +178,8 @@ const AirCraftProfile = () => {
       current_hobbs: aircraft.current_hobbs || 0,
       current_tach: aircraft.current_tach || 0,
       current_tach_2: aircraft.current_tach_2 || 0,
+      engine_1_cycles: aircraft.engine_1_cycles || 0,
+      engine_2_cycles: aircraft.engine_2_cycles || 0,
       has_engine_2: !!aircraft.has_engine_2,
       aircraft_class: aircraft.aircraft_class || '',
       other_category: '',
@@ -879,6 +885,32 @@ const AirCraftProfile = () => {
                       min="0"
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Engine 1 Cycles</label>
+                    <input
+                      type="number"
+                      value={formData.engine_1_cycles}
+                      onChange={(e) => setFormData({ ...formData, engine_1_cycles: parseInt(e.target.value) || 0 })}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+
+                  {formData.has_engine_2 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Engine 2 Cycles</label>
+                      <input
+                        type="number"
+                        value={formData.engine_2_cycles}
+                        onChange={(e) => setFormData({ ...formData, engine_2_cycles: parseInt(e.target.value) || 0 })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="0"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
