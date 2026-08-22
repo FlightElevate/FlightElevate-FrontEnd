@@ -42,7 +42,7 @@ const OrganizationDetail = () => {
 
   
   // Determine the organization ID from available data
-  const organizationId = organization?.id || adminDetails?.organization_id || (fetchType === 'organization' ? id : null);
+  const organizationId = organization?.id || adminDetails?.organization_id || adminDetails?.organization?.id || (fetchType === 'organization' ? id : null);
 
   
   const {
@@ -169,14 +169,20 @@ const OrganizationDetail = () => {
   ]);
 
   
+  // The organisation may already be present nested on the user; the separate
+  // getOrganization() fetch is only for the fuller record. Deriving state from that fetch
+  // alone made the Admin tab claim "not associated" while showing the org name in the page
+  // title. (ISSUE-010)
+  const linkedOrganization = organization ?? adminDetails?.organization ?? null;
+
   const userInfoItems = useMemo(
     () => formatUserInfo(adminDetails),
     [adminDetails]
   );
 
   const organizationInfoItems = useMemo(
-    () => formatOrganizationInfo(organization, adminDetails),
-    [organization, adminDetails]
+    () => formatOrganizationInfo(linkedOrganization, adminDetails),
+    [linkedOrganization, adminDetails]
   );
 
   
@@ -245,7 +251,13 @@ const OrganizationDetail = () => {
   const isSuperAdmin = useAuth().user?.roles?.includes('Super Admin');
 
   
-  const hasOrganization = organization && organization.id;
+  const hasOrganization = Boolean(
+    linkedOrganization?.id || adminDetails?.organization_id
+  );
+
+  // Management Actions dereference the full organisation record, so they stay gated on the
+  // detail fetch having succeeded - not merely on the association existing.
+  const orgDetailsLoaded = Boolean(organization?.id);
 
   
   if (loadingDetails) {
@@ -280,7 +292,7 @@ const OrganizationDetail = () => {
     );
   }
 
-  const organizationTitle = organization?.name || getOrganizationTitle(adminDetails) || 'Organization Details';
+  const organizationTitle = linkedOrganization?.name || getOrganizationTitle(adminDetails) || 'Organization Details';
 
   return (
     <div className="md:mt-5 mx-auto">
@@ -376,7 +388,7 @@ const OrganizationDetail = () => {
           </div>
 
           {/* Management Actions Section */}
-          {hasOrganization && isSuperAdmin && (
+          {orgDetailsLoaded && isSuperAdmin && (
             <div className="mt-6 bg-blue-50 rounded-lg p-6 border border-blue-200">
               <h3 className="text-lg font-semibold text-blue-800 mb-4 pb-3 border-b border-blue-200">
                 Management Actions (Super Admin)

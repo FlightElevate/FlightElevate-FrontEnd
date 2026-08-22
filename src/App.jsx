@@ -42,8 +42,11 @@ import AdminSubscription from "./pages/AdminFE/Subscription/Subscription";
 import SubscriptionRequired from "./pages/SubscriptionRequired";
 import CheckoutPage from "./pages/CheckoutPage";
 import About from "./pages/About";
+import { useIdleTimer } from "./hooks/useIdleTimer";
 
 const App = () => {
+  useIdleTimer();
+
   return (
     <Routes>
         {}

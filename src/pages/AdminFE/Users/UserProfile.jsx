@@ -72,7 +72,6 @@ const UserProfile = () => {
       fetchUser();
       fetchDocuments();
       fetchFlightLogs();
-      fetchLocations();
       fetchWalletTxns();
     }
   }, [id]);
@@ -93,6 +92,13 @@ const UserProfile = () => {
         });
         const avatarUrl = userData?.avatar || userData?.profile_image || userData?.avatar_url || userData?.organization?.logo;
         setProfileImage(avatarUrl || null);
+        
+        // Fetch locations scoped to this user's organization
+        if (userData?.organization_id) {
+          fetchLocations(userData.organization_id);
+        } else {
+          fetchLocations();
+        }
       }
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -105,9 +111,10 @@ const UserProfile = () => {
     fetchUser();
   };
 
-  const fetchLocations = async () => {
+  const fetchLocations = async (orgId = null) => {
     try {
-      const res = await locationService.getLocations();
+      const params = orgId ? { organization_id: orgId } : {};
+      const res = await locationService.getLocations(params);
       if (res.success && Array.isArray(res.data)) {
         setLocationOptions(res.data.filter((l) => l.id != null));
       }
@@ -1087,8 +1094,9 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
   );
 
   const filteredMulti = locationOptions.filter(loc =>
-    loc.name.toLowerCase().includes(multiSearch.toLowerCase()) ||
-    (loc.address || '').toLowerCase().includes(multiSearch.toLowerCase())
+    String(loc.id) !== String(locationForm.default_location_id) &&
+    (loc.name.toLowerCase().includes(multiSearch.toLowerCase()) ||
+    (loc.address || '').toLowerCase().includes(multiSearch.toLowerCase()))
   );
 
   const selectedDefaultName = locationOptions.find(l => String(l.id) === locationForm.default_location_id)?.name;

@@ -9,6 +9,21 @@ const Pagination = ({
   options = [10, 25, 50],
   fullWidth = true,
 }) => {
+  // The select must never display a value other than the one in effect. Several pages
+  // initialise perPage to 5 or 15, which are not in the default options - a <select> whose
+  // value matches no <option> silently falls back to rendering the first one. Splice the
+  // current value in so the control always reflects reality. (ISSUE-016)
+  const selectOptions = React.useMemo(
+    () => (options.includes(perPage) ? options : [...options, perPage].sort((a, b) => a - b)),
+    [options, perPage]
+  );
+
+  if (import.meta.env.DEV && !options.includes(perPage)) {
+    console.warn(
+      `Pagination: perPage=${perPage} is not in options [${options}] - it has been added to the list.`
+    );
+  }
+
   const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
   const start = totalItems === 0 ? 0 : (page - 1) * perPage + 1;
   const end = Math.min(page * perPage, totalItems);
@@ -107,7 +122,7 @@ const Pagination = ({
             className="border border-gray-300 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:border-blue-500"
             aria-label="Rows per page"
           >
-            {options.map((opt) => (
+            {selectOptions.map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
               </option>

@@ -1304,6 +1304,11 @@ const Calendar = () => {
 
   const handleReservationSubmit = async (e) => {
     e.preventDefault();
+
+    if (!reservationForm.student_id && !reservationForm.instructor_id) {
+      showErrorToast('A reservation requires at least one student or instructor.');
+      return;
+    }
     
     if (!reservationForm.duration_minutes || reservationForm.duration_minutes <= 0) {
       showErrorToast('End date and time must be after start date and time.');
@@ -2650,7 +2655,7 @@ const Calendar = () => {
                 <FiX size={24} />
               </button>
             </div>
-            <form onSubmit={handleReservationSubmit} className="p-6">
+            <form onSubmit={handleReservationSubmit} className="p-6" noValidate>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
@@ -2681,7 +2686,6 @@ const Calendar = () => {
                       className={`w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         isStudent() ? 'bg-gray-50 cursor-not-allowed' : ''
                       }`}
-                      required
                       disabled={isStudent()}
                     >
                       <option value="">Select Student</option>
@@ -2693,7 +2697,7 @@ const Calendar = () => {
                             <option key={student.id} value={String(student.id)}>{student.name || student.email}</option>
                           ))
                         ) : (
-                          <option value="" disabled>No students available for this location combination</option>
+                          <option value="" disabled>{students.length > 0 ? 'No students match the location filter' : 'No students exist in this organization'}</option>
                         );
                       })()}
                     </select>
@@ -2725,7 +2729,6 @@ const Calendar = () => {
                         });
                       }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
                     >
                       <option value="">Select Instructor</option>
                       {(() => {
@@ -2736,7 +2739,7 @@ const Calendar = () => {
                             <option key={instructor.id} value={String(instructor.id)}>{instructor.name || instructor.email}</option>
                           ))
                         ) : (
-                          <option value="" disabled>No instructors available for this location combination</option>
+                          <option value="" disabled>{instructors.length > 0 ? 'No instructors match the location filter' : 'No instructors exist in this organization'}</option>
                         );
                       })()}
                     </select>
@@ -2800,7 +2803,7 @@ const Calendar = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Aircraft
                     {isAircraftPreSelected && (
-                      <span className="ml-2 text-xs text-blue-600 font-normal">(Pre-selected from aircraft profile - You can change it)</span>
+                      <span className="ml-2 text-xs text-blue-600 font-normal">(Pre-selected)</span>
                     )}
                     {!isAircraftPreSelected && (
                       <span className="ml-2 text-xs text-gray-500 font-normal">(Optional)</span>
@@ -2815,7 +2818,6 @@ const Calendar = () => {
                       value={reservationForm.aircraft_id}
                       onChange={(e) => setReservationForm({ ...reservationForm, aircraft_id: e.target.value })}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition"
-                      title="Select an aircraft (optional - you can change the pre-selected one)"
                     >
                       <option value="">Select Aircraft (Optional)</option>
                       {(() => {
@@ -2826,14 +2828,14 @@ const Calendar = () => {
                             <option key={ac.id} value={String(ac.id)}>{ac.registration || ac.serial_number || ac.name} {ac.model ? `(${ac.model})` : ''}</option>
                           ))
                         ) : (
-                          <option value="" disabled>No aircraft available for this location combination</option>
+                          <option value="" disabled>{aircraft.length > 0 ? 'No aircraft match the location filter' : 'No aircraft exist in this organization'}</option>
                         );
                       })()}
                     </select>
                   )}
                   {isAircraftPreSelected && (
                     <p className="mt-1 text-xs text-blue-600">
-                      ✓ Aircraft pre-selected from aircraft profile. You can change it if needed.
+                      ✓ Pre-selected from the aircraft profile — you can change it.
                     </p>
                   )}
                 </div>

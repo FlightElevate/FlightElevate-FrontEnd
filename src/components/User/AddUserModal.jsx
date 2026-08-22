@@ -3,7 +3,8 @@ import { FiX, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useUserForm } from '../../hooks/useUserForm';
 import { useRoles } from '../../hooks/useRoles';
 import { userService } from '../../api/services/userService';
-import { locationService } from '../../api/services/locationService';
+import { organizationService } from '../../api/services/organizationService';
+import { useAuth } from '../../context/AuthContext';
 import { showSuccessToast, showErrorToast } from '../../utils/notifications';
 
 
@@ -17,7 +18,9 @@ const AddUserModal = ({
   const { roles, loading: loadingRoles, isCacheValid } = useRoles();
   const [submitting, setSubmitting] = React.useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [locationOptions, setLocationOptions] = useState([]);
+  const { user } = useAuth();
+  const isSuperAdmin = user?.roles?.includes('Super Admin') || user?.roles?.includes('super admin');
+  const [organizations, setOrganizations] = useState([]);
 
   
   useEffect(() => {
@@ -30,18 +33,18 @@ const AddUserModal = ({
   useEffect(() => {
     let c = false;
     (async () => {
-      if (!isOpen) return;
+      if (!isOpen || !isSuperAdmin) return;
       try {
-        const r = await locationService.getLocations();
+        const r = await organizationService.getOrganizations();
         if (!c && r.success && Array.isArray(r.data)) {
-          setLocationOptions(r.data.filter((l) => l.id != null && l.id !== ''));
+          setOrganizations(r.data);
         }
       } catch (e) {
         console.error(e);
       }
     })();
     return () => { c = true; };
-  }, [isOpen]);
+  }, [isOpen, isSuperAdmin]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -290,51 +293,39 @@ const AddUserModal = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Default calendar location</label>
+            {/* Organization Assignment (Super Admin only) */}
+            {isSuperAdmin && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Organization Assignment
+                </label>
                 <select
-                  name="default_location_id"
-                  value={formData.default_location_id || ''}
+                  name="organization_id"
+                  value={formData.organization_id || ''}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">None</option>
-                  {locationOptions.map((loc) => (
-                    <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                  <option value="">Unassigned (No Organization)</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={String(org.id)}>{org.name}</option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Assign user to an organization, or leave unassigned.
+                </p>
+                {formData.role === 'Admin' && !formData.organization_id && (
+                  <div className="mt-4">
+                    <FormField
+                      label="New Organization Name (Optional)"
+                      name="organization_name"
+                      value={formData.organization_name || ''}
+                      onChange={handleChange}
+                      error={formErrors.organization_name}
+                      placeholder="Enter organization name (will create new organization)"
+                    />
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Additional schedule locations</label>
-                <select
-                  multiple
-                  value={(formData.calendar_location_ids || []).map(String)}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions).map((o) => parseInt(o.value, 10));
-                    updateField('calendar_location_ids', selected);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[96px]"
-                >
-                  {locationOptions.map((loc) => (
-                    <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500">Ctrl/Cmd+click for multiple. Applies to students and instructors for schedule access.</p>
-              </div>
-            </div>
-
-            {}
-            {formData.role === 'Admin' && (
-              <FormField
-                label="Organization Name"
-                name="organization_name"
-                value={formData.organization_name || ''}
-                onChange={handleChange}
-                error={formErrors.organization_name}
-                required
-                placeholder="Enter organization name (will create new organization)"
-              />
             )}
           </div>
 
