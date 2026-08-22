@@ -100,7 +100,21 @@ apiClient.interceptors.response.use(
           break;
         case 422:
           
-          errorResponse.message = data?.errors?.message || data?.message || 'Validation failed';
+          let msg = data?.errors?.message || data?.message || 'Validation failed';
+          if ((msg === 'Validation failed' || msg === 'The given data was invalid.') && data?.errors?.details) {
+            const errDetails = data.errors.details;
+            if (typeof errDetails === 'string') {
+              msg = errDetails;
+            } else if (Array.isArray(errDetails) && errDetails.length > 0) {
+              msg = errDetails[0];
+            } else if (typeof errDetails === 'object' && errDetails !== null) {
+              const details = Object.values(errDetails).flat();
+              if (details.length > 0) {
+                msg = details[0];
+              }
+            }
+          }
+          errorResponse.message = msg;
           errorResponse.errors = data?.errors || data;
           if (import.meta.env.DEV) {
             console.error('Validation failed:', data?.errors || data);

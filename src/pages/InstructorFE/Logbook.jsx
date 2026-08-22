@@ -103,12 +103,10 @@ const Logbook = () => {
   }, [currentPage, itemsPerPage, sortBy, filterStudentId, filterInstructorId, filterMonth, filterStartDate, filterEndDate, searchTerm, searchParams]);
 
   useEffect(() => {
-    if (isAdminView) {
-      fetchStudents();
-      fetchInstructors();
-    }
+    fetchStudents();
+    fetchInstructors();
     fetchAircraft();
-  }, [isAdminView]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
