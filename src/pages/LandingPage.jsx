@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { SiteNav, SiteFooter, AtisRibbon, useReveal } from './SiteChrome';
+import { SiteNav, SiteFooter, AtisRibbon, useReveal, useScrollTop } from './SiteChrome';
 import './flightelevate.css';
 
 /* ==================================================================
@@ -131,6 +131,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   useReveal();
+  useScrollTop();
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
@@ -161,7 +162,7 @@ const LandingPage = () => {
 
       {/* ══════════ HERO ══════════ */}
       <header className="fe-hero">
-        <div className="fe-hero-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1672277438853-43ffaeab2b41?auto=format&fit=crop&w=2000&q=70\')'}}></div>
+        <div className="fe-hero-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1672277438853-43ffaeab2b41?auto=format&fit=crop&w=1200&q=55\')'}}></div>
         <div className="fe-hero-veil"></div>
         <div className="fe-hero-grid"></div>
 
@@ -310,12 +311,12 @@ const LandingPage = () => {
 
                 {/* nodes */}
                 <g fontFamily="JetBrains Mono, monospace" fontSize="9" letterSpacing="2" fill="#B0761A">
-                  <g><circle cx="230" cy="54" r="30" fill="#0A1E31" /><text x="230" y="51" textAnchor="middle" fill="#FFAD1F">01</text><text x="230" y="64" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">BOOK</text></g>
-                  <g><circle cx="382" cy="142" r="30" fill="#0A1E31" /><text x="382" y="139" textAnchor="middle" fill="#FFAD1F">02</text><text x="382" y="152" textAnchor="middle" fill="#E8F1F7" fontSize="8">DISPATCH</text></g>
-                  <g><circle cx="382" cy="318" r="30" fill="#0A1E31" /><text x="382" y="315" textAnchor="middle" fill="#FFAD1F">03</text><text x="382" y="328" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">FLY</text></g>
-                  <g><circle cx="230" cy="406" r="30" fill="#0A1E31" /><text x="230" y="403" textAnchor="middle" fill="#FFAD1F">04</text><text x="230" y="416" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">LOG</text></g>
-                  <g><circle cx="78" cy="318" r="30" fill="#0A1E31" /><text x="78" y="315" textAnchor="middle" fill="#FFAD1F">05</text><text x="78" y="328" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">BILL</text></g>
-                  <g><circle cx="78" cy="142" r="30" fill="#0A1E31" /><text x="78" y="139" textAnchor="middle" fill="#FFAD1F">06</text><text x="78" y="152" textAnchor="middle" fill="#E8F1F7" fontSize="8">COMPLY</text></g>
+                  <g><circle cx="230" cy="54" r="30" fill="#0A1E31" /><text x="230" y="51" textAnchor="middle" fill="#2F8FE0">01</text><text x="230" y="64" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">BOOK</text></g>
+                  <g><circle cx="382" cy="142" r="30" fill="#0A1E31" /><text x="382" y="139" textAnchor="middle" fill="#2F8FE0">02</text><text x="382" y="152" textAnchor="middle" fill="#E8F1F7" fontSize="8">DISPATCH</text></g>
+                  <g><circle cx="382" cy="318" r="30" fill="#0A1E31" /><text x="382" y="315" textAnchor="middle" fill="#2F8FE0">03</text><text x="382" y="328" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">FLY</text></g>
+                  <g><circle cx="230" cy="406" r="30" fill="#0A1E31" /><text x="230" y="403" textAnchor="middle" fill="#2F8FE0">04</text><text x="230" y="416" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">LOG</text></g>
+                  <g><circle cx="78" cy="318" r="30" fill="#0A1E31" /><text x="78" y="315" textAnchor="middle" fill="#2F8FE0">05</text><text x="78" y="328" textAnchor="middle" fill="#E8F1F7" fontSize="8.5">BILL</text></g>
+                  <g><circle cx="78" cy="142" r="30" fill="#0A1E31" /><text x="78" y="139" textAnchor="middle" fill="#2F8FE0">06</text><text x="78" y="152" textAnchor="middle" fill="#E8F1F7" fontSize="8">COMPLY</text></g>
                 </g>
               </svg>
             </div>
@@ -398,7 +399,7 @@ const LandingPage = () => {
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
                 <rect x="2" y="5" width="26" height="23" rx="3" stroke="#0A1E31" strokeWidth="1.6" />
                 <path d="M2 12h26M9 2v6M21 2v6" stroke="#0A1E31" strokeWidth="1.6" strokeLinecap="round" />
-                <rect x="6" y="16" width="7" height="4" rx="1" fill="#FFAD1F" />
+                <rect x="6" y="16" width="7" height="4" rx="1" fill="#2F8FE0" />
                 <rect x="16" y="16" width="8" height="4" rx="1" fill="#0A1E31" opacity=".2" />
                 <rect x="6" y="22" width="10" height="3" rx="1" fill="#0A1E31" opacity=".2" />
               </svg>
@@ -411,7 +412,7 @@ const LandingPage = () => {
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
                 <path d="M15 3 L27 21 H3 Z" stroke="#0A1E31" strokeWidth="1.6" strokeLinejoin="round" />
                 <path d="M6 26h18" stroke="#0A1E31" strokeWidth="1.6" strokeLinecap="round" />
-                <circle cx="15" cy="15" r="3" fill="#FFAD1F" />
+                <circle cx="15" cy="15" r="3" fill="#2F8FE0" />
               </svg>
               <h4>Aircraft &amp; maintenance</h4>
               <p>Hobbs and tach tracked per flight. Inspection intervals, AD compliance and open squawks surface on the board before they ground you.</p>
@@ -423,8 +424,8 @@ const LandingPage = () => {
                 <rect x="4" y="3" width="22" height="24" rx="2.5" stroke="#0A1E31" strokeWidth="1.6" />
                 <path d="M9 3v24" stroke="#0A1E31" strokeWidth="1.6" />
                 <path d="M13 10h9M13 15h9M13 20h5" stroke="#0A1E31" strokeWidth="1.6" strokeLinecap="round" opacity=".45" />
-                <circle cx="6.5" cy="9" r="1.3" fill="#FFAD1F" />
-                <circle cx="6.5" cy="15" r="1.3" fill="#FFAD1F" />
+                <circle cx="6.5" cy="9" r="1.3" fill="#2F8FE0" />
+                <circle cx="6.5" cy="15" r="1.3" fill="#2F8FE0" />
               </svg>
               <h4>Digital logbook</h4>
               <p>Flight times, endorsements and lesson notes recorded once and readable by student, instructor and chief instructor. Export any time.</p>
@@ -435,7 +436,7 @@ const LandingPage = () => {
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
                 <rect x="2.5" y="7" width="25" height="17" rx="3" stroke="#0A1E31" strokeWidth="1.6" />
                 <path d="M2.5 13h25" stroke="#0A1E31" strokeWidth="1.6" />
-                <rect x="18" y="17" width="7" height="3" rx="1.5" fill="#FFAD1F" />
+                <rect x="18" y="17" width="7" height="3" rx="1.5" fill="#2F8FE0" />
               </svg>
               <h4>Billing &amp; wallets</h4>
               <p>Charge aircraft time, instruction and ground from the same flight record. Student wallets, cards and payouts run on Stripe — funds never touch us.</p>
@@ -445,7 +446,7 @@ const LandingPage = () => {
             <div className="fe-cap">
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
                 <path d="M15 2.5 26 7v9c0 6.6-4.5 10.6-11 12.5C8.5 26.6 4 22.6 4 16V7Z" stroke="#0A1E31" strokeWidth="1.6" strokeLinejoin="round" />
-                <path d="M10.5 15.5 13.5 18.5 20 12" stroke="#FFAD1F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M10.5 15.5 13.5 18.5 20 12" stroke="#2F8FE0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <h4>Compliance &amp; reporting</h4>
               <p>Training records, currency and aircraft times stay inspection-ready. Pull a Part 141 record or a utilisation report without a spreadsheet.</p>
@@ -455,7 +456,7 @@ const LandingPage = () => {
             <div className="fe-cap">
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
                 <path d="M4 6.5h22a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5H12l-6 5v-5H4a1.5 1.5 0 0 1-1.5-1.5V8A1.5 1.5 0 0 1 4 6.5Z" stroke="#0A1E31" strokeWidth="1.6" strokeLinejoin="round" />
-                <circle cx="10" cy="13.5" r="1.6" fill="#FFAD1F" />
+                <circle cx="10" cy="13.5" r="1.6" fill="#2F8FE0" />
                 <circle cx="15" cy="13.5" r="1.6" fill="#0A1E31" opacity=".3" />
                 <circle cx="20" cy="13.5" r="1.6" fill="#0A1E31" opacity=".3" />
               </svg>
@@ -551,7 +552,7 @@ const LandingPage = () => {
                 <svg width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
                   <circle cx="43" cy="43" r="34" fill="none" stroke="#17364F" strokeWidth="7" />
                   <circle
-                    cx="43" cy="43" r="34" fill="none" stroke="#FFAD1F" strokeWidth="7"
+                    cx="43" cy="43" r="34" fill="none" stroke="#2F8FE0" strokeWidth="7"
                     strokeLinecap="round" strokeDasharray="214" strokeDashoffset={dialOffset}
                     transform="rotate(-90 43 43)"
                   />
@@ -569,7 +570,7 @@ const LandingPage = () => {
                     <path d="M26 22h9M26 32h9M26 42h9M26 52h9M26 62h9" />
                   </g>
                   <rect x="27" y={75 - tapeHeight} width="32" height={tapeHeight} rx="3" fill="#6FD3F2" opacity=".22" />
-                  <path d="M20 43h46" stroke="#FFAD1F" strokeWidth="2" />
+                  <path d="M20 43h46" stroke="#2F8FE0" strokeWidth="2" />
                 </svg>
                 <b>{conflicts}</b>
                 <span>Conflicts avoided</span>
@@ -661,7 +662,7 @@ const LandingPage = () => {
 
       {/* ══════════ QUOTE ══════════ */}
       <section className="fe-quote">
-        <div className="fe-quote-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1652610050513-aee5fa596bdc?auto=format&fit=crop&w=2000&q=70\')'}}></div>
+        <div className="fe-quote-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1652610050513-aee5fa596bdc?auto=format&fit=crop&w=1200&q=55\')'}}></div>
         <div className="fe-quote-veil"></div>
         <div className="fe-wrap fe-quote-in">
           <span className="fe-eyebrow">Why we built it</span>
@@ -731,4 +732,3 @@ const LandingPage = () => {
 };
 
 export default LandingPage;
- 
