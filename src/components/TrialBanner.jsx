@@ -132,3 +132,6 @@ const TrialBanner = () => {
 };
 
 export default TrialBanner;
+};
+
+export default TrialBanner;
