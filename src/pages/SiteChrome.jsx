@@ -25,7 +25,7 @@ const ATIS = [
 export const BrandMark = ({ className = 'fe-brand-mark' }) => (
   <svg className={className} viewBox="0 0 34 34" fill="none" aria-hidden="true">
     <rect x=".5" y=".5" width="33" height="33" rx="8" stroke="#17364F" />
-    <path d="M7 22.5 L17 8 L27 22.5" stroke="#FFAD1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M7 22.5 L17 8 L27 22.5" stroke="#2F8FE0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M11.5 22.5 L17 14.5 L22.5 22.5" stroke="#6FD3F2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity=".75" />
     <path d="M9 26.5 H25" stroke="#17364F" strokeWidth="2" strokeLinecap="round" />
   </svg>
@@ -165,12 +165,19 @@ export const SiteFooter = () => (
   </footer>
 );
 
-/* Adds the scroll-reveal class to any .fe-reveal element that enters view. */
+/* Adds the scroll-reveal class to any .fe-reveal element that enters view.
+   Includes a safety-net timeout: if the observer ever misses an element
+   (slow mobile layout shifts, older browsers, etc.), everything is forced
+   visible after 2.5s so content never gets stuck hidden. */
 export const useReveal = () => {
   React.useEffect(() => {
+    const revealAll = () => {
+      document.querySelectorAll('.fe-reveal:not(.in)').forEach((el) => el.classList.add('in'));
+    };
+
     const els = Array.from(document.querySelectorAll('.fe-reveal:not(.in)'));
     if (!('IntersectionObserver' in window)) {
-      els.forEach((el) => el.classList.add('in'));
+      revealAll();
       return undefined;
     }
     const io = new IntersectionObserver(
@@ -180,6 +187,18 @@ export const useReveal = () => {
       { threshold: 0.12 }
     );
     els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+
+    const safetyTimer = setTimeout(revealAll, 2500);
+
+    return () => { io.disconnect(); clearTimeout(safetyTimer); };
+  }, []);
+};
+
+/* Scrolls to the top of the page on every route change, so navigating to a
+   new page (e.g. clicking "About") always starts from the top instead of
+   preserving the previous page's scroll position. */
+export const useScrollTop = () => {
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
   }, []);
 };
