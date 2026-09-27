@@ -1,5 +1,5 @@
 import React from 'react';
-import { SiteNav, SiteFooter, AtisRibbon, useReveal } from './SiteChrome';
+import { SiteNav, SiteFooter, AtisRibbon, useReveal, useScrollTop } from './SiteChrome';
 import './flightelevate.css';
 
 /* ==================================================================
@@ -8,6 +8,7 @@ import './flightelevate.css';
 
 const About = () => {
   useReveal();
+  useScrollTop();
 
   return (
     <div className="fe">
@@ -15,7 +16,7 @@ const About = () => {
       <SiteNav />
 
       <header className="fe-hero fe-about-hero">
-        <div className="fe-hero-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1691394045643-aafd8e17deab?auto=format&fit=crop&w=2000&q=70\')'}}></div>
+        <div className="fe-hero-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1691394045643-aafd8e17deab?auto=format&fit=crop&w=1200&q=55\')'}}></div>
         <div className="fe-hero-veil"></div>
         <div className="fe-wrap" style={{position: 'relative', zIndex: '2'}}>
           <span className="fe-eyebrow">About FlightElevate</span>
@@ -93,11 +94,11 @@ const About = () => {
       </section>
 
       <section className="fe-quote">
-        <div className="fe-quote-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1678116984484-5d1032b75951?auto=format&fit=crop&w=2000&q=70\')'}}></div>
+        <div className="fe-quote-photo" style={{backgroundImage: 'url(\'https://images.unsplash.com/photo-1678116984484-5d1032b75951?auto=format&fit=crop&w=1200&q=55\')'}}></div>
         <div className="fe-quote-veil"></div>
         <div className="fe-wrap fe-quote-in">
           <blockquote>We build the tool we wanted when we were <em>running the desk.</em></blockquote>
-          <cite>The FlightElevate team</cite>
+          The FlightElevate team
         </div>
       </section>
 
