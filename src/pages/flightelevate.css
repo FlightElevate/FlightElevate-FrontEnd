@@ -20,8 +20,8 @@
   --fe-paper-rule: #C8D6E0;
 
   /* accents */
-  --fe-amber:      #FFAD1F;   /* PAPI / taxiway light — primary */
-  --fe-amber-dim:  #C98514;
+  --fe-amber:      #2F8FE0;   /* ILS deviation blue — primary */
+  --fe-amber-dim:  #1F65A8;
   --fe-nav:        #6FD3F2;   /* G1000 cyan — data              */
   --fe-course:     #E45DA8;   /* magenta course line — route    */
   --fe-go:         #4ADE80;   /* status green                   */
@@ -125,8 +125,8 @@
 }
 .fe-btn:hover { transform: translateY(-2px); }
 .fe-btn:active { transform: translateY(0); }
-.fe-btn-primary { background: var(--fe-amber); color: #16130A; box-shadow: 0 10px 30px -12px rgba(255,173,31,.7); }
-.fe-btn-primary:hover { background: #FFC047; }
+.fe-btn-primary { background: var(--fe-amber); color: #16130A; box-shadow: 0 10px 30px -12px rgba(47,143,224,.7); }
+.fe-btn-primary:hover { background: #5AB4FF; }
 .fe-btn-ghost { border: 1px solid var(--fe-rule); color: var(--fe-text); }
 .fe-btn-ghost:hover { border-color: var(--fe-nav); color: var(--fe-nav); }
 .fe-btn-paper { border: 1px solid var(--fe-on-paper); color: var(--fe-on-paper); }
@@ -188,7 +188,7 @@
   position: absolute; inset: 0; z-index: 1;
   background:
     linear-gradient(180deg, rgba(5,18,31,.72) 0%, rgba(5,18,31,.9) 55%, var(--fe-ink) 100%),
-    radial-gradient(ellipse 60% 50% at 78% 18%, rgba(255,173,31,.14), transparent 70%);
+    radial-gradient(ellipse 60% 50% at 78% 18%, rgba(47,143,224,.14), transparent 70%);
 }
 .fe-hero-grid {
   position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: .5;
@@ -254,7 +254,7 @@
 .fe-strip.is-air    { border-left-color: var(--fe-go); }
 .fe-strip.is-air    .fe-tag { background: rgba(74,222,128,.13); color: var(--fe-go); }
 .fe-strip.is-taxi   { border-left-color: var(--fe-amber); }
-.fe-strip.is-taxi   .fe-tag { background: rgba(255,173,31,.14); color: var(--fe-amber); }
+.fe-strip.is-taxi   .fe-tag { background: rgba(47,143,224,.14); color: var(--fe-amber); }
 .fe-strip.is-sched  { border-left-color: var(--fe-nav); }
 .fe-strip.is-sched  .fe-tag { background: rgba(111,211,242,.12); color: var(--fe-nav); }
 .fe-strip.is-mx     { border-left-color: var(--fe-warn); }
@@ -324,7 +324,7 @@
 .fe-role-tab .fe-mono { font-size: 9.5px; color: var(--fe-text-dim); }
 .fe-role-tab strong { display: block; font-family: var(--fe-display); font-weight: 700; font-size: 17px; letter-spacing: -.02em; margin-top: 6px; }
 .fe-role-tab em { display: block; font-style: normal; font-size: 13px; color: var(--fe-text-dim); margin-top: 4px; line-height: 1.5; }
-.fe-role-tab.active { background: var(--fe-deck-2); border-color: rgba(255,173,31,.4); border-left-color: var(--fe-amber); box-shadow: 0 10px 30px -18px rgba(255,173,31,.9); }
+.fe-role-tab.active { background: var(--fe-deck-2); border-color: rgba(47,143,224,.4); border-left-color: var(--fe-amber); box-shadow: 0 10px 30px -18px rgba(47,143,224,.9); }
 .fe-role-tab.active .fe-mono { color: var(--fe-amber); }
 
 .fe-role-panel { background: var(--fe-deck); border: 1px solid var(--fe-rule); border-radius: var(--fe-r); overflow: hidden; }
