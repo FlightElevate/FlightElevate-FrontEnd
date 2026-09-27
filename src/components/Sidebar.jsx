@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { MdPushPin, MdOutlinePushPin } from "react-icons/md";
 import { useAuth } from "../context/AuthContext";
 import { getNavigationItemsByPermissions, getNavigationItemsByRole } from "../config/navigation";
 import { settingsService } from "../api/services/settingsService";
@@ -12,6 +13,8 @@ import logo from "../assets/SVG/logo.svg";
 import { getTrialRemainingDays } from "../utils/organizationHelpers";
 
 
+const PIN_STORAGE_KEY = "sidebar_pinned";
+
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const { user } = useAuth();
@@ -21,6 +24,46 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [showOrgSwitcher, setShowOrgSwitcher] = useState(false);
   const [switchingOrg, setSwitchingOrg] = useState(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+
+  // Hover-to-expand + pin state (desktop only; mobile keeps the existing overlay drawer)
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(() => {
+    try {
+      return localStorage.getItem(PIN_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const hoverTimeoutRef = useRef(null);
+  const expanded = isPinned || isHovered;
+
+  const togglePin = () => {
+    setIsPinned((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(PIN_STORAGE_KEY, String(next));
+      } catch {
+        // ignore storage failures (private browsing, etc.)
+      }
+      return next;
+    });
+  };
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    // small delay avoids flicker when the cursor clips the edge
+    hoverTimeoutRef.current = setTimeout(() => setIsHovered(false), 120);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
 
   
   // Memoize navigation items to prevent recalculation on every render
@@ -175,15 +218,33 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
       {}
       <aside
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={`fixed top-0 left-0 z-50 bg-blue-700 text-white shadow-md
-          h-screen transform transition-transform duration-300 ease-in-out
+          h-screen flex flex-col
+          transform transition-all duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:static md:h-auto md:w-1/5 lg:w-1/6 md:min-w-[180px]`}
+          md:translate-x-0 md:static
+          w-4/5 sm:w-3/5
+          ${expanded ? "md:w-64" : "md:w-[68px]"}
+          overflow-hidden`}
       >
         {}
-        <div className="border-b border-blue-600 relative">
+        <div className="border-b border-blue-600 relative flex-shrink-0">
+          {/* Pin toggle — desktop only, fades in on hover/expand */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); togglePin(); }}
+            title={isPinned ? "Unpin sidebar" : "Keep sidebar expanded"}
+            className={`hidden md:flex absolute top-3 right-2.5 w-6 h-6 rounded-md z-[60]
+              items-center justify-center transition-opacity duration-150
+              ${isPinned ? "bg-white text-blue-700" : "bg-white/15 text-white hover:bg-white/25"}
+              ${expanded ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+          >
+            {isPinned ? <MdPushPin size={13} /> : <MdOutlinePushPin size={13} />}
+          </button>
           <button 
-            onClick={() => activeMemberships.length > 1 && setShowOrgSwitcher(!showOrgSwitcher)}
+            onClick={() => activeMemberships.length > 1 && expanded && setShowOrgSwitcher(!showOrgSwitcher)}
             className={`w-full ps-5 p-4 text-left transition-colors ${activeMemberships.length > 1 ? 'hover:bg-blue-600 cursor-pointer' : 'cursor-default'}`}
           >
             <div className="flex items-center gap-3">
@@ -226,7 +287,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   />
                 )}
               </div>
-              <div className="text-white flex-1 min-w-0">
+              <div
+                className={`text-white flex-1 min-w-0 whitespace-nowrap overflow-hidden transition-opacity duration-150
+                  ${expanded ? "opacity-100 delay-75" : "md:opacity-0 md:w-0"}`}
+              >
                 <div className="text-lg font-bold flex items-start gap-2">
                   <span className="break-words">{displayName}</span>
                   {activeMemberships.length > 1 && (
@@ -265,8 +329,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           )}
         </div>
 
-        {}
-        <div className="p-5">
+        {/* Nav — scrolls independently so short/folded viewports still see every item */}
+        <div className="p-3 md:px-2.5 pt-4 flex-1 min-h-0 overflow-y-auto overflow-x-hidden
+          [&::-webkit-scrollbar]:w-1.5
+          [&::-webkit-scrollbar-thumb]:bg-white/25
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-track]:bg-transparent">
           <nav className="flex flex-col gap-2">
             {navLinks.length > 0 ? (
               navLinks.map(({ icon: Icon, label, link, badge, badgeColor }, index) => {
@@ -276,25 +344,32 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 const isDisabled = badge === "Coming Soon";
                 
                 const uniqueKey = `${link}-${index}`;
-                
+
+                const labelEl = (
+                  <span className={`whitespace-nowrap overflow-hidden transition-opacity duration-150 ${expanded ? "opacity-100 delay-75" : "md:opacity-0 md:w-0"}`}>
+                    {label}
+                  </span>
+                );
+                const badgeEl = badge && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full text-white flex-shrink-0 ${badgeColor || 'bg-blue-500'} ${expanded ? "" : "md:hidden"}`}>
+                    {badge}
+                  </span>
+                );
                 
                 if (isDisabled) {
                   return (
                     <div
                       key={uniqueKey}
+                      title={!expanded ? label : undefined}
                       className={`flex items-center justify-between gap-2 px-4 py-2 rounded-lg text-sm font-medium
                         opacity-75 cursor-not-allowed
                         transition-colors`}
                     >
                       <div className="flex items-center gap-2">
-                        <Icon size={18} />
-                        {label}
+                        <Icon size={18} className="flex-shrink-0" />
+                        {labelEl}
                       </div>
-                      {badge && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full text-white ${badgeColor || 'bg-blue-500'}`}>
-                          {badge}
-                        </span>
-                      )}
+                      {badgeEl}
                     </div>
                   );
                 }
@@ -303,66 +378,67 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   <Link
                     key={uniqueKey}
                     to={link}
+                    title={!expanded ? label : undefined}
                     className={`flex items-center justify-between gap-2 px-4 py-2 rounded-lg text-sm font-medium
                       ${active ? "bg-white text-blue-700" : "hover:bg-blue-600"}
                       transition-colors`}
                     onClick={() => setIsOpen(false)}
                   >
                     <div className="flex items-center gap-2">
-                      <Icon size={18} />
-                      {label}
+                      <Icon size={18} className="flex-shrink-0" />
+                      {labelEl}
                     </div>
-                    {badge && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full text-white ${badgeColor || 'bg-blue-500'}`}>
-                        {badge}
-                      </span>
-                    )}
+                    {badgeEl}
                   </Link>
                 );
               })
             ) : (
-              <div className="px-4 py-2 text-sm text-gray-300">
+              <div className={`px-4 py-2 text-sm text-gray-300 ${expanded ? "" : "md:hidden"}`}>
                 No navigation items available
               </div>
             )}
           </nav>
-
-          {/* Trial Status Badge */}
-          {!hasActiveSubscription && !user?.roles?.some(role => ['super admin', 'student', 'instructor'].includes(role.toLowerCase())) && user?.organization_id && (
-            <div className="mt-8 px-4">
-              <div className="bg-blue-800 bg-opacity-50 rounded-lg p-3 border border-blue-500">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] font-semibold text-blue-200 uppercase tracking-wider">Trial Status</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-medium">
-                    {user.is_trial_active ? 'Active' : 'Expired'}
-                  </span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-lg font-bold leading-none">
-                      {user.trial_ends_at ? getTrialRemainingDays(user.trial_ends_at) : 0}
-                    </p>
-                    <p className="text-[10px] text-blue-300">Days Remaining</p>
-                  </div>
-                  <Link 
-                    to="/subscription" 
-                    className="text-[10px] bg-white text-blue-700 px-2 py-1 rounded font-bold hover:bg-blue-50 transition-colors"
-                  >
-                    Upgrade
-                  </Link>
-                </div>
-                {user.trial_ends_at && (
-                  <div className="w-full bg-blue-900 rounded-full h-1 mt-2">
-                    <div 
-                      className={`h-1 rounded-full ${getTrialRemainingDays(user.trial_ends_at) > 5 ? 'bg-blue-400' : 'bg-red-400'}`} 
-                      style={{ width: `${Math.min(100, (getTrialRemainingDays(user.trial_ends_at) / 30) * 100)}%` }}
-                    ></div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Trial status — pinned below the scrollable nav so it's always visible */}
+        {!hasActiveSubscription && !user?.roles?.some(role => ['super admin', 'student', 'instructor'].includes(role.toLowerCase())) && user?.organization_id && (
+          <div className="flex-shrink-0 p-3 md:px-2.5">
+            {/* Collapsed indicator — desktop rail only, replaced by the full card on hover/pin */}
+            <div className={`hidden md:flex justify-center py-2 ${expanded ? "md:hidden" : ""}`} title="Trial status">
+              <span className="text-lg" aria-hidden="true">⏳</span>
+            </div>
+            <div className={`bg-blue-800 bg-opacity-50 rounded-lg p-3 border border-blue-500 ${expanded ? "" : "md:hidden"}`}>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-semibold text-blue-200 uppercase tracking-wider">Trial Status</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-medium">
+                  {user.is_trial_active ? 'Active' : 'Expired'}
+                </span>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-lg font-bold leading-none">
+                    {user.trial_ends_at ? getTrialRemainingDays(user.trial_ends_at) : 0}
+                  </p>
+                  <p className="text-[10px] text-blue-300">Days Remaining</p>
+                </div>
+                <Link 
+                  to="/subscription" 
+                  className="text-[10px] bg-white text-blue-700 px-2 py-1 rounded font-bold hover:bg-blue-50 transition-colors"
+                >
+                  Upgrade
+                </Link>
+              </div>
+              {user.trial_ends_at && (
+                <div className="w-full bg-blue-900 rounded-full h-1 mt-2">
+                  <div 
+                    className={`h-1 rounded-full ${getTrialRemainingDays(user.trial_ends_at) > 5 ? 'bg-blue-400' : 'bg-red-400'}`} 
+                    style={{ width: `${Math.min(100, (getTrialRemainingDays(user.trial_ends_at) / 30) * 100)}%` }}
+                  ></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );
