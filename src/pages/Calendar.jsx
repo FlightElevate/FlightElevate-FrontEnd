@@ -1480,21 +1480,6 @@ if (aircraftId !== null) {
   };
 
   useEffect(() => {
-  // Don't check availability in edit mode — except drag-drop, which needs the check
-  if (isEditMode && !isDragEdit) {
-    setAvailabilityStatus({
-      student: null,
-      instructor: null,
-      aircraft: null,
-      checking: false,
-    });
-    setAvailabilityMessage('');
-    return;
-  }
-    if (isDragEdit && isEditMode && !reservationForm.lesson_id) {
-    return;
-  }
-
   if (
     reservationForm.lesson_date &&
     reservationForm.lesson_time &&
