@@ -1790,7 +1790,7 @@ const Calendar = () => {
         >
           <table className="calendar-table min-w-full" style={{ 
             minWidth: calendarViewMode === 'day' 
-              ? (isMobile ? '1400px' : '1800px') 
+              ? (isMobile ? '1500px' : '1900px') 
               : (calendarViewMode === 'custom' ? Math.max(getDisplayDates().length * (isMobile ? 150 : 200), 1200) : (isMobile ? '1000px' : '1400px')),
             width: '100%',
             tableLayout: 'fixed',
