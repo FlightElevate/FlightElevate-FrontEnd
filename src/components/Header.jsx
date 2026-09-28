@@ -268,16 +268,21 @@ const Header = ({ toggleSidebar }) => {
             
             {}
             {}
-            <div className="hidden md:flex flex-1 max-w-md relative" ref={searchRef}>
+            <div
+              className="hidden md:flex relative flex-none w-10 hover:w-80 focus-within:w-80 transition-[width] duration-200 ease-in-out group"
+              ref={searchRef}
+              onClick={() => searchInputRef.current?.focus()}
+            >
               <form onSubmit={handleSearchSubmit} className="w-full">
-                <div className="flex items-center border border-gray-300 bg-white rounded-lg px-3 py-1.5 shadow-sm min-h-[38px] hover:border-gray-400 transition-colors">
+                <div className="flex items-center border border-gray-300 bg-white rounded-lg px-3 py-1.5 shadow-sm min-h-[38px] hover:border-gray-400 transition-colors overflow-hidden">
                   <FiSearch className="text-gray-400 mr-2 flex-shrink-0" size={16} />
                   <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder="Search users..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent min-w-0"
+                    className="w-0 group-hover:w-full group-focus-within:w-full flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent min-w-0 transition-[width] duration-200"
                   />
                   {searchQuery && (
                     <button
