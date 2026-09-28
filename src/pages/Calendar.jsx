@@ -1814,6 +1814,7 @@ const Calendar = () => {
                               width: isMobile ? '70px' : '80px',
                               minWidth: isMobile ? '70px' : '80px'
                             }}
+                            >
                             <div className="text-[9px] sm:text-[10px] font-bold uppercase text-gray-400 truncate">
                               {slot.label}
                             </div>
