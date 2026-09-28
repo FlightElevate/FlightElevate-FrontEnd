@@ -1428,16 +1428,18 @@ if (aircraftId !== null) {
           }
           
           if (eventsToCheck.length > 0) {
+            const currentReservationId = reservationForm.lesson_id ? String(reservationForm.lesson_id) : null;
             const selectedDateTime = new Date(`${reservationForm.lesson_date}T${normalizeTimeKey(reservationForm.lesson_time)}:00`);
             const endDateTime = new Date(selectedDateTime.getTime() + reservationForm.duration_minutes * 60000);
             
             const conflictingEvent = eventsToCheck.find((event) => {
+              if (currentReservationId && String(event.id) === currentReservationId) return false;
               const { startMs, endMs } = eventStartEndMs(event, useLocalTimezone);
               const selStart = selectedDateTime.getTime();
               const selEnd = endDateTime.getTime();
               return selStart < endMs && selEnd > startMs;
             });
-            
+             
             if (conflictingEvent) {
               studentAvailable = false;
               bookedSlotInfo = {
