@@ -405,7 +405,15 @@ const Inbox = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <p className="font-medium text-gray-800 truncate">{chat.user?.[0]?.name}</p>
+                          <p
+                           onClick={(e) => {
+                            e.stopPropagation();
+                            // open user profile here
+                          }}
+                            className="font-medium text-gray-800 truncate cursor-pointer hover:underline hover:text-blue-600 transition"
+                           >
+                             {chat.user?.[0]?.name}
+                         </p>
                           <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{timeDisplay}</span>
                         </div>
                         <p className="text-xs text-gray-500 truncate">@{chat.user?.[0]?.username}</p>
