@@ -1800,7 +1800,7 @@ const Calendar = () => {
                 <>
                   <thead className="sticky top-0 z-20 bg-gray-50">
                     <tr className="border-b border-gray-200 shadow-sm bg-gray-50">
-                      <th className="text-left px-3 py-3 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
+                      <th className="text-left px-3 py-2 font-semibold text-xs text-gray-700 border-r border-gray-200 sticky left-0 bg-gray-50 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                         <div className="flex flex-col">
                           <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][currentDate.getDay()]}</span>
                           <span className="text-gray-900">{currentDate.getDate()} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][currentDate.getMonth()]}</span>
@@ -1809,7 +1809,7 @@ const Calendar = () => {
                       {timeSlots.map((slot, idx) => {
                         const isCurrentHour = formatDateStr(new Date()) === formatDateStr(currentDate) && new Date().getHours() === idx;
                         return (
-                          <th key={idx} className="px-1 py-2 border-r border-gray-200 bg-gray-50/50" 
+                          <th key={idx} className="px-1 py-1 border-r border-gray-200 bg-gray-50/50" 
                             style={{
                               width: isMobile ? '70px' : '80px',
                               minWidth: isMobile ? '70px' : '80px'
@@ -1832,10 +1832,10 @@ const Calendar = () => {
                     </tr>
                     {filteredAircraftSchedule.map((aircraft) => (
                       <tr key={`aircraft-${aircraft.id}`} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
-                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
+                        <td className="px-3 py-2 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(aircraft.registration || aircraft.serial_number || aircraft.name)}</span>
                         </td>
-                        <td colSpan={24} className="relative p-0" style={{ height: isMobile ? '60px' : '54px' }}>
+                        <td colSpan={24} className="relative p-0" style={{ height: isMobile ? '52px' : '48px' }}>
                           {/* Background Grid Cells (Clickable) */}
                           <div className="absolute inset-0 flex">
                             {timeSlots.map((slot, idx) => (
