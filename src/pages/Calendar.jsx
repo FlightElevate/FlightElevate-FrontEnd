@@ -1061,18 +1061,31 @@ const Calendar = () => {
 
   
   const handleReservationDrop = (e, date, aircraftId = null, instructorId = null, hour = null) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const reservationId = e.dataTransfer.getData('text/plain');
-  if (!reservationId) return;
+    const reservationId = e.dataTransfer.getData('text/plain');
+    const sourceType = e.dataTransfer.getData('sourceType');
 
-  setPendingReservationDrop({
-    reservationId,
-    date,
-    aircraftId,
-    instructorId,
-    hour,
-  });
+    if (!reservationId || !sourceType) return;
+
+    // Do not allow cross-resource dragging.
+    // Instructor reservations can only be dropped on instructor rows.
+    // Aircraft reservations can only be dropped on aircraft rows.
+    if (
+      (sourceType === 'instructor' && aircraftId !== null) ||
+      (sourceType === 'aircraft' && instructorId !== null)
+    ) {
+      return;
+    }
+
+    setPendingReservationDrop({
+      reservationId,
+      sourceType,
+      date,
+      aircraftId,
+      instructorId,
+      hour,
+    });
   };
 
   const handleEventClick = async (event) => {
@@ -1900,6 +1913,7 @@ const Calendar = () => {
                                 onDragStart={(e) => {
                                   e.dataTransfer.effectAllowed = 'move';
                                   e.dataTransfer.setData('text/plain', String(event.id));
+                                  e.dataTransfer.setData('sourceType', 'aircraft');
                                 }} 
                                 className={`absolute top-1/2 -translate-y-1/2 h-10 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
@@ -2012,6 +2026,7 @@ const Calendar = () => {
                                  onDragStart={(e) => {
                                    e.dataTransfer.effectAllowed = 'move';
                                    e.dataTransfer.setData('text/plain', String(event.id));
+                                   e.dataTransfer.setData('sourceType', 'instructor');
                                  }}  
                                  className={`absolute top-1/2 -translate-y-1/2 h-10 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
