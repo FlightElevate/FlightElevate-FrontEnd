@@ -5,7 +5,6 @@ import ACDetails from "./ACDetails";
 import AirCraftTimes from "./AirCraftTimes/AirCraftTimes";
 import { calendarService } from "../../../api/services/calendarService";
 import { aircraftService } from "../../../api/services/aircraftService";
-import { showErrorToast } from "../../../utils/notifications";
 import { showSuccessToast, showErrorToast, showConfirmDialog } from "../../../utils/notifications";
 
 const AirCraftDetail = () => {
