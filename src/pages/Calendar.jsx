@@ -539,20 +539,19 @@ const Calendar = () => {
       // Always update to ensure dropdowns are properly selected
       setReservationForm(prev => ({
         ...prev,
-        student_id: studentIdStr || prev.student_id,
-        instructor_id: instructorIdStr || prev.instructor_id,
-        aircraft_id: aircraftId || prev.aircraft_id,
-        location_id: locationIdStr || prev.location_id,
-        flight_type: editingLesson.flight_type || prev.flight_type,
-        lesson_id: editingLesson.id ? String(editingLesson.id) : prev.lesson_id,
-        lesson_date: editingLesson.lesson_date || prev.lesson_date,
-        lesson_time: editingLesson.lesson_time || prev.lesson_time,
-        duration_minutes: editingLesson.duration_minutes || prev.duration_minutes,
-        notes: editingLesson.notes || editingLesson.description || prev.notes,
-        reservation_number: editingLesson.reservation_number || editingLesson.reservation_no || prev.reservation_number,
-        acting_pic_user_id: suggestedPIC || prev.acting_pic_user_id,
+        student_id: prev.student_id || studentIdStr,
+        instructor_id: prev.instructor_id || instructorIdStr,
+        aircraft_id: prev.aircraft_id || aircraftId,
+        location_id: prev.location_id || locationIdStr,
+        flight_type: prev.flight_type || editingLesson.flight_type,
+        lesson_id: prev.lesson_id || (editingLesson.id ? String(editingLesson.id) : ''),
+        lesson_date: prev.lesson_date || editingLesson.lesson_date,
+        lesson_time: prev.lesson_time || editingLesson.lesson_time,
+        duration_minutes: prev.duration_minutes || editingLesson.duration_minutes,
+        notes: prev.notes || editingLesson.notes || editingLesson.description,
+        reservation_number: prev.reservation_number || editingLesson.reservation_number || editingLesson.reservation_no,
+        acting_pic_user_id: prev.acting_pic_user_id || suggestedPIC,
       }));
-      
       // Debug log
       console.log('useEffect - Form values updated:', {
         student_id: studentIdStr,
