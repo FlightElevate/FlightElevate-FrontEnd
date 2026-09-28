@@ -1810,7 +1810,10 @@ const Calendar = () => {
                         const isCurrentHour = formatDateStr(new Date()) === formatDateStr(currentDate) && new Date().getHours() === idx;
                         return (
                           <th key={idx} className="px-1 py-2 border-r border-gray-200 bg-gray-50/50" 
-                            style={{ width: `calc((100% - ${isMobile ? 120 : 150}px) / 24)` }}>
+                            style={{
+                              width: isMobile ? '70px' : '80px',
+                              minWidth: isMobile ? '70px' : '80px'
+                            }}
                             <div className="text-[9px] sm:text-[10px] font-bold uppercase text-gray-400 truncate">
                               {slot.label}
                             </div>
