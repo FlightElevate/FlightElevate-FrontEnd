@@ -1869,7 +1869,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
                             
                             return (
-                              <div key={idx} className={`absolute top-2 bottom-2 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                              <div key={idx} className={`absolute top-1/2 -translate-y-1/2 h-10 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'aircraft')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
                                 style={{ 
@@ -1966,7 +1966,7 @@ const Calendar = () => {
                             const isEndingToday = p.segEnd === fullRange.endMs;
 
                             return (
-                              <div key={idx} className={`absolute top-2 bottom-2 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
+                              <div key={idx} className={`absolute top-1/2 -translate-y-1/2 h-10 px-2 py-1 cursor-pointer z-10 hidden sm:flex items-center shadow-md overflow-hidden ${getEventColor(event, 'instructor')} border border-white/20 hover:scale-[1.02] hover:z-20 transition-all
                                 ${isStartingToday ? 'rounded-l-md' : 'border-l-0'} 
                                 ${isEndingToday ? 'rounded-r-md' : 'border-r-0'}`} 
                                 style={{ 
