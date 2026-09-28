@@ -1100,10 +1100,30 @@ const Calendar = () => {
       return;
     }
 
-    if (availabilityStatus.instructor === false || availabilityStatus.student === false) {
-      showErrorToast('Cannot create reservation: Selected time slot is not available. Please choose a different time.');
-      return;
+    if (
+      availabilityStatus.student === false ||
+      availabilityStatus.instructor === false ||
+      availabilityStatus.aircraft === false
+    ) {
+      const unavailable = [];
+
+      if (availabilityStatus.student === false) {
+      unavailable.push('Student');
       }
+
+      if (availabilityStatus.instructor === false) {
+      unavailable.push('Instructor');
+     }
+
+     if (availabilityStatus.aircraft === false) {
+     unavailable.push('Aircraft');
+     }
+
+      showErrorToast(
+      `${unavailable.join(' and ')} ${unavailable.length === 1 ? 'is' : 'are'} not available at this time.`
+      );
+      return;
+    }
     }
 
     // Only Admin and Super Admin can create lessons directly
