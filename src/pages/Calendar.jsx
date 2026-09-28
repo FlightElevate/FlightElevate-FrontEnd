@@ -423,21 +423,28 @@ const Calendar = () => {
                   ? studentIdValue
                   : instructorIdValue) || '';
               const locationIdValue = lessonData.location?.id != null ? String(lessonData.location.id) : (lessonData.location_id ? String(lessonData.location_id) : '');
-              setReservationForm({
-                student_id: studentIdValue,
-                instructor_id: instructorIdValue,
-                aircraft_id: aircraftIdValue,
-                location_id: locationIdValue,
-                flight_type: lessonData.flight_type || '',
-                lesson_id: lessonData.id ? String(lessonData.id) : '',
-                lesson_template_id: lessonData.lesson_template_id ? String(lessonData.lesson_template_id) : '',
-                lesson_date: lessonData.lesson_date || '',
-                lesson_time: lessonData.lesson_time || '',
-                duration_minutes: lessonData.duration_minutes || 60,
-                notes: lessonData.notes || lessonData.description || '',
-                reservation_number: lessonData.reservation_number || lessonData.reservation_no || generateReservationNumber(),
-                acting_pic_user_id: suggestedPIC,
-              });
+              setReservationForm(prev => ({
+                ...prev,
+                student_id: prev.student_id || studentIdValue,
+                instructor_id: prev.instructor_id || instructorIdValue,
+                aircraft_id: prev.aircraft_id || aircraftIdValue,
+                location_id: prev.location_id || locationIdValue,
+                flight_type: prev.flight_type || lessonData.flight_type || '',
+                lesson_id: prev.lesson_id || (lessonData.id ? String(lessonData.id) : ''),
+                lesson_template_id:
+                  prev.lesson_template_id ||
+                  (lessonData.lesson_template_id ? String(lessonData.lesson_template_id) : ''),
+                lesson_date: prev.lesson_date || lessonData.lesson_date || '',
+                lesson_time: prev.lesson_time || lessonData.lesson_time || '',
+                duration_minutes: prev.duration_minutes || lessonData.duration_minutes || 60,
+                notes: prev.notes || lessonData.notes || lessonData.description || '',
+                reservation_number:
+                  prev.reservation_number ||
+                  lessonData.reservation_number ||
+                  lessonData.reservation_no ||
+                  generateReservationNumber(),
+                acting_pic_user_id: prev.acting_pic_user_id || suggestedPIC,
+                }));
               
               // Debug: Log to verify values are set correctly
               console.log('Edit mode - Form values set:', {
@@ -1134,46 +1141,66 @@ const Calendar = () => {
         ? instructors.find((item) => String(item.id) === String(instructorId))
         : null;
 
-    // The location must remain unchanged.
-    // The target aircraft/instructor must belong to the reservation's location.
-    if (targetAircraft) {
-      const targetAircraftLocationId =
-        targetAircraft.default_location_id != null
-          ? String(targetAircraft.default_location_id)
-          : targetAircraft.location_id != null
-            ? String(targetAircraft.location_id)
-            : '';
+    // The reservation location must not change.
+    // Student, instructor, and target aircraft must all have access to
+    // the reservation's existing location.
 
-      if (!targetAircraftLocationId || targetAircraftLocationId !== reservationLocationId) {
-        showErrorToast('Aircraft is not available at this reservation location');
+    const reservationLocationIdStr = String(reservationLocationId);
+
+    // Validate student access to the reservation location.
+    if (studentId) {
+      const student = students.find(
+        (item) => String(item.id) === String(studentId)
+      );
+
+      if (!student) {
+        showErrorToast('Student could not be found');
+        return;
+      }
+
+      const studentLocations = getLocationsForEntity(student.id, students);
+
+      if (!studentLocations.includes(reservationLocationIdStr)) {
+        showErrorToast('Student does not have access to this reservation location');
         return;
       }
     }
 
-    if (targetInstructor) {
-      const targetInstructorLocations =
-        targetInstructor.location_ids ||
-        targetInstructor.locationIds ||
-        [];
-
-      const targetInstructorLocationId =
-        targetInstructor.default_location_id != null
-          ? String(targetInstructor.default_location_id)
-          : targetInstructor.location_id != null
-            ? String(targetInstructor.location_id)
-            : '';
-
-      const instructorHasLocation =
-        targetInstructorLocationId === reservationLocationId ||
-        targetInstructorLocations.some(
-          (locationId) => String(locationId) === reservationLocationId
-        );
-
-      if (!instructorHasLocation) {
-        showErrorToast('Instructor does not have access to this reservation location');
-        return;
-      }
+  // Validate target instructor access to the reservation location.
+  if (instructorId !== null) {
+    if (!targetInstructor) {
+      showErrorToast('Instructor could not be found');
+      return;
     }
+
+    const instructorLocations = getLocationsForEntity(
+      targetInstructor.id,
+      instructors
+    );
+
+    if (!instructorLocations.includes(reservationLocationIdStr)) {
+      showErrorToast('Instructor does not have access to this reservation location');
+      return;
+    }
+  }
+
+// Validate target aircraft access to the reservation location.
+if (aircraftId !== null) {
+  if (!targetAircraft) {
+    showErrorToast('Aircraft could not be found');
+    return;
+  }
+
+  const aircraftLocations = getLocationsForEntity(
+    targetAircraft.id,
+    aircraft
+  );
+
+  if (!aircraftLocations.includes(reservationLocationIdStr)) {
+    showErrorToast('Aircraft is not available at this reservation location');
+    return;
+  }
+}
 
     // Calculate the proposed time.
     let proposedTime = getDefaultTime();
