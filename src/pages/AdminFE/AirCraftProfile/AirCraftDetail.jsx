@@ -1,3 +1,206 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FiX, FiArrowLeft } from "react-icons/fi";
@@ -12,6 +215,7 @@ const AirCraftDetail = () => {
   const navigate = useNavigate();
   const [aircraft, setAircraft] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("details");
   const [showFindTimeModal, setShowFindTimeModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -179,7 +383,6 @@ const AirCraftDetail = () => {
               <FiArrowLeft size={20} className="text-gray-600" />
             </button>
             <div>
-              <h2 className="text-2xl font-semibold text-gray-800">{aircraft.name}</h2>
               <h2 className="text-2xl font-semibold text-gray-800">{aircraft.serial_number || aircraft.name}</h2>
               {aircraft.model && (
                 <p className="text-sm text-gray-500 mt-1">{aircraft.model}</p>
@@ -211,9 +414,33 @@ const AirCraftDetail = () => {
         </div>
 
         {}
-        <div className="min-w-0 space-y-6 p-4 sm:p-6">
-          <ACDetails aircraft={aircraft} />
-          <AirCraftTimes aircraftId={aircraft.id} />
+        <div className="flex border-b border-gray-200 px-4">
+          <button
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "details"
+                ? "text-blue-600 border-blue-600"
+                : "text-gray-500 border-transparent hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("details")}
+          >
+            Aircraft Details
+          </button>
+          <button
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "times"
+                ? "text-blue-600 border-blue-600"
+                : "text-gray-500 border-transparent hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("times")}
+          >
+            Aircraft Times
+          </button>
+        </div>
+
+        {}
+        <div className="p-6">
+          {activeTab === "details" && <ACDetails aircraft={aircraft} />}
+          {activeTab === "times" && <AirCraftTimes aircraftId={aircraft.id} />}
         </div>
       </div>
 
@@ -224,7 +451,6 @@ const AirCraftDetail = () => {
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h3 className="text-xl font-semibold text-gray-800">Find a Time</h3>
-                <p className="text-sm text-gray-600 mt-1">Available time slots for {aircraft.name}</p>
                 <p className="text-sm text-gray-600 mt-1">Available time slots for {aircraft.serial_number || aircraft.name}</p>
               </div>
               <button
@@ -335,6 +561,5 @@ const AirCraftDetail = () => {
 };
 
 export default AirCraftDetail;
-
 
 
