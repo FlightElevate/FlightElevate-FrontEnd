@@ -1067,23 +1067,19 @@ const Calendar = () => {
   };
 
   
-  const handleReservationDrop = async (e, date, aircraftId = null, instructorId = null, hour = null) => {
+  const handleReservationDrop = async (
+  e,
+  date,
+  aircraftId = null,
+  instructorId = null,
+  hour = null
+) => {
   e.preventDefault();
 
   const reservationId = e.dataTransfer.getData('text/plain');
   const sourceType = e.dataTransfer.getData('sourceType');
 
   if (!reservationId || !sourceType) return;
-
-  // Do not allow cross-resource dragging.
-  // Instructor reservations can only be dropped on instructor rows.
-  // Aircraft reservations can only be dropped on aircraft rows.
-  if (
-    (sourceType === 'instructor' && aircraftId !== null) ||
-    (sourceType === 'aircraft' && instructorId !== null)
-  ) {
-    return;
-  }
 
   try {
     setLoadingFormData(true);
@@ -1097,7 +1093,6 @@ const Calendar = () => {
 
     const reservation = response.data;
 
-    // Get the reservation's existing location.
     const reservationLocationId =
       reservation.location?.id != null
         ? String(reservation.location.id)
@@ -1110,7 +1105,6 @@ const Calendar = () => {
       return;
     }
 
-    // Get the existing reservation participants/resources.
     const studentId =
       reservation.students?.[0]?.id ??
       reservation.student_ids?.[0] ??
@@ -1130,80 +1124,23 @@ const Calendar = () => {
       reservation.aircraft_id ??
       '';
 
-    // Find the target resource.
-    const targetAircraft =
+    // Keep the existing resource unless the drop is on another resource.
+    const targetAircraftId =
       aircraftId !== null
-        ? aircraft.find((item) => String(item.id) === String(aircraftId))
-        : null;
+        ? String(aircraftId)
+        : currentAircraftId
+          ? String(currentAircraftId)
+          : '';
 
-    const targetInstructor =
+    const targetInstructorId =
       instructorId !== null
-        ? instructors.find((item) => String(item.id) === String(instructorId))
-        : null;
+        ? String(instructorId)
+        : currentInstructorId
+          ? String(currentInstructorId)
+          : '';
 
-    // The reservation location must not change.
-    // Student, instructor, and target aircraft must all have access to
-    // the reservation's existing location.
-
-    const reservationLocationIdStr = String(reservationLocationId);
-
-    // Validate student access to the reservation location.
-    if (studentId) {
-      const student = students.find(
-        (item) => String(item.id) === String(studentId)
-      );
-
-      if (!student) {
-        showErrorToast('Student could not be found');
-        return;
-      }
-
-      const studentLocations = getLocationsForEntity(student.id, students);
-
-      if (!studentLocations.includes(reservationLocationIdStr)) {
-        showErrorToast('Student does not have access to this reservation location');
-        return;
-      }
-    }
-
-  // Validate target instructor access to the reservation location.
-  if (instructorId !== null) {
-    if (!targetInstructor) {
-      showErrorToast('Instructor could not be found');
-      return;
-    }
-
-    const instructorLocations = getLocationsForEntity(
-      targetInstructor.id,
-      instructors
-    );
-
-    if (!instructorLocations.includes(reservationLocationIdStr)) {
-      showErrorToast('Instructor does not have access to this reservation location');
-      return;
-    }
-  }
-
-// Validate target aircraft access to the reservation location.
-if (aircraftId !== null) {
-  if (!targetAircraft) {
-    showErrorToast('Aircraft could not be found');
-    return;
-  }
-
-  const aircraftLocations = getLocationsForEntity(
-    targetAircraft.id,
-    aircraft
-  );
-
-  if (!aircraftLocations.includes(reservationLocationIdStr)) {
-    showErrorToast('Aircraft is not available at this reservation location');
-    return;
-  }
-}
-
-    // Calculate the proposed time.
-    let proposedTime = getDefaultTime();
+    // Calculate the new time from the drop position.
+    let proposedTime = reservation.lesson_time || getDefaultTime();
 
     if (hour !== null && hour !== undefined) {
       if (typeof hour === 'number') {
@@ -1213,7 +1150,7 @@ if (aircraftId !== null) {
       }
     }
 
-    // Open the existing reservation form in EDIT mode.
+    // Open the EXISTING reservation edit screen.
     setIsEditMode(true);
     setIsDragEdit(true);
     setEditingLesson(reservation);
@@ -1221,18 +1158,8 @@ if (aircraftId !== null) {
 
     setReservationForm({
       student_id: studentId ? String(studentId) : '',
-      instructor_id:
-        instructorId !== null
-          ? String(instructorId)
-          : currentInstructorId
-            ? String(currentInstructorId)
-            : '',
-      aircraft_id:
-        aircraftId !== null
-          ? String(aircraftId)
-          : currentAircraftId
-            ? String(currentAircraftId)
-            : '',
+      instructor_id: targetInstructorId,
+      aircraft_id: targetAircraftId,
       location_id: reservationLocationId,
       flight_type: reservation.flight_type || '',
       lesson_id: String(reservation.id || reservationId),
@@ -1244,7 +1171,9 @@ if (aircraftId !== null) {
       duration_minutes: reservation.duration_minutes || 60,
       notes: reservation.notes || '',
       reservation_number:
-        reservation.reservation_number || generateReservationNumber(),
+        reservation.reservation_number ||
+        reservation.reservation_no ||
+        generateReservationNumber(),
       acting_pic_user_id: reservation.acting_pic_user_id
         ? String(reservation.acting_pic_user_id)
         : '',
@@ -1257,12 +1186,16 @@ if (aircraftId !== null) {
       checking: false,
     });
 
-      setAvailabilityMessage('');
+    setAvailabilityMessage('');
 
-      setShowNewReservationModal(true);
-  
+    // THIS opens the existing Edit Reservation modal.
+    setShowNewReservationModal(true);
+
   } catch (err) {
-    console.error('Error preparing reservation drag-and-drop:', err);
+    console.error(
+      'Error preparing reservation drag-and-drop:',
+      err
+    );
     showErrorToast('Failed to prepare reservation for editing');
   } finally {
     setLoadingFormData(false);
