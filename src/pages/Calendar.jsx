@@ -158,6 +158,7 @@ const Calendar = () => {
   const [showNewReservationModal, setShowNewReservationModal] = useState(false);
   const [showFindTimeModal, setShowFindTimeModal] = useState(false);
   const [showReservationDetailModal, setShowReservationDetailModal] = useState(false);
+  const [pendingReservationDrop, setPendingReservationDrop] = useState(null);
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [loadingReservation, setLoadingReservation] = useState(false);
 
@@ -1058,6 +1059,22 @@ const Calendar = () => {
     setSelectedOrganizationId(e.target.value);
   };
 
+  
+  const handleReservationDrop = (e, date, aircraftId = null, instructorId = null, hour = null) => {
+  e.preventDefault();
+
+  const reservationId = e.dataTransfer.getData('text/plain');
+  if (!reservationId) return;
+
+  setPendingReservationDrop({
+    reservationId,
+    date,
+    aircraftId,
+    instructorId,
+    hour,
+  });
+  };
+
   const handleEventClick = async (event) => {
     if (!event || !event.id) return;
     
@@ -1840,10 +1857,18 @@ const Calendar = () => {
                           <div className="absolute inset-0 flex">
                             {timeSlots.map((slot, idx) => (
                               <div 
-                                key={idx} 
-                                className="border-r border-gray-200 h-full hover:bg-blue-50/40 cursor-pointer transition-colors group/slot" 
-                                style={{ width: 'calc(100% / 24)' }}
-                                onClick={() => handleAddReservation(formatDateStr(currentDate), aircraft.id, null, slot.hour)}
+                               key={idx} 
+                               className="border-r border-gray-200 h-full hover:bg-blue-50/40 cursor-pointer transition-colors group/slot" 
+                               style={{ width: 'calc(100% / 24)' }}
+                               onClick={() => handleAddReservation(formatDateStr(currentDate), aircraft.id, null, slot.hour)}
+                               onDragOver={(e) => e.preventDefault()}
+                               onDrop={(e) => handleReservationDrop(
+                                 e,
+                                 formatDateStr(currentDate),
+                                 aircraft.id,
+                                 null,
+                                 slot.hour
+                               )}
                               >
                                 <div className="opacity-0 group-hover/slot:opacity-100 absolute inset-0 flex items-center justify-center pointer-events-none">
                                   <span className="text-[10px] text-blue-600 font-bold bg-white/80 px-1 rounded">+</span>
@@ -1949,7 +1974,15 @@ const Calendar = () => {
                                 className="border-r border-gray-200 h-full hover:bg-green-50/40 cursor-pointer transition-colors group/slot" 
                                 style={{ width: 'calc(100% / 24)' }}
                                 onClick={() => handleAddReservation(formatDateStr(currentDate), null, user.id, slot.hour)}
-                              >
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => handleReservationDrop(
+                                  e,
+                                  formatDateStr(currentDate),
+                                  null,
+                                  user.id,
+                                  slot.hour
+                                 )}
+                                >
                                 <div className="opacity-0 group-hover/slot:opacity-100 absolute inset-0 flex items-center justify-center pointer-events-none">
                                   <span className="text-[10px] text-green-600 font-bold bg-white/80 px-1 rounded">+</span>
                                 </div>
