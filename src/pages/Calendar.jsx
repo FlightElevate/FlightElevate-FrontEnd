@@ -501,7 +501,7 @@ const Calendar = () => {
 
   // Preserve form values when form data loads in edit mode
   useEffect(() => {
-    if (isEditMode && editingLesson && !loadingFormData && students.length > 0 && instructors.length > 0) {
+    if (isEditMode && !isDragEdit && editingLesson && !loadingFormData && students.length > 0 && instructors.length > 0) {
       // Re-apply form values to ensure dropdowns are properly selected
       // Check for students/instructors arrays first, then fallback to student_ids/instructor_ids, then single student/instructor
       let firstStudent = null;
