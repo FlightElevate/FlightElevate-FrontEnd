@@ -1684,10 +1684,11 @@ if (aircraftId !== null) {
     }
   };
 
-  const handleAddReservation = (date, aircraftId = null, studentId = null, hour = null) => {
-    setIsEditMode(false);
-    setEditingLesson(null);
-    setIsAircraftPreSelected(!!aircraftId);
+    const handleAddReservation = (date, aircraftId = null, studentId = null, hour = null) => {
+      setIsEditMode(false);
+      setIsDragEdit(false);
+      setEditingLesson(null);
+      setIsAircraftPreSelected(!!aircraftId);
     
     // Default time: if hour is provided, format it as HH:00. Otherwise, use getDefaultTime()
     let defaultTime = getDefaultTime();
@@ -2879,10 +2880,11 @@ if (aircraftId !== null) {
               <h3 className="text-xl font-semibold text-gray-800">
                 {isEditMode ? 'Edit Reservation' : 'New Reservation'}
               </h3>
-              <button
+                            <button
                 onClick={() => {
                   setShowNewReservationModal(false);
                   setIsEditMode(false);
+                  setIsDragEdit(false);
                   setEditingLesson(null);
                   if (editLessonId) {
                     searchParams.delete('edit');
