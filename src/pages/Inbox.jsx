@@ -381,7 +381,7 @@ const Inbox = () => {
   };
 
   return (
-    <div className="p-2 sm:p-3 bg-[#F9FAFB]">
+    <div className="w-full h-full bg-white">
       <div className="flex h-[calc(90vh-50px)] sm:h-[calc(90vh-50px)] bg-white rounded-lg shadow border border-gray-100 overflow-hidden relative">
 
         {showChatList && (
