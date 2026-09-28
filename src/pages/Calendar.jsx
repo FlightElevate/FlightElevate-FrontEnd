@@ -3363,11 +3363,12 @@ if (aircraftId !== null) {
               </div>
 
               <div className="flex justify-end gap-2 mt-6">
-                <button
+                                <button
                   type="button"
                   onClick={() => {
                     setShowNewReservationModal(false);
                     setIsEditMode(false);
+                    setIsDragEdit(false);
                     setEditingLesson(null);
                     if (editLessonId) {
                       searchParams.delete('edit');
