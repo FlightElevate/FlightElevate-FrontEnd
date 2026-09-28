@@ -1930,7 +1930,7 @@ const Calendar = () => {
                     </tr>
                     {filteredUserSchedule.map((user) => (
                       <tr key={`user-${user.id}`} className="border-b border-gray-200 hover:bg-gray-50/80 transition-colors group">
-                        <td className="px-3 py-3 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
+                        <td className="px-3 py-2 border-r border-gray-200 text-xs text-gray-700 sticky left-0 bg-white z-20 group-hover:bg-gray-50 font-semibold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" style={{ width: isMobile ? '120px' : '150px' }}>
                           <span className="truncate block">{safeDisplay(user.name)}</span>
                         </td>
                         <td colSpan={24} className="relative p-0" style={{ height: isMobile ? '52px' : '48px' }}>
