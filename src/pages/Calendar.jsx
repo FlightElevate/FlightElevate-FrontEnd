@@ -1491,6 +1491,9 @@ if (aircraftId !== null) {
     setAvailabilityMessage('');
     return;
   }
+    if (isDragEdit && isEditMode && !reservationForm.lesson_id) {
+    return;
+  }
 
   if (
     reservationForm.lesson_date &&
@@ -1521,6 +1524,7 @@ if (aircraftId !== null) {
     reservationForm.student_id,
     reservationForm.instructor_id,
     reservationForm.aircraft_id,
+    reservationForm.lesson_id,
     isEditMode,
     isDragEdit,
  ]);
