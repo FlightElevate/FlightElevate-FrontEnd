@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FiImage, FiMoreHorizontal, FiPlus, FiVideo, FiFileText, FiSearch, FiArrowLeft, FiMenu } from "react-icons/fi";
 import { BsEmojiSmile } from "react-icons/bs";
 import { AiOutlineCheck } from "react-icons/ai";
@@ -9,6 +10,7 @@ import { useAuth } from "../context/AuthContext";
 import echo from "../echo";
 
 const Inbox = () => {
+  const navigate = useNavigate();
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [input, setInput] = useState("");
