@@ -7,19 +7,40 @@ const TrialBanner = () => {
   const { user, hasRole } = useAuth();
   const navigate = useNavigate();
 
-  // Show banner initially
-  const [showBanner, setShowBanner] = useState(true);
+  // Show the banner once per calendar day (per user), auto-hiding after 30s
+  const [showBanner, setShowBanner] = useState(false);
 
-  // Hide banner 30 seconds after it is displayed
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
+
+    const storageKey = `trial_banner_last_shown_${user.id}`;
+    const today = new Date().toDateString();
+
+    let lastShown = null;
+    try {
+      lastShown = localStorage.getItem(storageKey);
+    } catch {
+      // localStorage unavailable (private browsing, etc.) — fall back to always showing
+    }
+
+    if (lastShown === today) {
+      setShowBanner(false);
+      return;
+    }
+
+    setShowBanner(true);
+    try {
+      localStorage.setItem(storageKey, today);
+    } catch {
+      // ignore storage failures
+    }
 
     const timer = setTimeout(() => {
       setShowBanner(false);
     }, 30000);
 
     return () => clearTimeout(timer);
-  }, [user]);
+  }, [user?.id]);
 
   const trialInfo = useMemo(() => {
     if (!user) return null;
@@ -49,6 +70,7 @@ const TrialBanner = () => {
     );
 
     if (daysLeft <= 0) return null;
+    if (daysLeft > 14) return null; // Only show the banner in the final 14 days of the trial
 
     return { daysLeft };
   }, [user, hasRole]);
@@ -132,3 +154,4 @@ const TrialBanner = () => {
 };
 
 export default TrialBanner;
+
