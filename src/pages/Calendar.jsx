@@ -1060,33 +1060,189 @@ const Calendar = () => {
   };
 
   
-  const handleReservationDrop = (e, date, aircraftId = null, instructorId = null, hour = null) => {
-    e.preventDefault();
+  const handleReservationDrop = async (e, date, aircraftId = null, instructorId = null, hour = null) => {
+  e.preventDefault();
 
-    const reservationId = e.dataTransfer.getData('text/plain');
-    const sourceType = e.dataTransfer.getData('sourceType');
+  const reservationId = e.dataTransfer.getData('text/plain');
+  const sourceType = e.dataTransfer.getData('sourceType');
 
-    if (!reservationId || !sourceType) return;
+  if (!reservationId || !sourceType) return;
 
-    // Do not allow cross-resource dragging.
-    // Instructor reservations can only be dropped on instructor rows.
-    // Aircraft reservations can only be dropped on aircraft rows.
-    if (
-      (sourceType === 'instructor' && aircraftId !== null) ||
-      (sourceType === 'aircraft' && instructorId !== null)
-    ) {
+  // Do not allow cross-resource dragging.
+  // Instructor reservations can only be dropped on instructor rows.
+  // Aircraft reservations can only be dropped on aircraft rows.
+  if (
+    (sourceType === 'instructor' && aircraftId !== null) ||
+    (sourceType === 'aircraft' && instructorId !== null)
+  ) {
+    return;
+  }
+
+  try {
+    setLoadingFormData(true);
+
+    const response = await lessonService.getReservation(reservationId);
+
+    if (!response.success || !response.data) {
+      showErrorToast('Failed to load reservation details');
       return;
     }
 
-    setPendingReservationDrop({
-      reservationId,
-      sourceType,
-      date,
-      aircraftId,
-      instructorId,
-      hour,
+    const reservation = response.data;
+
+    // Get the reservation's existing location.
+    const reservationLocationId =
+      reservation.location?.id != null
+        ? String(reservation.location.id)
+        : reservation.location_id != null
+          ? String(reservation.location_id)
+          : '';
+
+    if (!reservationLocationId) {
+      showErrorToast('Reservation location could not be determined');
+      return;
+    }
+
+    // Get the existing reservation participants/resources.
+    const studentId =
+      reservation.students?.[0]?.id ??
+      reservation.student_ids?.[0] ??
+      reservation.student?.id ??
+      reservation.student_id ??
+      '';
+
+    const currentInstructorId =
+      reservation.instructors?.[0]?.id ??
+      reservation.instructor_ids?.[0] ??
+      reservation.instructor?.id ??
+      reservation.instructor_id ??
+      '';
+
+    const currentAircraftId =
+      reservation.aircraft?.id ??
+      reservation.aircraft_id ??
+      '';
+
+    // Find the target resource.
+    const targetAircraft =
+      aircraftId !== null
+        ? aircraft.find((item) => String(item.id) === String(aircraftId))
+        : null;
+
+    const targetInstructor =
+      instructorId !== null
+        ? instructors.find((item) => String(item.id) === String(instructorId))
+        : null;
+
+    // The location must remain unchanged.
+    // The target aircraft/instructor must belong to the reservation's location.
+    if (targetAircraft) {
+      const targetAircraftLocationId =
+        targetAircraft.default_location_id != null
+          ? String(targetAircraft.default_location_id)
+          : targetAircraft.location_id != null
+            ? String(targetAircraft.location_id)
+            : '';
+
+      if (!targetAircraftLocationId || targetAircraftLocationId !== reservationLocationId) {
+        showErrorToast('Aircraft is not available at this reservation location');
+        return;
+      }
+    }
+
+    if (targetInstructor) {
+      const targetInstructorLocations =
+        targetInstructor.location_ids ||
+        targetInstructor.locationIds ||
+        [];
+
+      const targetInstructorLocationId =
+        targetInstructor.default_location_id != null
+          ? String(targetInstructor.default_location_id)
+          : targetInstructor.location_id != null
+            ? String(targetInstructor.location_id)
+            : '';
+
+      const instructorHasLocation =
+        targetInstructorLocationId === reservationLocationId ||
+        targetInstructorLocations.some(
+          (locationId) => String(locationId) === reservationLocationId
+        );
+
+      if (!instructorHasLocation) {
+        showErrorToast('Instructor does not have access to this reservation location');
+        return;
+      }
+    }
+
+    // Calculate the proposed time.
+    let proposedTime = getDefaultTime();
+
+    if (hour !== null && hour !== undefined) {
+      if (typeof hour === 'number') {
+        proposedTime = `${pad2(hour)}:00`;
+      } else if (typeof hour === 'string') {
+        proposedTime = hour;
+      }
+    }
+
+    // Open the existing reservation form in EDIT mode.
+    setIsEditMode(true);
+
+    setEditingLesson(reservation);
+
+    setIsAircraftPreSelected(false);
+
+    setReservationForm({
+      student_id: studentId ? String(studentId) : '',
+      instructor_id:
+        instructorId !== null
+          ? String(instructorId)
+          : currentInstructorId
+            ? String(currentInstructorId)
+            : '',
+      aircraft_id:
+        aircraftId !== null
+          ? String(aircraftId)
+          : currentAircraftId
+            ? String(currentAircraftId)
+            : '',
+      location_id: reservationLocationId,
+      flight_type: reservation.flight_type || '',
+      lesson_id: String(reservation.id || reservationId),
+      lesson_template_id: reservation.lesson_template_id
+        ? String(reservation.lesson_template_id)
+        : '',
+      lesson_date: date,
+      lesson_time: proposedTime,
+      duration_minutes: reservation.duration_minutes || 60,
+      notes: reservation.notes || '',
+      reservation_number:
+        reservation.reservation_number || generateReservationNumber(),
+      acting_pic_user_id: reservation.acting_pic_user_id
+        ? String(reservation.acting_pic_user_id)
+        : '',
     });
-  };
+
+    setAvailabilityStatus({
+      student: null,
+      instructor: null,
+      aircraft: null,
+      checking: false,
+    });
+
+    setAvailabilityMessage('');
+
+    setPendingReservationDrop(null);
+    setShowNewReservationModal(true);
+
+  } catch (err) {
+    console.error('Error preparing reservation drag-and-drop:', err);
+    showErrorToast('Failed to prepare reservation for editing');
+  } finally {
+    setLoadingFormData(false);
+  }
+};
 
   const handleEventClick = async (event) => {
     if (!event || !event.id) return;
