@@ -158,6 +158,7 @@ const Calendar = () => {
   const [showNewReservationModal, setShowNewReservationModal] = useState(false);
   const [showFindTimeModal, setShowFindTimeModal] = useState(false);
   const [showReservationDetailModal, setShowReservationDetailModal] = useState(false);
+  const [pendingReservationDrop, setPendingReservationDrop] = useState(null);
   const [isDragEdit, setIsDragEdit] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [loadingReservation, setLoadingReservation] = useState(false);
@@ -1215,9 +1216,7 @@ if (aircraftId !== null) {
     // Open the existing reservation form in EDIT mode.
     setIsEditMode(true);
     setIsDragEdit(true);
-
     setEditingLesson(reservation);
-
     setIsAircraftPreSelected(false);
 
     setReservationForm({
@@ -1480,41 +1479,53 @@ if (aircraftId !== null) {
     }
   };
 
-  // Check availability when form fields change (skip in edit mode, unless it's a drag-drop edit)
   useEffect(() => {
-    // Don't check availability in edit mode — except drag-drop, which needs the check
-    if (isEditMode && !isDragEdit) {
-      setAvailabilityStatus({
-        student: null,
-        instructor: null,
-        aircraft: null,
-        checking: false,
-      });
-      setAvailabilityMessage('');
-      return;
-    }
-    
-    if (reservationForm.lesson_date && reservationForm.lesson_time && 
-        reservationForm.duration_minutes && 
-        (reservationForm.student_id || reservationForm.instructor_id)) {
-      const timeoutId = setTimeout(() => {
-        checkAvailability();
-      }, 500); // Debounce for 500ms
+  // Don't check availability in edit mode — except drag-drop, which needs the check
+  if (isEditMode && !isDragEdit) {
+    setAvailabilityStatus({
+      student: null,
+      instructor: null,
+      aircraft: null,
+      checking: false,
+    });
+    setAvailabilityMessage('');
+    return;
+  }
 
-      return () => clearTimeout(timeoutId);
-    } else {
-      setAvailabilityStatus({
-        student: null,
-        instructor: null,
-        aircraft: null,
-        checking: false,
-      });
-      setAvailabilityMessage('');
-    }
+  if (
+    reservationForm.lesson_date &&
+    reservationForm.lesson_time &&
+    reservationForm.duration_minutes &&
+    (reservationForm.student_id || reservationForm.instructor_id)
+  ) {
+    const timeoutId = setTimeout(() => {
+      checkAvailability();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  } else {
+    setAvailabilityStatus({
+      student: null,
+      instructor: null,
+      aircraft: null,
+      checking: false,
+    });
+    setAvailabilityMessage('');
+  }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [reservationForm.lesson_date, reservationForm.lesson_time, 
-        reservationForm.duration_minutes, reservationForm.student_id, 
-        reservationForm.instructor_id, reservationForm.aircraft_id, isEditMode, isDragEdit]);
+  }, [
+    reservationForm.lesson_date,
+    reservationForm.lesson_time,
+    reservationForm.duration_minutes,
+    reservationForm.student_id,
+    reservationForm.instructor_id,
+    reservationForm.aircraft_id,
+    isEditMode,
+    isDragEdit,
+ ]);
+    
+ 
   
   const handleReservationSubmit = async (e) => {
     e.preventDefault();
