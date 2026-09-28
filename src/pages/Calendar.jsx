@@ -228,22 +228,28 @@ const Calendar = () => {
                   ? studentIdValue
                   : instructorIdValue) || '';
               const locationIdValue = lessonData.location?.id != null ? String(lessonData.location.id) : (lessonData.location_id ? String(lessonData.location_id) : '');
-              setReservationForm({
-                student_id: studentIdValue,
-                instructor_id: instructorIdValue,
-                aircraft_id: aircraftIdValue,
-                location_id: locationIdValue,
-                flight_type: lessonData.flight_type || '',
-                lesson_id: lessonData.id ? String(lessonData.id) : '',
-                lesson_template_id: lessonData.lesson_template_id ? String(lessonData.lesson_template_id) : '',
-                lesson_date: lessonData.lesson_date || '',
-                lesson_time: lessonData.lesson_time || '',
-                duration_minutes: lessonData.duration_minutes || 60,
-                notes: lessonData.notes || lessonData.description || '',
-                reservation_number: lessonData.reservation_number || lessonData.reservation_no || generateReservationNumber(),
-                acting_pic_user_id: suggestedPIC,
-              });
-              
+              setReservationForm(prev => ({
+                ...prev,
+                student_id: prev.student_id || studentIdValue,
+                instructor_id: prev.instructor_id || instructorIdValue,
+                aircraft_id: prev.aircraft_id || aircraftIdValue,
+                location_id: prev.location_id || locationIdValue,
+                flight_type: prev.flight_type || lessonData.flight_type || '',
+                lesson_id: prev.lesson_id || (lessonData.id ? String(lessonData.id) : ''),
+                lesson_template_id:
+                  prev.lesson_template_id ||
+                  (lessonData.lesson_template_id ? String(lessonData.lesson_template_id) : ''),
+                  lesson_date: prev.lesson_date || lessonData.lesson_date || '',
+                lesson_time: prev.lesson_time || lessonData.lesson_time || '',
+                duration_minutes: prev.duration_minutes || lessonData.duration_minutes || 60,
+                notes: prev.notes || lessonData.notes || lessonData.description || '',
+                reservation_number:
+                  prev.reservation_number ||
+                  lessonData.reservation_number ||
+                  lessonData.reservation_no ||
+                  generateReservationNumber(),
+                acting_pic_user_id: prev.acting_pic_user_id || suggestedPIC,
+              }));
               // Debug: Log to verify values are set correctly
               console.log('Edit mode - Form values set:', {
                 student_id: studentIdValue,
