@@ -49,27 +49,52 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
   }, [aircraftId, searchTerm, sortBy]);
 
   const fetchMaintenance = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        aircraft_id: aircraftId,
-        per_page: 100,
-        search: searchTerm || undefined,
-        sort: 'created_at',
-        order: sortBy === 'Newest' ? 'desc' : 'asc',
-      };
-      const response = await maintenanceService.getMaintenance(params);
-      if (response.success) {
-        const maintenanceList = Array.isArray(response.data) ? response.data : [];
-        setMaintenanceData(maintenanceList);
-      }
-    } catch (error) {
-      console.error('Error fetching maintenance:', error);
-      showErrorToast('Failed to load maintenance records');
-    } finally {
-      setLoading(false);
+  setLoading(true);
+
+  try {
+    const params = {
+      aircraft_id: aircraftId,
+      per_page: 100,
+      search: searchTerm || undefined,
+      sort: 'created_at',
+      order: sortBy === 'Newest' ? 'desc' : 'asc',
+    };
+
+    const [maintenanceResponse, aircraftResponse] = await Promise.all([
+      maintenanceService.getMaintenance(params),
+      aircraftService.getAircraft({ per_page: 100 }),
+    ]);
+
+    if (maintenanceResponse.success) {
+      const maintenanceList = Array.isArray(maintenanceResponse.data)
+        ? maintenanceResponse.data
+        : [];
+
+      const aircraftList = aircraftResponse?.success &&
+        Array.isArray(aircraftResponse.data)
+        ? aircraftResponse.data
+        : [];
+
+      const aircraft = aircraftList.find(
+        (aircraft) => String(aircraft.id) === String(aircraftId)
+      );
+
+      const currentTach = aircraft?.current_tach;
+
+      const updatedMaintenanceList = maintenanceList.map((item) => ({
+        ...item,
+        current_tach: currentTach,
+      }));
+
+      setMaintenanceData(updatedMaintenanceList);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching maintenance:', error);
+    showErrorToast('Failed to load maintenance records');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleAdd = () => {
     setEditingRecord(null);
