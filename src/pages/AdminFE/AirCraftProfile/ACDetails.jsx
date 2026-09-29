@@ -66,7 +66,8 @@ const ACDetails = ({ aircraft }) => {
           <img
             src={aircraft.image || FALLBACK_IMAGE}
             alt={aircraft.name}
-            className="w-full h-full object-cover"
+            className="absolute inset-0"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = FALLBACK_IMAGE;
@@ -152,5 +153,4 @@ const ACDetails = ({ aircraft }) => {
 };
 
 export default ACDetails;
-
 
