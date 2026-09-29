@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
 import Pagination from '../Pagination';
 
-
 export const UsersTable = memo(({
   users = [],
+  locations = [],
   loading = false,
   currentPage = 1,
   setPage,
@@ -45,7 +45,21 @@ export const UsersTable = memo(({
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+  };
+
+  const getDefaultLocationName = (user) => {
+    const directName =
+      user.default_location?.name ||
+      user.default_location_name ||
+      user.defaultLocation?.name;
+    if (directName) return directName;
+
+    const locationId = user.default_location_id ?? user.defaultLocationId;
+    if (locationId == null || locationId === '') return 'N/A';
+
+    return locations.find((location) => String(location.id) === String(locationId))?.name || 'N/A';
   };
 
   return (
@@ -57,6 +71,7 @@ export const UsersTable = memo(({
               <th className="px-6 py-3">Name</th>
               <th className="px-6 py-3">Email</th>
               <th className="px-6 py-3">Phone</th>
+              <th className="px-6 py-3">Default Location</th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3">Joined Date</th>
             </tr>
@@ -73,6 +88,9 @@ export const UsersTable = memo(({
                 <td className="px-6 py-4 text-gray-600">{user.email}</td>
                 <td className="px-6 py-4 text-gray-600">
                   {user.phone || 'N/A'}
+                </td>
+                <td className="px-6 py-4 text-gray-600">
+                  {getDefaultLocationName(user)}
                 </td>
                 <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
                 <td className="px-6 py-4 text-gray-600">
@@ -100,4 +118,5 @@ export const UsersTable = memo(({
 });
 
 UsersTable.displayName = 'UsersTable';
+
 
