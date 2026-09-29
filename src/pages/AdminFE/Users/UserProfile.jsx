@@ -7,6 +7,7 @@ import { userService } from "../../../api/services/userService";
 import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
 import { settingsService } from "../../../api/services/settingsService";
+import { locationService } from "../../../api/services/locationService";
 import { showDeleteConfirm, showSuccessToast, showErrorToast, showBlockUserConfirm } from "../../../utils/notifications";
 import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { getImageUrl } from "../../../utils/imageUtils";
@@ -35,14 +36,21 @@ const UserProfile = () => {
   const [selectedEditFile, setSelectedEditFile] = useState(null);
   const [updatingDoc, setUpdatingDoc] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [locationOptions, setLocationOptions] = useState([]);
 
   useEffect(() => {
     if (id) {
       fetchUser();
       fetchDocuments();
-      fetchFlightLogs();
+      fetchLocations();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (id && user && String(user.id) === String(id)) {
+      fetchFlightLogs();
+    }
+  }, [id, user]);
 
   const fetchUser = async () => {
     setLoadingUser(true);
@@ -78,6 +86,18 @@ const UserProfile = () => {
     }
   };
 
+  const fetchLocations = async () => {
+    try {
+      const response = await locationService.getLocations();
+      if (response.success && Array.isArray(response.data)) {
+        setLocationOptions(response.data.filter((location) => location.id != null));
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      setLocationOptions([]);
+    }
+  };
+
   const fetchDocuments = async () => {
     if (!id) return;
     setLoadingDocs(true);
@@ -98,10 +118,55 @@ const UserProfile = () => {
     if (!id) return;
     setLoadingLogs(true);
     try {
-      const response = await lessonService.getUserLessons(id, { per_page: 10 });
-      if (response.success) {
-        setFlightLogs(response.data);
-      }
+      const roles = Array.isArray(user?.roles) ? user.roles : [];
+      const roleNames = roles.map((role) =>
+        typeof role === 'string' ? role : role?.name || ''
+      );
+      const profileRole = String(user?.role || user?.role_name || '').toLowerCase();
+      const lessonType = roleNames.some((role) => role.toLowerCase() === 'instructor') || profileRole === 'instructor'
+        ? 'instructor'
+        : 'student';
+      const perPage = 100;
+      let page = 1;
+      let allLessons = [];
+      let lastPage = 1;
+
+      do {
+        const response = await lessonService.getUserLessons(id, { page, per_page: perPage, type: lessonType });
+        if (!response.success) break;
+
+        const pageLessons = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.data)
+            ? response.data.data
+            : [];
+        allLessons = [...allLessons, ...pageLessons];
+
+        const pagination = response.meta || response.data?.meta || {};
+        lastPage = Number(pagination.last_page || pagination.lastPage || 1);
+        if (!pagination.last_page && !pagination.lastPage && pageLessons.length === perPage) {
+          lastPage = page + 1;
+        }
+        page += 1;
+      } while (page <= lastPage && page <= 1000);
+
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      const relationKey = lessonType === 'instructor' ? 'instructors' : 'students';
+      const directIdKey = lessonType === 'instructor' ? 'instructor_id' : 'student_id';
+      const userFlightLogs = allLessons.filter((lesson) => {
+        const relatedUsers = lesson[relationKey];
+        const belongsToProfile = Array.isArray(relatedUsers)
+          ? relatedUsers.some((relatedUser) => String(relatedUser.id) === String(id))
+          : String(lesson[directIdKey] ?? '') === String(id);
+        if (!belongsToProfile) return false;
+
+        const dateValue = lesson.full_date || lesson.lesson_date || lesson.date || lesson.scheduled_date || lesson.start_time || lesson.created_at;
+        if (!dateValue) return true;
+        const lessonDate = new Date(dateValue);
+        return Number.isNaN(lessonDate.getTime()) || lessonDate <= today;
+      });
+      setFlightLogs(userFlightLogs);
     } catch (error) {
       console.error('Error fetching flight logs:', error);
       setFlightLogs([]);
@@ -371,7 +436,7 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Name</p><p className="text-sm font-medium text-gray-900">{user?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Certificate Level</p><p className="text-sm font-medium text-gray-900">{user?.certificate_level || '—'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Certificates</p><div className="flex gap-2">{certificates.map((cert, i) => (<span key={i} className={`px-2 py-0.5 text-xs font-medium rounded ${cert.color}`}>{cert.name}</span>))}</div></div>
-              <div><p className="text-sm text-gray-500 mb-1">Location</p><p className="text-sm font-medium text-gray-900">{user?.organization?.name || 'N/A'}</p></div>
+              <div><p className="text-sm text-gray-500 mb-1">Default Location</p><p className="text-sm font-medium text-gray-900">{locationOptions.find((location) => String(location.id) === String(user?.default_location_id))?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Phone</p><p className="text-sm font-medium text-gray-900">{user?.phone || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Email</p><p className="text-sm font-medium text-gray-900">{user?.email || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Username</p><p className="text-sm font-medium text-gray-900">{user?.username || 'N/A'}</p></div>
@@ -404,30 +469,60 @@ const UserProfile = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
                 ) : filteredFlightLogs.length > 0 ? (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Time</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Instructor</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Status</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Flight Type</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredFlightLogs.map((log, index) => (
-                        <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-3">{safeDisplay(log.date || (log.full_date ? formatDate(log.full_date) : null))}</td>
-                          <td className="px-4 py-3">{safeDisplay(log.time || (log.full_time ? formatTime(log.full_time) : null))}</td>
-                          <td className="px-4 py-3">{safeDisplay(log.instructor)}</td>
-                          <td className="px-4 py-3">
-                            <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{safeDisplay(log.status)}</span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">{safeDisplay(log.flight_type)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="rounded-2xl border border-sky-900 bg-[#0b1d2b] p-3 sm:p-5 text-slate-100 shadow-lg">
+                    <div className="flex items-center justify-between border-b border-sky-900 px-2 pb-3">
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300">Flight Dispatch</span>
+                      <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-emerald-400">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400" /> Logged flights
+                  <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-2 pb-3">
+                      <span className="text-sm font-semibold text-gray-800">Flight Logs</span>
+                      <span className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                        <span className="h-2 w-2 rounded-full bg-blue-500" /> Logged flights
+                      </span>
+                    </div>
+                    <div className="space-y-3 py-3">
+                      {filteredFlightLogs.map((log, index) => {
+                        const statusText = String(log.status || 'Logged');
+                        const statusLower = statusText.toLowerCase();
+                        const accent = /cancel|ground|reject/.test(statusLower)
+                          ? 'border-l-rose-400'
+                          : /airborne|progress|complete|logged|done/.test(statusLower)
+                            ? 'border-l-emerald-400'
+                            : 'border-l-sky-400';
+                        const dateText = log.date || (log.full_date ? formatDate(log.full_date) : null);
+                        const timeText = log.time || (log.full_time ? formatTime(log.full_time) : null);
+                        const studentNames = Array.isArray(log.students)
+                          ? log.students.map((student) => typeof student === 'string' ? student : student?.name || student?.full_name).filter(Boolean).join(', ')
+                          : typeof log.student === 'string'
+                            ? log.student
+                            : log.student?.name || log.student_name || log.student?.full_name || log.user?.name;
+                        const aircraftDetails = [log.aircraft, log.aircraft_category].filter(Boolean).join(' · ');
+                        return (
+                          <article key={log.id || `${dateText || 'flight'}-${index}`} className={`grid grid-cols-1 gap-3 rounded-xl border border-sky-900 border-l-4 ${accent} bg-[#071827] p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-6`}>
+                          <article key={log.id || `${dateText || 'flight'}-${index}`} className={`grid grid-cols-1 gap-3 rounded-lg border border-gray-200 border-l-4 ${accent} bg-white p-4 transition-colors hover:bg-gray-50 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-6`}>
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-semibold text-slate-100">{safeDisplay(studentNames || log.title || log.flight_type)}</p>
+                              <p className="mt-1 truncate text-xs font-medium uppercase tracking-[0.16em] text-slate-400">{safeDisplay(log.flight_type)}{aircraftDetails ? ` · ${aircraftDetails}` : ''} · Instructor {safeDisplay(log.instructor)}</p>
+                              <p className="truncate text-base font-semibold text-gray-800">{safeDisplay(studentNames || log.title || log.flight_type)}</p>
+                              <p className="mt-1 truncate text-xs font-medium uppercase tracking-[0.12em] text-gray-500">{safeDisplay(log.flight_type)}{aircraftDetails ? ` · ${aircraftDetails}` : ''} · Instructor {safeDisplay(log.instructor)}</p>
+                            </div>
+                            <div className="text-sm font-medium text-sky-300 sm:text-right">
+                            <div className="text-sm font-medium text-blue-700 sm:text-right">
+                              <span>{safeDisplay(dateText)}</span>
+                              <span className="px-2 text-slate-500">·</span>
+                              <span className="px-2 text-gray-400">·</span>
+                              <span>{safeDisplay(timeText)}</span>
+                            </div>
+                            <span className="inline-flex w-fit items-center rounded-md bg-sky-900/60 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-sky-200">
+                            <span className="inline-flex w-fit items-center rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">
+                              {safeDisplay(statusText)}
+                            </span>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">No flight logs found</div>
                 )}
