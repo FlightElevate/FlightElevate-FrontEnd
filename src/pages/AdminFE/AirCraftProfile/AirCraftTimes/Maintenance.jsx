@@ -214,22 +214,34 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
     );
   };
 
-  const renderHoursCell = (hours) => {
-    if (hours === null || hours === undefined || hours === '') return '--';
-    const status = getHoursStatus(hours);
-    const textBelow = parseFloat(hours) < 0 ? 'Overdue' : 'Remaining';
-    return (
-      <div className="flex flex-col gap-1">
-        <span className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(status)}`}>
-          {parseFloat(hours).toFixed(2)} hours
-        </span>
-        <span className="text-xs text-gray-500">
-          {textBelow}
-        </span>
-      </div>
-    );
-  };
+  const renderHoursCell = (hours, currentTach) => {
+  if (hours === null || hours === undefined || hours === '') return '--';
 
+  const remainingHours = parseFloat(hours);
+  const tach = parseFloat(currentTach);
+
+  const status = getHoursStatus(remainingHours);
+  const textBelow = remainingHours < 0 ? 'Overdue' : 'Remaining';
+
+  const nextDueTach =
+    !isNaN(tach) && !isNaN(remainingHours)
+      ? tach + remainingHours
+      : null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(status)}`}>
+        {remainingHours.toFixed(2)} hours
+      </span>
+
+      <span className="text-xs text-gray-500">
+        {nextDueTach !== null
+          ? `Next Due: ${nextDueTach.toFixed(2)} Tach`
+          : textBelow}
+      </span>
+    </div>
+  );
+};
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -294,7 +306,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                   <td className="py-3 px-4">{renderDaysCell(item.days_remaining)}</td>
                   <td className="py-3 px-4">{renderHoursCell(item.hours_remaining)}</td>
                   <td className="py-3 px-4">{item.reference_no || '--'}</td>
-                  <td className="py-3 px-4">{formatDate(item.last_resolved)}</td>
+                  <td className="py-3 px-4">{renderHoursCell(item.hours_remaining, item.current_tach)}</td>
                   <td className="py-3 px-4 text-center relative">
                     <button
                       onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
