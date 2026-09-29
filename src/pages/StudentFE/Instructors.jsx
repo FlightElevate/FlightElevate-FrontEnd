@@ -4,6 +4,7 @@ import { MdFilterList } from "react-icons/md";
 import { HiDotsVertical } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { userService } from "../../api/services/userService";
+import { locationService } from "../../api/services/locationService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../utils/notifications";
 import { useAuth } from "../../context/AuthContext";
 import { useRole } from "../../hooks/useRole";
@@ -21,6 +22,7 @@ const Instructors = () => {
   const [submitting, setSubmitting] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [listMenuOpenId, setListMenuOpenId] = useState(null);
+  const [brokenAvatars, setBrokenAvatars] = useState({});
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,7 +30,10 @@ const Instructors = () => {
     phone: '',
     password: '',
     status: 'active',
+    default_location_id: '',
+    calendar_location_ids: [],
   });
+  const [locationOptions, setLocationOptions] = useState([]);
   const sortRef = useRef(null);
   const menuRefs = useRef({});
   const listMenuRefs = useRef({});
@@ -49,6 +54,23 @@ const Instructors = () => {
     fetchInstructors();
   }, []);
 
+  useEffect(() => {
+    let c = false;
+    (async () => {
+      if (isStudent()) return;
+      try {
+        const r = await locationService.getLocations();
+        if (!c && r.success && Array.isArray(r.data)) {
+          setLocationOptions(r.data.filter((l) => l.id != null && l.id !== ''));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => { c = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -65,13 +87,11 @@ const Instructors = () => {
 
   
   const getInstructorImage = (instructor) => {
+    if (brokenAvatars[instructor.id]) return null;
     if (instructor.avatar || instructor.image || instructor.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
     }
-    
-    const imageIds = [1, 5, 8, 12, 15, 20, 25, 33, 47, 51, 68, 70];
-    const imageId = imageIds[instructor.id % imageIds.length] || 1;
-    return `https://i.pravatar.cc/150?img=${imageId}`;
+    return null;
   };
 
   const fetchInstructors = async () => {
@@ -84,6 +104,7 @@ const Instructors = () => {
       if (response.success) {
         const instructorsList = Array.isArray(response.data) ? response.data : [];
         setInstructors(instructorsList);
+        setBrokenAvatars({});
       }
     } catch (err) {
       console.error('Error fetching instructors:', err);
@@ -113,22 +134,38 @@ const Instructors = () => {
       phone: '',
       password: '',
       status: 'active',
+      default_location_id: '',
+      calendar_location_ids: [],
     });
     setShowModal(true);
   };
 
-  const handleEdit = (instructor, e) => {
+  const handleEdit = async (instructor, e) => {
     if (e) {
       e.stopPropagation();
     }
     setEditingInstructor(instructor);
+    let defaultLocationId = '';
+    let calendarLocationIds = [];
+    try {
+      const res = await userService.getUser(instructor.id);
+      if (res.success && res.data) {
+        const u = res.data;
+        defaultLocationId = u.default_location_id != null ? String(u.default_location_id) : '';
+        calendarLocationIds = Array.isArray(u.calendar_location_ids) ? u.calendar_location_ids : [];
+      }
+    } catch (err) {
+      console.error(err);
+    }
     setFormData({
       name: instructor.name || '',
       email: instructor.email || '',
       username: instructor.username || '',
       phone: instructor.phone || '',
-      password: '', 
+      password: '',
       status: instructor.status || 'active',
+      default_location_id: defaultLocationId,
+      calendar_location_ids: calendarLocationIds,
     });
     setMenuOpenId(null);
     setShowModal(true);
@@ -150,7 +187,7 @@ const Instructors = () => {
         fetchInstructors();
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || 'Failed to delete instructor');
+      showErrorToast(err.message || err.response?.data?.message || 'Failed to delete instructor');
     }
   };
 
@@ -167,6 +204,17 @@ const Instructors = () => {
       
       if (editingInstructor && !data.password) {
         delete data.password;
+      }
+
+      if (data.default_location_id === '' || data.default_location_id == null) {
+        delete data.default_location_id;
+      } else {
+        data.default_location_id = parseInt(data.default_location_id, 10);
+      }
+      if (!Array.isArray(data.calendar_location_ids) || data.calendar_location_ids.length === 0) {
+        delete data.calendar_location_ids;
+      } else {
+        data.calendar_location_ids = data.calendar_location_ids.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n));
       }
 
       if (editingInstructor) {
@@ -186,7 +234,7 @@ const Instructors = () => {
         }
       }
     } catch (err) {
-      showErrorToast(err.response?.data?.message || `Failed to ${editingInstructor ? 'update' : 'create'} instructor`);
+      showErrorToast(err.message || err.response?.data?.message || `Failed to ${editingInstructor ? 'update' : 'create'} instructor`);
     } finally {
       setSubmitting(false);
     }
@@ -201,30 +249,13 @@ const Instructors = () => {
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {}
-            <div className="flex items-center border border-gray-200 bg-white rounded-lg shadow-sm overflow-hidden">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`px-3 py-2 transition ${
-                  viewMode === "grid"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-                title="Grid View"
-              >
-                <FiGrid size={18} />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`px-3 py-2 transition border-l border-gray-200 ${
-                  viewMode === "list"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-                title="List View"
-              >
-                <FiList size={18} />
-              </button>
-            </div>
+            <button
+              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+              className="px-3 py-2 transition bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 flex items-center justify-center"
+              title={viewMode === "grid" ? "List View" : "Grid View"}
+            >
+              {viewMode === "grid" ? <FiList size={18} /> : <FiGrid size={18} />}
+            </button>
             
             {}
             <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm grow sm:grow-0 w-full">
@@ -285,20 +316,19 @@ const Instructors = () => {
                 className="group relative cursor-pointer border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-lg transition-all"
               >
                 <div onClick={() => handleInstructorClick(instructor.id)}>
-                  <img
-                    src={getInstructorImage(instructor)}
-                    alt={instructor.name}
-                    className="w-full h-[250px] object-cover"
-                    onError={(e) => {
-                      
-                      e.target.style.display = 'none';
-                      const parent = e.target.parentElement;
-                      const fallback = document.createElement('div');
-                      fallback.className = 'w-full h-[250px] bg-blue-500 flex items-center justify-center text-white text-4xl font-bold';
-                      fallback.textContent = instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
-                      parent.insertBefore(fallback, e.target);
-                    }}
-                  />
+                  {getInstructorImage(instructor) ? (
+                    <img
+                      src={getInstructorImage(instructor)}
+                      alt={instructor.name}
+                      className="w-full h-[250px] object-cover"
+                      style={{ width: "100%", height: "250px", objectFit: "cover" }}
+                      onError={() => setBrokenAvatars((prev) => ({ ...prev, [instructor.id]: true }))}
+                    />
+                  ) : (
+                    <div className="w-full h-[250px] bg-blue-500 flex items-center justify-center text-white text-4xl font-bold">
+                      {instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'IN'}
+                    </div>
+                  )}
                   <div className="px-3 py-2">
                     <p className="text-base fw5 leading-6 tracking-[0%] text-[#3D3D3D]">{instructor.name}</p>
                   </div>
@@ -384,20 +414,19 @@ const Instructors = () => {
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200">
-                            <img
-                              src={getInstructorImage(instructor)}
-                              alt={instructor.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                
-                                e.target.style.display = 'none';
-                                const parent = e.target.parentElement;
-                                const fallback = document.createElement('div');
-                                fallback.className = 'w-full h-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold';
-                                fallback.textContent = instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'IN';
-                                parent.appendChild(fallback);
-                              }}
-                            />
+                            {getInstructorImage(instructor) ? (
+                              <img
+                                src={getInstructorImage(instructor)}
+                                alt={instructor.name}
+                                className="w-full h-full object-cover"
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                onError={() => setBrokenAvatars((prev) => ({ ...prev, [instructor.id]: true }))}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
+                                {instructor.name ? instructor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'IN'}
+                              </div>
+                            )}
                           </div>
                           <span className="text-sm font-medium text-gray-800">
                             {instructor.name}
@@ -486,7 +515,7 @@ const Instructors = () => {
       {}
       {showModal && !isStudent && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-800">
                 {editingInstructor ? 'Edit Instructor' : 'Add New Instructor'}
@@ -587,6 +616,38 @@ const Instructors = () => {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Default calendar location</label>
+                  <select
+                    value={formData.default_location_id || ''}
+                    onChange={(e) => setFormData({ ...formData, default_location_id: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">None</option>
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Additional schedule locations</label>
+                  <select
+                    multiple
+                    value={(formData.calendar_location_ids || []).map(String)}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions).map((o) => parseInt(o.value, 10));
+                      setFormData({ ...formData, calendar_location_ids: selected });
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[88px]"
+                  >
+                    {locationOptions.map((loc) => (
+                      <option key={loc.id} value={String(loc.id)}>{loc.name}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">Ctrl/Cmd+click for multiple.</p>
                 </div>
               </div>
 
