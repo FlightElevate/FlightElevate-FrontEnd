@@ -6,8 +6,32 @@ import { AiOutlineCheck } from "react-icons/ai";
 import EmojiPicker from "emoji-picker-react";
 import { messageService } from "../api/services/messageService";
 import { showErrorToast } from "../utils/notifications";
+import { getImageUrl } from "../utils/imageUtils";
 import { useAuth } from "../context/AuthContext";
 import echo from "../echo";
+
+const UserAvatar = ({ profile, className }) => {
+  const imagePath = profile?.avatar || profile?.profile_image || profile?.avatar_url;
+  const imageUrl = getImageUrl(imagePath);
+  const [failedImageUrl, setFailedImageUrl] = useState(null);
+  const displayName = String(profile?.name || profile?.username || "U").trim();
+  const initial = displayName.charAt(0).toUpperCase() || "U";
+
+  return (
+    <div className={`${className} relative flex items-center justify-center overflow-hidden rounded-full bg-blue-100 text-sm font-semibold text-blue-700`}>
+      {imageUrl && imageUrl !== failedImageUrl ? (
+        <img
+          src={imageUrl}
+          alt={profile?.name || "User"}
+          className="absolute inset-0 h-full w-full rounded-full object-cover"
+          onError={() => setFailedImageUrl(imageUrl)}
+        />
+      ) : (
+        <span aria-hidden="true">{initial}</span>
+      )}
+    </div>
+  );
+};
 
 const Inbox = () => {
   const navigate = useNavigate();
@@ -501,13 +525,7 @@ const Inbox = () => {
                     <div className="flex items-center gap-3">
 
                       <div className="relative flex-shrink-0">
-                        <img
-                          src={
-                            chat.user?.[0]?.avatar ||
-                            "/default-avatar.png"
-                          }
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
+                        <UserAvatar profile={chat.user?.[0]} className="h-10 w-10" />
 
                         <span
                           className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
@@ -590,13 +608,7 @@ const Inbox = () => {
                 </button>
 
                 <div className="relative">
-                  <img
-                    src={
-                      selectedChat.user?.[0]?.avatar ||
-                      "/default-avatar.png"
-                    }
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  <UserAvatar profile={selectedChat.user?.[0]} className="h-12 w-12" />
 
                   <span
                     className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
@@ -988,26 +1000,7 @@ const Inbox = () => {
                     }}
                     className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-gray-300 hover:bg-gray-50 min-h-[44px]"
                   >
-                    <img
-                      src={
-                        userItem.avatar ||
-                        "/default-avatar.png"
-                      }
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        minWidth: "40px",
-                        minHeight: "40px",
-                        maxWidth: "40px",
-                        maxHeight: "40px",
-                        objectFit: "cover",
-                      }}
-                      alt={userItem.name}
-                      onError={(e) => {
-                        e.target.src = "/default-avatar.png";
-                      }}
-                    />
+                    <UserAvatar profile={userItem} className="h-10 w-10 flex-shrink-0 sm:h-12 sm:w-12" />
 
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800 truncate">
@@ -1030,3 +1023,4 @@ const Inbox = () => {
 };
 
 export default Inbox;
+
