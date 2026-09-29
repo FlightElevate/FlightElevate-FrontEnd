@@ -1,0 +1,25 @@
+/* Self-hosted via npm (no Google Fonts requests):
+     npm i @fontsource-variable/geist-mono @fontsource-variable/inter-tight
+   Then in main.jsx (or your entry file):
+     import "@fontsource-variable/geist-mono";
+     import "@fontsource-variable/inter-tight";
+   Then paste this block into your global CSS (index.css). */
+
+:root {
+  --font-num: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Headings use Inter Tight. To fall back to plain Inter, remove this line. */
+  --font-heading: "Inter Tight Variable", Inter, system-ui, sans-serif;
+}
+
+/* Meter readings, tail numbers, cycle counts */
+.font-num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Section headings; falls back to the inherited font (Inter) when unset */
+.font-heading {
+  font-family: var(--font-heading, inherit);
+}
