@@ -120,12 +120,9 @@ const AirCraftProfile = () => {
         : new Date(a.created_at) - new Date(b.created_at)
     );
 
-  const handleCardClick = (aircraft) => {
-    const status = aircraft.status === 'in_service' ? 'In Service' : aircraft.status;
-    if (status === "In Service") {
-      navigate(`/air-craft-profile/aircraft/${aircraft.id}`); 
-    }
-  };
+const handleCardClick = (aircraft) => {
+  navigate(`/air-craft-profile/aircraft/${aircraft.id}`);
+};
 
   const handleAdd = () => {
     setEditingAircraft(null);
