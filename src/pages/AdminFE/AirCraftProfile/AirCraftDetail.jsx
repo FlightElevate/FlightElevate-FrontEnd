@@ -174,7 +174,7 @@ const AirCraftDetail = () => {
               <FiArrowLeft size={18} className="text-slate-600" />
             </button>
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{displayName}</h2>
+              <h2 className="font-num text-2xl font-semibold text-slate-900">{displayName}</h2>
               {aircraft.model && (
                 <p className="text-sm text-slate-500 mt-0.5">{aircraft.model}</p>
               )}
@@ -206,13 +206,13 @@ const AirCraftDetail = () => {
       </div>
 
       {/* Aircraft details */}
-      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 md:p-6">
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
         <ACDetails aircraft={aircraft} />
       </div>
 
       {/* Aircraft times (maintenance schedule + squawks), stacked below */}
       <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 md:p-6">
-        <h3 className="text-lg font-semibold tracking-tight text-slate-900 mb-4">Aircraft Times</h3>
+        <h3 className="font-heading text-lg font-semibold tracking-tight text-slate-900 mb-4">Aircraft Times</h3>
         <AirCraftTimes aircraftId={aircraft.id} />
       </div>
 
@@ -222,7 +222,7 @@ const AirCraftDetail = () => {
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <div>
-                <h3 className="text-xl font-semibold text-slate-900">Find a Time</h3>
+                <h3 className="font-heading text-xl font-semibold text-slate-900">Find a Time</h3>
                 <p className="text-sm text-slate-500 mt-1">Available time slots for {displayName}</p>
               </div>
               <button
@@ -325,4 +325,3 @@ const AirCraftDetail = () => {
 };
 
 export default AirCraftDetail;
-
