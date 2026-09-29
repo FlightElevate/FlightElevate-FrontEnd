@@ -17,6 +17,14 @@ import { safeDisplay } from "../../../utils/safeDisplay";
 import EditUserModal from "../../../components/User/EditUserModal";
 import { useAuth } from "../../../context/AuthContext";
 
+const getPersonalAvatar = (profile) =>
+  profile?.avatar ||
+  profile?.profile_image ||
+  profile?.avatar_url ||
+  profile?.settings?.avatar ||
+  profile?.user_settings?.avatar ||
+  null;
+
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,6 +60,7 @@ const UserProfile = () => {
   });
   const [selectedAddFile, setSelectedAddFile] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
+  const profileImageUrl = getImageUrl(profileImage || getPersonalAvatar(user));
 
   // Location settings state
   const [locationOptions, setLocationOptions] = useState([]);
@@ -90,8 +99,7 @@ const UserProfile = () => {
             ? userData.calendar_location_ids.map(String)
             : [],
         });
-        const avatarUrl = userData?.avatar || userData?.profile_image || userData?.avatar_url || userData?.organization?.logo;
-        setProfileImage(avatarUrl || null);
+        setProfileImage(getPersonalAvatar(userData));
         
         // Fetch locations scoped to this user's organization
         if (userData?.organization_id) {
@@ -422,9 +430,9 @@ const UserProfile = () => {
         <div className="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 text-xl relative" style={{ minWidth: '64px', minHeight: '64px', width: '64px', height: '64px' }}>
-              {getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? (
+              {profileImageUrl ? (
                 <img
-                  src={getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo)}
+                  src={profileImageUrl}
                   alt={user?.name || 'User'}
                   className="w-full h-full object-cover rounded-full flex-shrink-0 absolute inset-0"
                   style={{ 
@@ -471,7 +479,7 @@ const UserProfile = () => {
                 />
               ) : null}
               <span 
-                className={`user-initial ${getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
+                className={`user-initial ${profileImageUrl ? 'hidden' : 'flex'} items-center justify-center absolute inset-0 rounded-full`}
                 style={{ 
                   width: '100%', 
                   height: '100%', 
@@ -484,7 +492,7 @@ const UserProfile = () => {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  zIndex: getImageUrl(profileImage || user?.avatar || user?.profile_image || user?.avatar_url || user?.organization?.logo) ? 0 : 1
+                  zIndex: profileImageUrl ? 0 : 1
                 }}
               >
                 {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -1339,3 +1347,4 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
 };
 
 export default UserProfile;
+
