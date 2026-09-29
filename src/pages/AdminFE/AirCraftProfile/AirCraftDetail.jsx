@@ -12,14 +12,12 @@ const AirCraftDetail = () => {
   const navigate = useNavigate();
   const [aircraft, setAircraft] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("details");
   const [showFindTimeModal, setShowFindTimeModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [duration, setDuration] = useState(60);
 
-  
   useEffect(() => {
     if (id) {
       fetchAircraftDetails();
@@ -33,66 +31,65 @@ const AirCraftDetail = () => {
       if (response.success) {
         setAircraft(response.data);
       } else {
-        showErrorToast('Aircraft not found');
-        navigate('/air-craft-profile');
+        showErrorToast("Aircraft not found");
+        navigate("/air-craft-profile");
       }
     } catch (err) {
-      console.error('Error fetching aircraft:', err);
-      showErrorToast('Failed to load aircraft details');
-      navigate('/air-craft-profile');
+      console.error("Error fetching aircraft:", err);
+      showErrorToast("Failed to load aircraft details");
+      navigate("/air-craft-profile");
     } finally {
       setLoading(false);
     }
   };
 
-  
-  const fetchAvailableSlots = async (aircraftId, date) => {
+  // Duration is passed explicitly so a just-changed value isn't read from stale state
+  const fetchAvailableSlots = async (aircraftId, date, dur = duration) => {
     if (!aircraftId || !date) return;
-    
+
     setLoadingSlots(true);
     try {
       const response = await calendarService.getAvailableTimeSlots({
         date: date,
         aircraft_id: aircraftId,
-        duration: duration
+        duration: dur,
       });
-      
+
       if (response.success) {
         setAvailableSlots(response.data.available_slots || []);
       }
     } catch (err) {
-      console.error('Error fetching available slots:', err);
-      showErrorToast('Failed to fetch available time slots');
+      console.error("Error fetching available slots:", err);
+      showErrorToast("Failed to fetch available time slots");
       setAvailableSlots([]);
     } finally {
       setLoadingSlots(false);
     }
   };
 
-  
   const handleFindTime = () => {
     if (!aircraft) return;
+    const today = new Date().toISOString().split("T")[0];
     setShowFindTimeModal(true);
-    setSelectedDate(new Date().toISOString().split('T')[0]);
-    fetchAvailableSlots(aircraft.id, new Date().toISOString().split('T')[0]);
+    setSelectedDate(today);
+    fetchAvailableSlots(aircraft.id, today);
   };
 
-  
   const handleBookNow = () => {
     if (!aircraft) return;
-    navigate('/calendar', { 
-      state: { 
+    navigate("/calendar", {
+      state: {
         preSelectedAircraft: aircraft.id,
-        openReservationModal: true 
-      } 
+        openReservationModal: true,
+      },
     });
   };
 
   const handleToggleService = async () => {
     if (!aircraft) return;
-    const newStatus = aircraft.status === 'in_service' ? 'not_in_service' : 'in_service';
-    const actionText = newStatus === 'in_service' ? 'Return to Service' : 'Take Out of Service';
-    
+    const newStatus = aircraft.status === "in_service" ? "not_in_service" : "in_service";
+    const actionText = newStatus === "in_service" ? "Return to Service" : "Take Out of Service";
+
     const confirmed = await showConfirmDialog(
       actionText,
       `Are you sure you want to ${actionText.toLowerCase()}?`,
@@ -103,16 +100,15 @@ const AirCraftDetail = () => {
     try {
       const response = await aircraftService.updateAircraft(aircraft.id, { status: newStatus });
       if (response.success) {
-        showSuccessToast(`Aircraft is now ${newStatus === 'in_service' ? 'in service' : 'out of service'}`);
+        showSuccessToast(`Aircraft is now ${newStatus === "in_service" ? "in service" : "out of service"}`);
         fetchAircraftDetails();
       }
     } catch (err) {
-      console.error('Error toggling service status:', err);
+      console.error("Error toggling service status:", err);
       showErrorToast(`Failed to ${actionText.toLowerCase()}`);
     }
   };
 
-  
   const handleDateChange = (e) => {
     const newDate = e.target.value;
     setSelectedDate(newDate);
@@ -121,28 +117,23 @@ const AirCraftDetail = () => {
     }
   };
 
-  
   const handleDurationChange = (e) => {
     const newDuration = parseInt(e.target.value);
     setDuration(newDuration);
     if (aircraft && selectedDate) {
-      fetchAvailableSlots(aircraft.id, selectedDate);
+      fetchAvailableSlots(aircraft.id, selectedDate, newDuration);
     }
   };
 
-  const getStatusDisplay = (status) => {
-    const statusMap = {
-      'in_service': 'In Service',
-      'not_in_service': 'Not In Service',
-      'maintenance': 'Maintenance'
-    };
-    return statusMap[status] || status;
+  const closeModal = () => {
+    setShowFindTimeModal(false);
+    setAvailableSlots([]);
   };
 
   if (loading) {
     return (
       <div className="md:mt-5 mx-auto">
-        <div className="bg-white shadow-sm rounded-lg p-12">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-12">
           <div className="flex justify-center items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -154,10 +145,10 @@ const AirCraftDetail = () => {
   if (!aircraft) {
     return (
       <div className="md:mt-5 mx-auto">
-        <div className="bg-white shadow-sm rounded-lg p-6 text-center">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-center">
           <h2 className="text-lg text-red-600 font-medium">Aircraft not found</h2>
           <button
-            onClick={() => navigate('/air-craft-profile')}
+            onClick={() => navigate("/air-craft-profile")}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Back to Aircraft List
@@ -167,119 +158,100 @@ const AirCraftDetail = () => {
     );
   }
 
+  const displayName = aircraft.serial_number || aircraft.name;
+
   return (
-    <div className="md:mt-5 mx-auto">
-      <div className="bg-white shadow-sm rounded-lg">
-        {}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-b border-gray-200">
+    <div className="md:mt-5 mx-auto space-y-5">
+      {/* Header */}
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/air-craft-profile')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              onClick={() => navigate("/air-craft-profile")}
+              className="p-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl transition"
+              aria-label="Back to aircraft list"
             >
-              <FiArrowLeft size={20} className="text-gray-600" />
+              <FiArrowLeft size={18} className="text-slate-600" />
             </button>
             <div>
-              <h2 className="text-2xl font-semibold text-gray-800">{aircraft.serial_number || aircraft.name}</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{displayName}</h2>
               {aircraft.model && (
-                <p className="text-sm text-gray-500 mt-1">{aircraft.model}</p>
+                <p className="text-sm text-slate-500 mt-0.5">{aircraft.model}</p>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {aircraft.status !== 'in_service' && (
-              <button 
+          <div className="flex flex-wrap items-center gap-2">
+            {aircraft.status !== "in_service" && (
+              <button
                 onClick={handleToggleService}
-                className="text-sm text-white bg-green-600 rounded-lg px-4 py-2 hover:bg-green-700 transition"
+                className="text-sm font-medium text-white bg-green-600 rounded-xl px-4 py-2.5 hover:bg-green-700 transition"
               >
                 Return to Service
               </button>
             )}
-            <button 
+            <button
               onClick={handleFindTime}
-              className="text-sm text-gray-700 border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition"
+              className="text-sm font-medium text-slate-700 border border-slate-200 rounded-xl px-4 py-2.5 hover:bg-slate-50 transition"
             >
               Find a Time
             </button>
-            <button 
+            <button
               onClick={handleBookNow}
-              className="text-sm text-white bg-blue-600 rounded-lg px-4 py-2 hover:bg-blue-700 transition"
+              className="text-sm font-medium text-white bg-blue-600 rounded-xl px-4 py-2.5 hover:bg-blue-700 transition"
             >
               Book Now
             </button>
           </div>
         </div>
-
-        {}
-        <div className="flex border-b border-gray-200 px-4">
-          <button
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "details"
-                ? "text-blue-600 border-blue-600"
-                : "text-gray-500 border-transparent hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("details")}
-          >
-            Aircraft Details
-          </button>
-          <button
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "times"
-                ? "text-blue-600 border-blue-600"
-                : "text-gray-500 border-transparent hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("times")}
-          >
-            Aircraft Times
-          </button>
-        </div>
-
-        {}
-        <div className="p-6">
-          {activeTab === "details" && <ACDetails aircraft={aircraft} />}
-          {activeTab === "times" && <AirCraftTimes aircraftId={aircraft.id} />}
-        </div>
       </div>
 
-      {}
-      {showFindTimeModal && aircraft && (
+      {/* Aircraft details */}
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 md:p-6">
+        <ACDetails aircraft={aircraft} />
+      </div>
+
+      {/* Aircraft times (maintenance schedule + squawks), stacked below */}
+      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 md:p-6">
+        <h3 className="text-lg font-semibold tracking-tight text-slate-900 mb-4">Aircraft Times</h3>
+        <AirCraftTimes aircraftId={aircraft.id} />
+      </div>
+
+      {/* Find a Time modal */}
+      {showFindTimeModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <div>
-                <h3 className="text-xl font-semibold text-gray-800">Find a Time</h3>
-                <p className="text-sm text-gray-600 mt-1">Available time slots for {aircraft.serial_number || aircraft.name}</p>
+                <h3 className="text-xl font-semibold text-slate-900">Find a Time</h3>
+                <p className="text-sm text-slate-500 mt-1">Available time slots for {displayName}</p>
               </div>
               <button
-                onClick={() => {
-                  setShowFindTimeModal(false);
-                  setAvailableSlots([]);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={closeModal}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="Close"
               >
                 <FiX size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
-              {}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Select Date</label>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={handleDateChange}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Duration (minutes)</label>
                   <select
                     value={duration}
                     onChange={handleDurationChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value={30}>30 minutes</option>
                     <option value={60}>1 hour</option>
@@ -290,62 +262,57 @@ const AirCraftDetail = () => {
                 </div>
               </div>
 
-              {}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                <h4 className="text-sm font-medium text-slate-700 mb-3">
                   Available Time Slots ({availableSlots.length} available)
                 </h4>
-                
+
                 {loadingSlots ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-gray-600 mt-2">Loading available slots...</p>
+                    <p className="text-slate-600 mt-2">Loading available slots...</p>
                   </div>
                 ) : availableSlots.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-96 overflow-y-auto p-2 border border-slate-200 rounded-xl">
                     {availableSlots.map((slot, index) => (
                       <button
                         key={index}
                         onClick={() => {
-                          
-                          navigate('/calendar', {
+                          navigate("/calendar", {
                             state: {
                               preSelectedAircraft: aircraft.id,
                               preSelectedDate: selectedDate,
                               preSelectedTime: slot.time,
                               preSelectedDuration: duration,
-                              openReservationModal: true
-                            }
+                              openReservationModal: true,
+                            },
                           });
                         }}
-                        className="px-3 py-2 text-sm bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition text-center"
+                        className="px-3 py-2 text-sm bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition text-center"
                       >
                         {slot.display}
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 border border-gray-200 rounded-lg">
-                    <p className="text-gray-600">No available time slots for this date and duration.</p>
-                    <p className="text-sm text-gray-500 mt-2">Try selecting a different date or duration.</p>
+                  <div className="text-center py-8 border border-slate-200 rounded-xl">
+                    <p className="text-slate-600">No available time slots for this date and duration.</p>
+                    <p className="text-sm text-slate-500 mt-2">Try selecting a different date or duration.</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 p-6 border-t border-gray-200">
+            <div className="flex justify-end gap-2 p-6 border-t border-slate-200">
               <button
-                onClick={() => {
-                  setShowFindTimeModal(false);
-                  setAvailableSlots([]);
-                }}
-                className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                onClick={closeModal}
+                className="px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-xl hover:bg-slate-50 transition"
               >
                 Close
               </button>
               <button
                 onClick={handleBookNow}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
               >
                 Book Now
               </button>
@@ -358,5 +325,4 @@ const AirCraftDetail = () => {
 };
 
 export default AirCraftDetail;
-
 
