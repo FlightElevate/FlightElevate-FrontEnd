@@ -22,6 +22,7 @@ const Instructors = () => {
   const [submitting, setSubmitting] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [listMenuOpenId, setListMenuOpenId] = useState(null);
+  const [brokenAvatars, setBrokenAvatars] = useState({});
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,6 +40,8 @@ const Instructors = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isStudent } = useRole();
+  // isStudent is a function in useRole; call it once so the checks below get a real true/false
+  const studentUser = typeof isStudent === "function" ? isStudent() : !!isStudent;
 
   
   const getYearsOfExperience = (createdAt) => {
@@ -56,7 +59,7 @@ const Instructors = () => {
   useEffect(() => {
     let c = false;
     (async () => {
-      if (isStudent()) return;
+      if (studentUser) return;
       try {
         const r = await locationService.getLocations();
         if (!c && r.success && Array.isArray(r.data)) {
@@ -86,6 +89,7 @@ const Instructors = () => {
 
   
   const getInstructorImage = (instructor) => {
+    if (brokenAvatars[instructor.id]) return null;
     if (instructor.avatar || instructor.image || instructor.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
     }
@@ -102,6 +106,7 @@ const Instructors = () => {
       if (response.success) {
         const instructorsList = Array.isArray(response.data) ? response.data : [];
         setInstructors(instructorsList);
+        setBrokenAvatars({});
       }
     } catch (err) {
       console.error('Error fetching instructors:', err);
@@ -318,6 +323,8 @@ const Instructors = () => {
                       src={getInstructorImage(instructor)}
                       alt={instructor.name}
                       className="w-full h-[250px] object-cover"
+                      style={{ width: "100%", height: "250px", objectFit: "cover" }}
+                      onError={() => setBrokenAvatars((prev) => ({ ...prev, [instructor.id]: true }))}
                     />
                   ) : (
                     <div className="w-full h-[250px] bg-blue-500 flex items-center justify-center text-white text-4xl font-bold">
@@ -330,7 +337,7 @@ const Instructors = () => {
                 </div>
                 
                 {}
-                {!isStudent && (
+                {!studentUser && (
                   <div 
                     className="action-menu-container absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     onClick={(e) => e.stopPropagation()}
@@ -414,6 +421,8 @@ const Instructors = () => {
                                 src={getInstructorImage(instructor)}
                                 alt={instructor.name}
                                 className="w-full h-full object-cover"
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                onError={() => setBrokenAvatars((prev) => ({ ...prev, [instructor.id]: true }))}
                               />
                             ) : (
                               <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
@@ -430,7 +439,7 @@ const Instructors = () => {
                         {getYearsOfExperience(instructor.created_at)}
                       </td>
                       <td className="py-4 px-4">
-                        {isStudent ? (
+                        {studentUser ? (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -467,7 +476,7 @@ const Instructors = () => {
                               >
                                 View Details
                               </button>
-                              {!isStudent && (
+                              {!studentUser && (
                                 <>
                                   <button
                                     onClick={(e) => handleEdit(instructor, e)}
@@ -506,7 +515,7 @@ const Instructors = () => {
       )}
 
       {}
-      {showModal && !isStudent && (
+      {showModal && !studentUser && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
