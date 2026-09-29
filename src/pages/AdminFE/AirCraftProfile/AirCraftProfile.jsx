@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiSearch, FiX, FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
 import { HiChevronDown } from "react-icons/hi";
+import { FaPlane } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { aircraftService } from "../../../api/services/aircraftService";
 import { locationService } from "../../../api/services/locationService";
@@ -22,6 +23,7 @@ const AirCraftProfile = () => {
   const [editingAircraft, setEditingAircraft] = useState(null);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const menuRefs = useRef({});
+  const [brokenImages, setBrokenImages] = useState({});
   
   
   const [formData, setFormData] = useState({
@@ -99,6 +101,7 @@ const AirCraftProfile = () => {
       if (response.success) {
         const aircraftList = Array.isArray(response.data) ? response.data : [];
         setAircrafts(aircraftList);
+        setBrokenImages({});
       }
     } catch (err) {
       console.error('Error fetching aircraft:', err);
@@ -419,7 +422,7 @@ const handleCardClick = (aircraft) => {
           </div>
         ) : (
           <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
               {filteredAircrafts.map((aircraft) => {
                 const statusDisplay = getStatusDisplay(aircraft.status);
                 const isInService = aircraft.status === 'in_service';
@@ -439,15 +442,21 @@ const handleCardClick = (aircraft) => {
                       }}
                       className={`cursor-pointer ${isInService ? 'hover:shadow-md' : 'cursor-not-allowed opacity-75'}`}
                     >
-                      <div className="w-full h-44 bg-gray-100 overflow-hidden">
-                        <img
-                          src={aircraft.image || 'https://via.placeholder.com/400x300?text=No+Image'}
-                          alt={aircraft.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
-                          }}
-                        />
+                      <div className="relative w-full aspect-[16/10] bg-gray-100 overflow-hidden">
+                        {aircraft.image && !brokenImages[aircraft.id] ? (
+                          <img
+                            src={aircraft.image}
+                            alt={aircraft.name}
+                            loading="lazy"
+                            className="absolute inset-0"
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            onError={() => setBrokenImages((prev) => ({ ...prev, [aircraft.id]: true }))}
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <FaPlane className="text-gray-300" size={40} aria-hidden="true" />
+                          </div>
+                        )}
                       </div>
                       <div className="p-4 flex items-center justify-between border-t border-gray-100">
                         <h3 className="text-base font-medium text-gray-800 truncate flex-1">
