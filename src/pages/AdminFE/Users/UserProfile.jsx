@@ -220,10 +220,36 @@ const UserProfile = () => {
     if (!id) return;
     setLoadingLogs(true);
     try {
-      const response = await logbookService.getUserEntries(id, { per_page: 10 });
-      if (response.success) {
-        setFlightLogs(response.data);
-      }
+      const perPage = 100;
+      let page = 1;
+      let lastPage = 1;
+      let allEntries = [];
+
+      do {
+        const response = await logbookService.getUserEntries(id, { page, per_page: perPage });
+        if (!response.success) break;
+
+        const entries = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.data)
+            ? response.data.data
+            : [];
+        allEntries = [...allEntries, ...entries];
+
+        const pagination = response.meta || response.data?.meta || {};
+        const reportedLastPage = Number(pagination.last_page || pagination.lastPage || 0);
+        lastPage = reportedLastPage || (entries.length === perPage ? page + 1 : page);
+        page += 1;
+      } while (page <= lastPage && page <= 1000);
+
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      setFlightLogs(allEntries.filter((entry) => {
+        const dateValue = entry.flight_date || entry.flight_date_formatted || entry.date;
+        if (!dateValue) return true;
+        const flightDate = new Date(dateValue);
+        return Number.isNaN(flightDate.getTime()) || flightDate <= today;
+      }));
     } catch (error) {
       console.error('Error fetching flight logs:', error);
       setFlightLogs([]);
@@ -377,13 +403,17 @@ const UserProfile = () => {
 
 
   
+  const isInstructorProfile = user?.roles?.some((role) =>
+    (typeof role === 'string' ? role : role?.name)?.toLowerCase() === 'instructor'
+  );
+
   const filteredFlightLogs = flightLogs.filter((log) => {
     if (!searchLogs) return true;
     const searchLower = searchLogs.toLowerCase();
     return (
       (log.flight_date_formatted || log.flight_date || "")?.toLowerCase().includes(searchLower) ||
       (log.flight_time || "")?.toLowerCase().includes(searchLower) ||
-      ((user?.roles?.some(r => r.toLowerCase() === 'instructor') ? log.student : log.instructor) || "")?.toLowerCase().includes(searchLower) ||
+      ((isInstructorProfile ? log.student : log.instructor) || "")?.toLowerCase().includes(searchLower) ||
       (log.status || "")?.toLowerCase().includes(searchLower) ||
       (log.lesson_type || "")?.toLowerCase().includes(searchLower)
     );
@@ -617,36 +647,53 @@ const UserProfile = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
                 ) : filteredFlightLogs.length > 0 ? (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Date</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Time</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">
-                          {user?.roles?.some(r => r.toLowerCase() === 'instructor') ? 'Student' : 'Instructor'}
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Status</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Flight Type</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredFlightLogs.map((log, index) => (
-                        <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-3">{safeDisplay(log.flight_date_formatted || log.flight_date)}</td>
-                          <td className="px-4 py-3">{safeDisplay(log.flight_time)}</td>
-                          <td className="px-4 py-3">
-                            {user?.roles?.some(r => r.toLowerCase() === 'instructor') 
-                              ? safeDisplay(log.student) 
-                              : safeDisplay(log.instructor)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">{safeDisplay(log.status)}</span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-600">{safeDisplay(log.lesson_type || log.flight_type)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-2 pb-3">
+                      <span className="text-sm font-semibold text-gray-800">Flight Logs</span>
+                      <span className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                        <span className="h-2 w-2 rounded-full bg-blue-500" /> Logged flights
+                      </span>
+                    </div>
+                    <div className="space-y-3 py-3">
+                      {filteredFlightLogs.map((log, index) => {
+                        const flightType = log.lesson_type || log.flight_type;
+                        const person = isInstructorProfile ? log.student : log.instructor;
+                        const date = log.flight_date_formatted || log.flight_date || log.date;
+                        const aircraft = typeof log.aircraft === 'string' ? log.aircraft : log.aircraft?.name;
+                        const accent = /cancel|ground|reject/i.test(log.status || '')
+                          ? 'border-l-rose-400'
+                          : /airborne|progress|complete|logged|done/i.test(log.status || '')
+                            ? 'border-l-emerald-400'
+                            : 'border-l-blue-400';
+
+                        return (
+                          <article
+                            key={log.id || `${date || 'flight'}-${index}`}
+                            className={`grid grid-cols-1 gap-3 rounded-lg border border-gray-200 border-l-4 ${accent} bg-white p-4 transition-colors hover:bg-gray-50 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center sm:gap-6`}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-semibold text-gray-800">
+                                {safeDisplay(person || flightType || 'Flight')}
+                              </p>
+                              <p className="mt-1 truncate text-xs font-medium uppercase tracking-[0.12em] text-gray-500">
+                                {safeDisplay(flightType)}
+                                {aircraft ? ` · ${aircraft}` : ''}
+                                {person ? ` · ${isInstructorProfile ? 'Student' : 'Instructor'}` : ''}
+                              </p>
+                            </div>
+                            <div className="text-sm font-medium text-blue-700 sm:text-right">
+                              <span>{safeDisplay(date)}</span>
+                              <span className="px-2 text-gray-400">·</span>
+                              <span>{safeDisplay(log.flight_time)}</span>
+                            </div>
+                            <span className="inline-flex w-fit items-center rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">
+                              {safeDisplay(log.status || 'Logged')}
+                            </span>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">No flight logs found</div>
                 )}
