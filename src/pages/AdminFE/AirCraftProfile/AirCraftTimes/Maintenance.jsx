@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { HiDotsVertical } from "react-icons/hi";
-import { FiX, FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiX, FiPlus, FiEdit2, FiTrash2, FiCheckCircle } from "react-icons/fi";
 import { maintenanceService } from "../../../../api/services/maintenanceService";
 import { aircraftService } from "../../../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../../../utils/notifications";
@@ -13,17 +13,21 @@ const getStatusStyle = (status) => {
       return "bg-[#E1FAEA] text-[#016626]";
     case "closed":
       return "bg-[#FFE3E3] text-[#961616]";
+    case "resolved":
+      return "bg-gray-100 text-gray-700";
     default:
       return "bg-gray-100 text-gray-600";
-  }
-};
+   }
+ };
 
 const getStatusDisplay = (status) => {
   const statusMap = {
     'open': 'Open',
     'ongoing': 'Ongoing',
-    'closed': 'Needs Inservice'
+    'closed': 'Needs Inservice',
+    'resolved': 'Resolved'
   };
+
   return statusMap[status] || status;
 };
 
@@ -125,6 +129,63 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
     setOpenMenuId(null);
     setShowModal(true);
   };
+  const handleResolve = async (record, e) => {
+  if (e) e.stopPropagation();
+  setOpenMenuId(null);
+
+  const currentTach = parseFloat(record.current_tach);
+
+  if (isNaN(currentTach)) {
+    showErrorToast('Current tach time is not available');
+    return;
+  }
+
+  try {
+    const response = await maintenanceService.updateMaintenance(record.id, {
+      aircraft_id: aircraftId,
+      template_name: record.template_name,
+      status: 'resolved',
+
+      days_remaining:
+        record.days_remaining !== null &&
+        record.days_remaining !== undefined &&
+        record.days_remaining !== ''
+          ? parseInt(record.days_remaining)
+          : null,
+
+      hours_remaining:
+        record.hours_remaining !== null &&
+        record.hours_remaining !== undefined &&
+        record.hours_remaining !== ''
+          ? parseFloat(record.hours_remaining)
+          : null,
+
+      cycles_remaining:
+        record.cycles_remaining !== null &&
+        record.cycles_remaining !== undefined &&
+        record.cycles_remaining !== ''
+          ? parseInt(record.cycles_remaining)
+          : null,
+
+      reference_no: record.reference_no || null,
+
+      last_resolved: new Date().toISOString().split('T')[0],
+
+      resolved_tach: currentTach,
+    });
+
+    if (response.success) {
+      showSuccessToast('Maintenance record resolved successfully');
+      fetchMaintenance();
+    }
+  } catch (err) {
+    showErrorToast(
+      err.message ||
+      err.response?.data?.message ||
+      'Failed to resolve maintenance record'
+    );
+  }
+};
 
   const handleDelete = async (record, e) => {
     if (e) e.stopPropagation();
@@ -240,7 +301,37 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
     );
   };
 
-  const renderHoursCell = (hours, currentTach) => {
+  const renderHoursCell = (hours, currentTach, status, resolvedTach) => {
+  if (status === 'resolved') {
+    const savedResolvedTach = parseFloat(resolvedTach);
+    const remainingHours = parseFloat(hours);
+
+    const nextDueTach =
+      !isNaN(savedResolvedTach) && !isNaN(remainingHours)
+        ? savedResolvedTach + remainingHours
+        : null;
+
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="inline-block px-2 py-1 rounded text-xs font-medium w-max bg-gray-100 text-gray-700">
+          Resolved
+        </span>
+
+        {!isNaN(savedResolvedTach) && (
+          <span className="text-xs text-gray-500">
+            Resolved at: {savedResolvedTach.toFixed(2)} Tach
+          </span>
+        )}
+
+        {nextDueTach !== null && (
+          <span className="text-xs text-gray-500">
+            Next Due: {nextDueTach.toFixed(2)} Tach
+          </span>
+        )}
+      </div>
+    );
+  }
+
   if (hours === null || hours === undefined || hours === '') return '--';
 
   const remainingHours = parseFloat(hours);
@@ -256,7 +347,9 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
 
   return (
     <div className="flex flex-col gap-1">
-      <span className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(status)}`}>
+      <span
+        className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(status)}`}
+      >
         {remainingHours.toFixed(2)} hours
       </span>
 
@@ -330,7 +423,14 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                   </td>
                   <td className="py-3 px-4">{item.template_name}</td>
                   <td className="py-3 px-4">{renderDaysCell(item.days_remaining)}</td>
-                  <td className="py-3 px-4">{renderHoursCell(item.hours_remaining, item.current_tach)}</td>
+                  <td className="py-3 px-4">
+                    {renderHoursCell(
+                      item.hours_remaining,
+                      item.current_tach,
+                      item.status,
+                      item.resolved_tach
+                   )}
+                  </td>
                   <td className="py-3 px-4">{item.reference_no || '--'}</td>
                   <td className="py-3 px-4">{formatDate(item.last_resolved)}</td>
                   <td className="py-3 px-4 text-center relative">
@@ -343,19 +443,30 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                     {openMenuId === item.id && (
                       <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                         <button
-                          onClick={() => handleEdit(item)}
+                         onClick={() => handleEdit(item)}
                           className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-gray-700 flex items-center gap-2"
                         >
-                          <FiEdit2 size={14} />
-                          Edit
+                         <FiEdit2 size={14} />
+                         Edit
                         </button>
-                        <button
-                          onClick={(e) => handleDelete(item, e)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                        >
+
+                        {item.status !== 'resolved' && (
+                         <button
+                           onClick={(e) => handleResolve(item, e)}
+                           className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-green-600 flex items-center gap-2"
+                         >
+                          <FiCheckCircle size={14} />
+                           Resolve
+                          </button>
+                        )}
+
+                         <button
+                           onClick={(e) => handleDelete(item, e)}
+                           className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                         >
                           <FiTrash2 size={14} />
-                          Delete
-                        </button>
+                           Delete
+                      </button>
                       </div>
                     )}
                   </td>
