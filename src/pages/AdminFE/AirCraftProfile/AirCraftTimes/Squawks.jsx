@@ -126,26 +126,31 @@ const Squawks = ({ aircraftId, searchTerm, sortBy }) => {
   };
 
   const handleResolve = async (squawk, e) => {
-    if (e) e.stopPropagation();
-    setOpenMenuId(null);
-    
-    const confirmed = await showConfirmDialog(
-      'Resolve Squawk',
-      `Are you sure you want to resolve "${squawk.squawk}"?`,
-      'Yes, resolve it'
-    );
-    if (!confirmed) return;
+  if (e) e.stopPropagation();
+  setOpenMenuId(null);
 
-    try {
-      const response = await squawkService.resolveSquawk(squawk.id);
-      if (response.success) {
-        showSuccessToast('Squawk resolved successfully');
-        fetchSquawks();
-      }
-    } catch (err) {
-      showErrorToast(err.message || err.response?.data?.message || 'Failed to resolve squawk');
+  const confirmed = await showConfirmDialog(
+    'Resolve Squawk',
+    `Are you sure you want to resolve "${squawk.squawk}"?`,
+    'Yes, resolve it'
+  );
+  if (!confirmed) return;
+
+  try {
+    const response = await squawkService.resolveSquawk(squawk.id);
+
+    if (response.success) {
+      showSuccessToast('Squawk resolved successfully');
+      fetchSquawks();
     }
-  };
+  } catch (err) {
+    showErrorToast(
+      err.message ||
+      err.response?.data?.message ||
+      'Failed to resolve squawk'
+    );
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
