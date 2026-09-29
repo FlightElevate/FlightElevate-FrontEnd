@@ -304,9 +304,9 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
                   </td>
                   <td className="py-3 px-4">{item.template_name}</td>
                   <td className="py-3 px-4">{renderDaysCell(item.days_remaining)}</td>
-                  <td className="py-3 px-4">{renderHoursCell(item.hours_remaining)}</td>
-                  <td className="py-3 px-4">{item.reference_no || '--'}</td>
                   <td className="py-3 px-4">{renderHoursCell(item.hours_remaining, item.current_tach)}</td>
+                  <td className="py-3 px-4">{item.reference_no || '--'}</td>
+                  <td className="py-3 px-4">{formatDate(item.last_resolved)}</td>
                   <td className="py-3 px-4 text-center relative">
                     <button
                       onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
