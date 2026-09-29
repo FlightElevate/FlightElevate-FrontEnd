@@ -337,7 +337,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
   const remainingHours = parseFloat(hours);
   const tach = parseFloat(currentTach);
 
-  const status = getHoursStatus(remainingHours);
+  const hoursStatus = getHoursStatus(remainingHours);
   const textBelow = remainingHours < 0 ? 'Overdue' : 'Remaining';
 
   const nextDueTach =
@@ -348,7 +348,7 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
   return (
     <div className="flex flex-col gap-1">
       <span
-        className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(status)}`}
+        className={`inline-block px-2 py-1 rounded text-xs font-medium w-max ${getBadgeStyle(hoursStatus)}`}
       >
         {remainingHours.toFixed(2)} hours
       </span>
