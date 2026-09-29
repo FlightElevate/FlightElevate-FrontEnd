@@ -1,4 +1,3 @@
-```jsx
 import React, { memo } from 'react';
 import Pagination from '../Pagination';
 
