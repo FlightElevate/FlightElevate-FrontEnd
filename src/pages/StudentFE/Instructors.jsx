@@ -22,7 +22,6 @@ const Instructors = () => {
   const [submitting, setSubmitting] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [listMenuOpenId, setListMenuOpenId] = useState(null);
-  const [brokenAvatars, setBrokenAvatars] = useState({});
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -87,7 +86,6 @@ const Instructors = () => {
 
   
   const getInstructorImage = (instructor) => {
-    if (brokenAvatars[instructor.id]) return null;
     if (instructor.avatar || instructor.image || instructor.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
     }
@@ -104,7 +102,6 @@ const Instructors = () => {
       if (response.success) {
         const instructorsList = Array.isArray(response.data) ? response.data : [];
         setInstructors(instructorsList);
-        setBrokenAvatars({});
       }
     } catch (err) {
       console.error('Error fetching instructors:', err);
@@ -321,8 +318,6 @@ const Instructors = () => {
                       src={getInstructorImage(instructor)}
                       alt={instructor.name}
                       className="w-full h-[250px] object-cover"
-                      style={{ width: "100%", height: "250px", objectFit: "cover" }}
-                      onError={() => setBrokenAvatars((prev) => ({ ...prev, [instructor.id]: true }))}
                     />
                   ) : (
                     <div className="w-full h-[250px] bg-blue-500 flex items-center justify-center text-white text-4xl font-bold">
@@ -419,8 +414,6 @@ const Instructors = () => {
                                 src={getInstructorImage(instructor)}
                                 alt={instructor.name}
                                 className="w-full h-full object-cover"
-                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                onError={() => setBrokenAvatars((prev) => ({ ...prev, [instructor.id]: true }))}
                               />
                             ) : (
                               <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold">
