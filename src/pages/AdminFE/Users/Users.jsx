@@ -4,7 +4,6 @@ import { MdFilterList } from "react-icons/md";
 import { HiDotsVertical, HiChevronDown } from "react-icons/hi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { userService } from "../../../api/services/userService";
-import { locationService } from "../../../api/services/locationService";
 import { organizationService } from "../../../api/services/organizationService";
 import { useAuth } from "../../../context/AuthContext";
 import Pagination from "../../../components/Pagination";
@@ -26,7 +25,6 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   
   const [users, setUsers] = useState([]);
-  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -86,30 +84,6 @@ const Users = () => {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchLocations = async () => {
-      try {
-        const response = await locationService.getLocations();
-        if (!cancelled && response.success && Array.isArray(response.data)) {
-          setLocations(response.data.filter((location) => location.id != null));
-        }
-      } catch (err) {
-        console.error('Error fetching locations:', err);
-      }
-    };
-    fetchLocations();
-    return () => { cancelled = true; };
-  }, []);
-
-  const getDefaultLocationName = (user) => {
-    const directName = user.default_location?.name || user.default_location_name || user.defaultLocation?.name;
-    if (directName) return directName;
-    const locationId = user.default_location_id ?? user.defaultLocationId;
-    if (locationId == null || locationId === '') return 'N/A';
-    return locations.find((location) => String(location.id) === String(locationId))?.name || 'N/A';
-  };
 
   
   useEffect(() => {
@@ -426,7 +400,7 @@ const Users = () => {
           <>
             <div className="hidden md:block overflow-x-auto insect-shadow-sm shadow-lg rounded-xl mt-4 -mx-4 sm:mx-0 px-4 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
               <div className="inline-block min-w-full align-middle">
-                <table className="w-full text-sm text-left border-b border-gray-200" style={{ minWidth: '760px' }}>
+                <table className="w-full text-sm text-left border-b border-gray-200" style={{ minWidth: '600px' }}>
                   <thead className="bg-[rgb(249,250,251)] text-black font-inter font-medium">
                     <tr className="h-11">
                       <th className="pl-6 whitespace-nowrap">
@@ -440,7 +414,6 @@ const Users = () => {
                       </th>
                       <th className="pl-5 whitespace-nowrap">Name</th>
                       <th className="pl-5 whitespace-nowrap">Email</th>
-                      <th className="pl-5 whitespace-nowrap">Default Location</th>
                       <th className="pl-5 whitespace-nowrap">Joined Date</th>
                       <th className="pl-5 whitespace-nowrap">Status</th>
                       <th className="pr-5 whitespace-nowrap">Action</th>
@@ -452,7 +425,6 @@ const Users = () => {
                         <UserRow
                           key={user.id}
                           user={user}
-                          defaultLocationName={getDefaultLocationName(user)}
                           isSelected={selectedIds.includes(user.id)}
                           isJoinRequest={selected === "Join Requests"}
                           onSelect={() => handleSelectOne(user.id)}
@@ -468,7 +440,7 @@ const Users = () => {
                       ))
                     ) : (
                       <tr className="h-[72px]">
-                        <td colSpan="7" className="text-center text-gray-500 py-6">
+                        <td colSpan="6" className="text-center text-gray-500 py-6">
                           No users found for "{selected}"
                         </td>
                       </tr>
@@ -528,7 +500,6 @@ const Users = () => {
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-gray-800 truncate">{user.name}</h4>
                             <p className="text-sm text-gray-600 truncate mt-1">{user.email}</p>
-                            <p className="text-sm text-gray-500 truncate mt-1">Default Location: {getDefaultLocationName(user)}</p>
                           </div>
                         </div>
                         <div
@@ -641,7 +612,6 @@ const Users = () => {
 
 const UserRow = React.memo(({
   user,
-  defaultLocationName = 'N/A',
   isSelected,
   isJoinRequest,
   onSelect,
@@ -701,9 +671,6 @@ const UserRow = React.memo(({
         <div className="truncate max-w-[250px]" title={user.email}>
           {user.email}
         </div>
-      </td>
-      <td className="p-6 whitespace-nowrap text-gray-600">
-        {defaultLocationName}
       </td>
       <td className="p-6 whitespace-nowrap">
         <div>
