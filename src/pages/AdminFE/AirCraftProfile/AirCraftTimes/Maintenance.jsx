@@ -373,7 +373,6 @@ const Maintenance = ({ aircraftId, searchTerm, sortBy }) => {
     <div className="space-y-4">
       {/* Top Actions */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-800">Maintenance Schedule</h2>
         <div className="flex items-center gap-4">
           <button
             onClick={handleAdd}
