@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { HiDotsVertical } from "react-icons/hi";
 import { FiX, FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { maintenanceService } from "../../../../api/services/maintenanceService";
-import { aircraftService } from "../../../../api/services/aircraftService";
 import { showSuccessToast, showErrorToast, showDeleteConfirm } from "../../../../utils/notifications";
 
 const getStatusStyle = (status) => {
