@@ -29,6 +29,47 @@ const studentsLabel = (students = []) => {
     : `${shortName(students[0].name)} +${students.length - 1}`;
 };
 
+
+// Read the first non-empty value from a list of possible field names ("a.b" paths allowed)
+const pick = (obj, keys) => {
+  for (const k of keys) {
+    const v = k.split('.').reduce((o, part) => (o == null ? o : o[part]), obj);
+    if (v != null && v !== '') return v;
+  }
+  return null;
+};
+
+const tailOf = (f) =>
+  pick(f, ['aircraft.registration', 'aircraft.tail_number', 'aircraft.tail_no', 'aircraft.registration_number',
+           'aircraft.n_number', 'aircraft_registration', 'aircraft_tail_number', 'tail_number', 'registration']);
+const dateOf = (f) => pick(f, ['lesson_date', 'date', 'start_date', 'start_at', 'starts_at', 'scheduled_at', 'checked_in_at']);
+const startOf = (f) => pick(f, ['lesson_time', 'start_time', 'start_at', 'starts_at', 'scheduled_start']);
+const endOf = (f) => pick(f, ['end_time', 'end_at', 'ends_at', 'scheduled_end']);
+
+const fmtTime = (v) => {
+  if (!v) return null;
+  const str = String(v);
+  if (/^\d{1,2}:\d{2}/.test(str)) return str.slice(0, 5);
+  const d = new Date(str);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+};
+
+const timeRange = (f) => {
+  const a = fmtTime(startOf(f));
+  const b = fmtTime(endOf(f));
+  if (!a) return '—';
+  return b ? `${a}–${b}` : a;
+};
+
+const sortKey = (f) => {
+  const d = dateOf(f);
+  if (!d) return 0;
+  const s = startOf(f);
+  const t = s && /^\d{1,2}:\d{2}/.test(String(s)) ? String(s).slice(0, 5) : '00:00';
+  const v = new Date(`${String(d).slice(0, 10)}T${t}`).getTime();
+  return Number.isNaN(v) ? 0 : v;
+};
+
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
 
@@ -51,6 +92,7 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
         ? body
         : body?.data ?? body?.reservations ?? body?.items ?? body?.results ?? [];
       console.log('[FlightLogs] parsed list:', list);
+      console.log('[FlightLogs] first item:', JSON.stringify(list[0], null, 2));
 
       setFlights(list.filter((f) => STATUSES.includes(String(f.status).toLowerCase())));
       setError(null);
@@ -70,11 +112,7 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
 
   const sorted = useMemo(
     () =>
-      [...flights].sort(
-        (a, b) =>
-          new Date(`${b.lesson_date?.slice(0, 10)}T${b.lesson_time || '00:00'}`) -
-          new Date(`${a.lesson_date?.slice(0, 10)}T${a.lesson_time || '00:00'}`)
-      ),
+      [...flights].sort((a, b) => sortKey(b) - sortKey(a)),
     [flights]
   );
 
@@ -141,7 +179,7 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
                 {/* Tail + aircraft */}
                 <div className="w-28 sm:w-40 flex-shrink-0">
                   <div className={`${MONO} text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
-                    {f.aircraft?.registration ?? '—'}
+                    {tailOf(f) ?? '—'}
                   </div>
                   <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400 truncate`}>
                     {aircraftSub || f.aircraft?.name || 'No aircraft'}
@@ -161,10 +199,10 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
                 {/* Time */}
                 <div className="hidden sm:block text-right flex-shrink-0">
                   <div className={`${MONO} text-[17px] text-sky-600 tracking-[0.04em] mb-1.5`}>
-                    {f.lesson_time ? `${f.lesson_time}–${f.end_time}` : '—'}
+                    {timeRange(f)}
                   </div>
                   <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400`}>
-                    {fmtDate(f.lesson_date)}
+                    {fmtDate(dateOf(f))}
                   </div>
                 </div>
 
