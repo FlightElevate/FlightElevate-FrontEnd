@@ -2,16 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { lessonService } from "../../api/services/lessonService";
+import { logbookService } from "../../api/services/logbookService";
 
 const PER_PAGE = 500;
 const MAX_PAGES = 1000;
-const HOUR_FIELDS = [
-  "flight_dual_hours",
-  "flight_solo_hours",
-  "flight_cross_country_dual_hours",
-  "flight_cross_country_solo_hours",
-];
-const ADDITIONAL_FLIGHT_FIELDS = ["flight_instrument_hours", "flight_atd_hours", "flight_night_hours"];
+const SINGLE_ENGINE_FIELDS = ["asel_hours", "ases_hours"];
+const MULTI_ENGINE_FIELDS = ["amel_hours", "ames_hours"];
 
 const toHours = (value) => {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
@@ -34,30 +30,24 @@ const getPagination = (response) => {
   return response?.pagination || response?.meta || data?.pagination || data?.meta || {};
 };
 
-const fetchAllStudentLessons = async (studentId) => {
-  const lessons = [];
+const fetchAllPages = async (fetchPage) => {
+  const records = [];
   const seenPages = new Set();
   let page = 1;
 
   while (page <= MAX_PAGES) {
-    const response = await lessonService.getUserLessons(studentId, {
-      type: "student",
-      page,
-      per_page: PER_PAGE,
-    });
+    const response = await fetchPage(page);
     if (response?.success === false) {
-      throw new Error(response.message || "Could not load student lessons.");
+      throw new Error(response.message || "Could not load student records.");
     }
 
-    const pageLessons = getLessons(response);
-    if (!pageLessons.length) break;
+    const pageRecords = getLessons(response);
+    if (!pageRecords.length) break;
 
-    const signature = pageLessons
-      .map((lesson) => lesson?.id ?? `${lesson?.lesson_date}-${lesson?.full_date}-${lesson?.student_id}`)
-      .join("|");
+    const signature = pageRecords.map((record) => record?.id ?? `${record?.flight_date}-${record?.lesson_date}`).join("|");
     if (seenPages.has(signature)) break;
     seenPages.add(signature);
-    lessons.push(...pageLessons);
+    records.push(...pageRecords);
 
     const pagination = getPagination(response);
     const currentPage = Number(pagination.current_page ?? pagination.page ?? page);
@@ -67,14 +57,14 @@ const fetchAllStudentLessons = async (studentId) => {
     if (Number.isFinite(lastPage) && lastPage > 0) {
       if (currentPage >= lastPage) break;
     } else if (Number.isFinite(total) && total >= 0) {
-      if (lessons.length >= total) break;
-    } else if (pageLessons.length < PER_PAGE) {
+      if (records.length >= total) break;
+    } else if (pageRecords.length < PER_PAGE) {
       break;
     }
     page += 1;
   }
 
-  return lessons;
+  return records;
 };
 
 const roundHours = (hours) => Math.round(hours * 10) / 10;
@@ -102,20 +92,30 @@ const StudentSummaryCards = () => {
 
       setLoading(true);
       try {
-        const lessons = await fetchAllStudentLessons(studentId);
-        const totals = lessons.reduce((result, lesson) => {
-          const engineHours = HOUR_FIELDS.reduce((sum, field) => sum + toHours(lesson?.[field]), 0);
-          const extraFlightHours = ADDITIONAL_FLIGHT_FIELDS.reduce((sum, field) => sum + toHours(lesson?.[field]), 0);
-          const flightHours = engineHours + extraFlightHours;
-          const groundHours = toHours(lesson?.ground_hours);
-          const category = `${lesson?.aircraft_category || ""} ${lesson?.flight_type || ""}`.toLowerCase();
+        const [logbooks, lessons] = await Promise.all([
+          fetchAllPages((page) => logbookService.getUserEntries(studentId, { page, per_page: PER_PAGE })),
+          fetchAllPages((page) => lessonService.getUserLessons(studentId, { type: "student", page, per_page: PER_PAGE })),
+        ]);
 
-          result.totalFlightHours += flightHours;
-          result.totalGroundHours += groundHours;
-          if (category.includes("multi")) result.multiEngineHours += engineHours;
-          else result.singleEngineHours += engineHours;
+        const totals = logbooks.reduce((result, entry) => {
+          const totalHours = toHours(entry?.total_hours);
+          const singleCategoryHours = SINGLE_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+          const multiCategoryHours = MULTI_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+          const className = `${entry?.aircraft_class || ""} ${entry?.aircraft_category || ""}`.toLowerCase();
+
+          result.totalFlightHours += totalHours;
+          if (singleCategoryHours || multiCategoryHours) {
+            result.singleEngineHours += singleCategoryHours;
+            result.multiEngineHours += multiCategoryHours;
+          } else if (className.includes("multi") || className.includes("amel") || className.includes("ames")) {
+            result.multiEngineHours += totalHours;
+          } else if (className.includes("single") || className.includes("asel") || className.includes("ases")) {
+            result.singleEngineHours += totalHours;
+          }
           return result;
         }, { totalFlightHours: 0, totalGroundHours: 0, singleEngineHours: 0, multiEngineHours: 0 });
+
+        totals.totalGroundHours = lessons.reduce((sum, lesson) => sum + toHours(lesson?.ground_hours), 0);
 
         if (active) {
           setStats({
@@ -156,7 +156,7 @@ const StudentSummaryCards = () => {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <Link key={card.label} to={card.to} aria-label={`View ${card.label.toLowerCase()} details`} className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2">
-          <article className="h-full rounded-xl border border-[#E2EAF5] bg-[#F7FAFF] px-5 py-4 transition-colors group-hover:border-[#C8D8EC]">
+          <article className="h-full rounded-xl border border-[#E8E7E3] bg-[#F7F7F5] px-5 py-4 transition-colors group-hover:border-[#D6D4CE]">
             <p className="font-heading text-sm font-medium text-gray-600">{card.label}</p>
             <p className="font-num mt-4 text-3xl font-semibold leading-none tracking-tight text-gray-950">
               {loading ? <span className="inline-block h-8 w-16 animate-pulse rounded bg-gray-100" /> : card.value}
