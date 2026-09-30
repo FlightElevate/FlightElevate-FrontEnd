@@ -156,7 +156,7 @@ const StudentSummaryCards = () => {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <Link key={card.label} to={card.to} aria-label={`View ${card.label.toLowerCase()} details`} className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2">
-          <article className="h-full rounded-xl border border-[#DCE7F5] bg-[#F2F6FC] px-5 py-4 transition-colors group-hover:border-[#C5D7EF]">
+          <article className="h-full rounded-xl border border-gray-200 bg-white px-5 py-4 transition-colors group-hover:border-gray-300">
             <p className="font-heading text-sm font-medium text-gray-600">{card.label}</p>
             <p className="font-num mt-4 text-3xl font-semibold leading-none tracking-tight text-gray-950">
               {loading ? <span className="inline-block h-8 w-16 animate-pulse rounded bg-gray-100" /> : card.value}
