@@ -163,7 +163,7 @@ const FSession = () => {
 
   if (loading) {
     return (
-      <div className="bg-white shadow-sm rounded-xl p-4 sm:p-6 border border-gray-100">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
           <div className="h-64 bg-gray-100 rounded"></div>
@@ -173,85 +173,71 @@ const FSession = () => {
   }
 
   return (
-    <div className="bg-white shadow-sm rounded-xl p-4 sm:p-6 border border-gray-100">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Flight Session Summary
-        </h2>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          <select 
+    <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
+      <div className="mb-5 flex items-center gap-4 overflow-x-auto whitespace-nowrap pb-1">
+        <div className="shrink-0">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">Logbook analytics</p>
+          <h2 className="font-heading mt-1 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">Flight session summary</h2>
+        </div>
+
+        <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
+          <div className="flex shrink-0 flex-col items-start gap-0.5">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Single engine</span>
+            <span className="font-num text-xl font-semibold leading-none tracking-tight text-gray-900 sm:text-2xl">
+              {summary.totalSingle.toLocaleString()}<span className="ml-1 text-xs font-medium text-gray-500">hrs</span>
+            </span>
+          </div>
+          <div className="h-9 w-px bg-gray-200" aria-hidden="true" />
+          <div className="flex shrink-0 flex-col items-start gap-0.5">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Multi engine</span>
+            <span className="font-num text-xl font-semibold leading-none tracking-tight text-gray-900 sm:text-2xl">
+              {summary.totalMulti.toLocaleString()}<span className="ml-1 text-xs font-medium text-gray-500">hrs</span>
+            </span>
+          </div>
+        </div>
+
+        <label className="relative flex shrink-0 items-center" aria-label="Choose chart time period">
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute left-2.5 h-4 w-4 text-gray-500">
+            <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            <circle cx="7" cy="5" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+            <circle cx="12.5" cy="10" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+            <circle cx="9" cy="15" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+          <select
             value={timePeriod}
             onChange={(e) => setTimePeriod(e.target.value)}
-            className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+            className="min-h-10 appearance-none rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-8 text-xs font-medium text-gray-700 outline-none transition hover:bg-gray-50 focus:ring-2 focus:ring-slate-300 sm:text-sm"
           >
             <option value="Daily">Daily</option>
             <option value="Weekly">Weekly</option>
             <option value="Monthly">Monthly</option>
           </select>
-        </div>
+          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute right-2.5 h-4 w-4 text-gray-400">
+            <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </label>
       </div>
 
-      {}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10 mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
-            <p className="text-sm text-gray-500 m-0 leading-none">Single Engine</p>
-          </div>
-          <h3 className="text-2xl font-semibold text-gray-900">
-            {summary.totalSingle.toLocaleString()}{" "}
-            <span className="text-sm text-green-600 font-normal">Hours</span>
-          </h3>
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-3 h-3 rounded-full bg-[#3B82F6]"></div>
-            <p className="text-sm text-gray-500 m-0 leading-none">Multi Engine</p>
-          </div>
-          <h3 className="text-2xl font-semibold text-gray-900">
-            {summary.totalMulti.toLocaleString()}{" "}
-            <span className="text-sm text-green-600 font-normal">Hours</span>
-          </h3>
-        </div>
-      </div>
-
-      {}
-      <div className="w-full" style={{ height: '320px', minWidth: '300px', minHeight: '320px' }}>
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={processedData} barGap={3}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="month"
-              tick={{ fill: "#6B7280", fontSize: 12 }}
-              axisLine={false}
+      <div className="h-72 w-full sm:h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={processedData} barGap={3} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="4 4" stroke="#E5E7EB" vertical={false} />
+            <XAxis dataKey="month" tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} width={42} />
+            <Tooltip
+              cursor={{ fill: "#F9FAFB" }}
+              contentStyle={{ border: "1px solid #E5E7EB", borderRadius: 12, boxShadow: "0 8px 24px rgba(15,23,42,.08)" }}
+              formatter={(value, name) => [`${Number(value || 0).toLocaleString()} hrs`, name]}
             />
-            <YAxis
-              tick={{ fill: "#6B7280", fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} />
-
-            {/* Bars */}
-            <Bar
-              dataKey="single"
-              name="Single Engine"
-              fill="#10B981"
-              shape={<CustomBarShape />}
-            />
-
-            {/* Bars */}
-            <Bar
-              dataKey="multi"
-              name="Multi Engine"
-              fill="#3B82F6"
-              shape={<CustomBarShape />}
-            />
+            <Bar dataKey="single" name="Single engine" fill="#10B981" shape={<CustomBarShape />} radius={[5, 5, 0, 0]} maxBarSize={32} />
+            <Bar dataKey="multi" name="Multi engine" fill="#3B82F6" shape={<CustomBarShape />} radius={[5, 5, 0, 0]} maxBarSize={32} />
+            <Legend wrapperStyle={{ paddingTop: 6, fontSize: 12 }} />
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </section>
   );
 };
 
 export default FSession;
+
