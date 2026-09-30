@@ -254,7 +254,6 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
               const routeVia = routeViaOf(f);
               const routeTo = routeToOf(f);
               const location = locationOf(f);
-              const showRoute = statusOf(f) === 'completed' && (routeFrom || routeTo);
               const isCompleted = statusOf(f) === 'completed';
               const fromLocation = isCompleted && routeFrom ? routeFrom : location;
               const showRoute = isCompleted && Boolean(routeFrom || routeVia || routeTo);
@@ -288,7 +287,6 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
                       {detail || f.title || '—'}
                     </div>
-                    {location && (
                     {showRoute && (
                       <div className={`${MONO} mt-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] uppercase tracking-[0.08em] text-slate-600`}>
                         <span className="font-bold text-slate-800">{fromLocation || '—'}</span>
@@ -300,16 +298,6 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                       <div className={`${MONO} mt-2 flex min-w-0 items-center gap-1.5 text-[10px] uppercase tracking-[0.08em] text-slate-500`}>
                         <FiMapPin size={12} className="shrink-0 text-slate-400" aria-hidden="true" />
                         <span className="truncate font-semibold text-slate-700">{location}</span>
-                      </div>
-                    )}
-                    {showRoute && (
-                      <div className={`${MONO} mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.08em] text-slate-500`}>
-                        <span className="text-slate-400">From</span>
-                        <span className="font-semibold text-slate-700">{routeFrom || '—'}</span>
-                        {routeVia && <><span className="text-slate-400">via</span><span className="font-semibold text-slate-700">{routeVia}</span></>}
-                        <span aria-hidden="true" className="text-slate-300">→</span>
-                        <span className="text-slate-400">To</span>
-                        <span className="font-semibold text-slate-700">{routeTo || '—'}</span>
                       </div>
                     )}
                   </div>
