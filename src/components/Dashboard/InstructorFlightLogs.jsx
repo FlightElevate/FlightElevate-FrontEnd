@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reservationService } from '../../api/services/reservationService';
+import { useAuth } from '../../context/AuthContext';
 
 // Add once in index.html:
 // <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -16,6 +17,8 @@ const STATUS_STYLES = {
 
 const FILTERS = [{ id: 'all', label: 'All' }, ...STATUSES.map((s) => ({ id: s, label: s[0].toUpperCase() + s.slice(1) }))];
 
+const statusOf = (f) => String(f.status).toLowerCase();
+
 const shortName = (name) => {
   if (!name) return '—';
   const parts = name.trim().split(/\s+/);
@@ -28,7 +31,6 @@ const studentsLabel = (students = []) => {
     ? shortName(students[0].name)
     : `${shortName(students[0].name)} +${students.length - 1}`;
 };
-
 
 // Read the first non-empty value from a list of possible field names ("a.b" paths allowed)
 const pick = (obj, keys) => {
@@ -73,49 +75,56 @@ const sortKey = (f) => {
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
 
-const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) => {
+const InstructorFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', station }) => {
   const navigate = useNavigate();
-  const [flights, setFlights] = useState([]);
+  const { user } = useAuth();
+  const uid = user?.id;
+
+  const [flights, setFlights] = useState([]);       // rows from the list endpoint (already scoped to this instructor)
+  const [details, setDetails] = useState({});       // id -> detail payload (tail number, slot time...)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
-  const detailCache = useRef({});
+  const [visibleCount, setVisibleCount] = useState(batchSize);
 
-  // The list endpoint returns a trimmed reservation (no tail number / slot time),
-  // so fill the gaps from the detail endpoint, which we know has them. Cached per id.
-  const enrich = useCallback(async (list) => {
-    const missing = list
-      .filter((f) => (!tailOf(f) || !startOf(f)) && !detailCache.current[f.id])
-      .slice(0, 25);
-    await Promise.all(
-      missing.map(async (f) => {
-        try {
-          const r = await reservationService.getReservationDetail(f.id);
-          detailCache.current[f.id] = r?.data?.data ?? r?.data ?? r;
-        } catch (e) {
-          console.error('[FlightLogs] detail failed for', f.id, e);
-        }
-      })
-    );
-    return list.map((f) => (detailCache.current[f.id] ? { ...f, ...detailCache.current[f.id] } : f));
-  }, []);
+  const requested = useRef(new Set());              // ids whose detail we already asked for
+  const scrollRef = useRef(null);
+
+  // True when the logged-in user is one of the assigned instructors on this reservation
+  const hasMe = useCallback((f) => {
+    const ins = f.instructors;
+    if (uid == null || !Array.isArray(ins)) return false;
+    return ins.some((i) => [i.id, i.user_id, i.instructor_id].some((v) => v != null && String(v) === String(uid)));
+  }, [uid]);
+
+  // Rows with no instructor info at all are kept rather than hiding everything by mistake
+  const isMine = useCallback((f) => {
+    if (uid == null || !Array.isArray(f.instructors) || f.instructors.length === 0) return true;
+    return hasMe(f);
+  }, [uid, hasMe]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      // No status param: fetch everything, filter on the client
       const res = await reservationService.getReservations({ limit });
-      console.log('[FlightLogs] raw response:', res);
-
       const body = res?.data?.data ?? res?.data ?? res;
       const list = Array.isArray(body)
         ? body
         : body?.data ?? body?.reservations ?? body?.items ?? body?.results ?? [];
-      console.log('[FlightLogs] parsed list:', list);
-      console.log('[FlightLogs] first item:', JSON.stringify(list[0], null, 2));
 
-      const wanted = list.filter((f) => STATUSES.includes(String(f.status).toLowerCase()));
-      setFlights(await enrich(wanted));
+      const wanted = list.filter((f) => STATUSES.includes(statusOf(f)));
+
+      // This instructor's own flights, plus any flight of a student he has flown with
+      const myStudentIds = new Set();
+      wanted.filter(hasMe).forEach((f) => (f.students || []).forEach((st) => myStudentIds.add(String(st.id))));
+      const mine = wanted.filter(
+        (f) => isMine(f) || (f.students || []).some((st) => myStudentIds.has(String(st.id)))
+      );
+      if (wanted.length && !mine.length) {
+        console.warn('[FlightLogs] no rows matched user id', uid);
+      }
+
+      setFlights(mine);
       setError(null);
     } catch (err) {
       console.error('[FlightLogs] load failed:', err);
@@ -123,7 +132,7 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [limit, enrich]);
+  }, [limit, hasMe, isMine, uid]);
 
   useEffect(() => {
     load();
@@ -131,23 +140,63 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
     return () => clearInterval(t);
   }, [load]);
 
-  const sorted = useMemo(
-    () =>
-      [...flights].sort((a, b) => sortKey(b) - sortKey(a)),
-    [flights]
+  // List rows + any detail we've fetched so far
+  const merged = useMemo(
+    () => flights.map((f) => (details[f.id] ? { ...f, ...details[f.id] } : f)),
+    [flights, details]
   );
+
+  const sorted = useMemo(() => [...merged].sort((a, b) => sortKey(b) - sortKey(a)), [merged]);
 
   const counts = useMemo(
-    () => STATUSES.reduce((acc, s) => ({ ...acc, [s]: flights.filter((f) => String(f.status).toLowerCase() === s).length }), {}),
-    [flights]
+    () => STATUSES.reduce((acc, s) => ({ ...acc, [s]: merged.filter((f) => statusOf(f) === s).length }), {}),
+    [merged]
   );
 
-  const rows = filter === 'all' ? sorted : sorted.filter((f) => String(f.status).toLowerCase() === filter);
+  const rows = filter === 'all' ? sorted : sorted.filter((f) => statusOf(f) === filter);
+  const visibleRows = rows.slice(0, visibleCount);
+
+  // The list endpoint returns a trimmed reservation (no tail number / slot time), so fetch the
+  // detail only for rows currently on screen. Cached per id, so scrolling never repeats a call.
+  useEffect(() => {
+    const missing = visibleRows.filter((f) => (!tailOf(f) || !startOf(f)) && !requested.current.has(f.id));
+    if (!missing.length) return;
+    missing.forEach((f) => requested.current.add(f.id));
+    let cancelled = false;
+    (async () => {
+      const got = {};
+      await Promise.all(
+        missing.map(async (f) => {
+          try {
+            const r = await reservationService.getReservationDetail(f.id);
+            got[f.id] = r?.data?.data ?? r?.data ?? r;
+          } catch (e) {
+            console.error('[FlightLogs] detail failed for', f.id, e);
+          }
+        })
+      );
+      if (!cancelled && Object.keys(got).length) setDetails((prev) => ({ ...prev, ...got }));
+    })();
+    return () => { cancelled = true; };
+  }, [visibleRows]);
+
+  const onScroll = (e) => {
+    const el = e.currentTarget;
+    if (visibleCount < rows.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 200) {
+      setVisibleCount((c) => c + batchSize);
+    }
+  };
+
+  const changeFilter = (id) => {
+    setFilter(id);
+    setVisibleCount(batchSize);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  };
 
   return (
     <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/70">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-200 bg-slate-50/70">
         <h2 className={`${MONO} text-xs tracking-[0.3em] uppercase text-slate-500`}>
           {title}{station ? ` · ${station}` : ''}
         </h2>
@@ -157,13 +206,13 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
       </div>
 
       {/* Filter chips */}
-      <div className="flex gap-2 px-6 pt-4 overflow-x-auto">
+      <div className="flex flex-wrap gap-2 px-4 sm:px-6 pt-4">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             type="button"
-            onClick={() => setFilter(f.id)}
-            className={`${MONO} px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.1em] border whitespace-nowrap transition-colors ${
+            onClick={() => changeFilter(f.id)}
+            className={`${MONO} px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.06em] sm:tracking-[0.1em] border whitespace-nowrap transition-colors ${
               filter === f.id
                 ? 'bg-slate-800 text-white border-slate-800'
                 : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
@@ -174,8 +223,8 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
         ))}
       </div>
 
-      {/* Rows */}
-      <div className="p-4 sm:p-6 space-y-3 max-h-[600px] overflow-y-auto">
+      {/* Rows (scrolls; loads more as you reach the bottom) */}
+      <div ref={scrollRef} onScroll={onScroll} className="p-3 sm:p-6 space-y-3 max-h-[70vh] md:max-h-[600px] overflow-y-auto">
         {loading ? (
           <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>Loading flight logs…</p>
         ) : error ? (
@@ -183,62 +232,70 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
         ) : rows.length === 0 ? (
           <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>No flight logs found</p>
         ) : (
-          rows.map((f) => {
-            const st = STATUS_STYLES[String(f.status).toLowerCase()];
-            const aircraftSub = [f.aircraft?.model, f.aircraft?.engine_type].filter(Boolean).join(' · ');
-            const detail = [f.flight_type, f.instructors?.[0]?.name && `CFI ${f.instructors[0].name.split(' ').pop()}`]
-              .filter(Boolean).join(' · ');
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => navigate(`/reservations/${f.id}${String(f.status).toLowerCase() === 'completed' ? '?tab=checkin' : ''}`)}
-                className="relative w-full flex items-center gap-4 sm:gap-6 text-left bg-white border border-slate-200 rounded-2xl pl-6 pr-4 py-4 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
-              >
-                <span className={`absolute left-0 top-0 bottom-0 w-1.5 ${st.accent}`} />
+          <>
+            {visibleRows.map((f) => {
+              const st = STATUS_STYLES[statusOf(f)];
+              const aircraftSub = [f.aircraft?.model, f.aircraft?.engine_type].filter(Boolean).join(' · ');
+              const detail = [f.flight_type, f.instructors?.[0]?.name && `CFI ${f.instructors[0].name.split(' ').pop()}`]
+                .filter(Boolean).join(' · ');
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => navigate(`/reservations/${f.id}${statusOf(f) === 'completed' ? '?tab=checkin' : ''}`)}
+                  className="relative w-full text-left bg-white border border-slate-200 rounded-2xl pl-5 sm:pl-6 pr-4 py-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3 md:flex md:items-center md:gap-6 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
+                >
+                  <span className={`absolute left-0 top-0 bottom-0 w-1.5 ${st.accent}`} />
 
-                {/* Tail + aircraft */}
-                <div className="w-28 sm:w-40 flex-shrink-0">
-                  <div className={`${MONO} text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
-                    {tailOf(f) ?? '—'}
+                  {/* Tail + aircraft (phone: top-left) */}
+                  <div className="col-start-1 row-start-1 min-w-0 md:w-40 md:flex-shrink-0">
+                    <div className={`${MONO} text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
+                      {tailOf(f) ?? '—'}
+                    </div>
+                    <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
+                      {aircraftSub || f.aircraft?.name || 'No aircraft'}
+                    </div>
                   </div>
-                  <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400 truncate`}>
-                    {aircraftSub || f.aircraft?.name || 'No aircraft'}
-                  </div>
-                </div>
 
-                {/* Student + flight type */}
-                <div className="flex-1 min-w-0">
-                  <div className="text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
-                    {studentsLabel(f.students)}
+                  {/* Name + flight type (phone: bottom-left) */}
+                  <div className="col-start-1 row-start-2 min-w-0 md:flex-1">
+                    <div className="text-lg md:text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
+                      {studentsLabel(f.students)}
+                    </div>
+                    <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
+                      {detail || f.title || '—'}
+                    </div>
                   </div>
-                  <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400 truncate`}>
-                    {detail || f.title || '—'}
-                  </div>
-                </div>
 
-                {/* Time */}
-                <div className="hidden sm:block text-right flex-shrink-0">
-                  <div className={`${MONO} text-[17px] text-sky-600 tracking-[0.04em] mb-1.5`}>
-                    {timeRange(f)}
+                  {/* Time (phone: bottom-right) */}
+                  <div className="col-start-2 row-start-2 text-right md:flex-shrink-0">
+                    <div className={`${MONO} text-[15px] md:text-[17px] text-sky-600 tracking-[0.02em] md:tracking-[0.04em] mb-1.5 whitespace-nowrap`}>
+                      {timeRange(f)}
+                    </div>
+                    <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400`}>
+                      {fmtDate(dateOf(f))}
+                    </div>
                   </div>
-                  <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400`}>
-                    {fmtDate(dateOf(f))}
-                  </div>
-                </div>
 
-                {/* Status */}
-                <span className={`${MONO} flex-shrink-0 w-28 text-center px-3 py-2 rounded-lg border text-xs font-bold tracking-[0.14em] ${st.pill}`}>
-                  {st.label}
-                </span>
-              </button>
-            );
-          })
+                  {/* Status (phone: top-right) */}
+                  <span className={`${MONO} col-start-2 row-start-1 justify-self-end md:flex-shrink-0 md:w-28 text-center px-3 py-1.5 md:py-2 rounded-lg border text-[11px] md:text-xs font-bold tracking-[0.1em] md:tracking-[0.14em] ${st.pill}`}>
+                    {st.label}
+                  </span>
+                </button>
+              );
+            })}
+
+            {visibleCount < rows.length && (
+              <p className={`${MONO} py-3 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>
+                Scroll for more…
+              </p>
+            )}
+          </>
         )}
       </div>
 
       {/* Footer */}
-      <div className={`${MONO} flex flex-wrap items-center justify-between gap-2 px-6 py-4 border-t border-slate-200 bg-slate-50/70 text-xs tracking-[0.12em] text-slate-500`}>
+      <div className={`${MONO} flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-4 border-t border-slate-200 bg-slate-50/70 text-[11px] sm:text-xs tracking-[0.08em] sm:tracking-[0.12em] text-slate-500`}>
         <span>
           <span className="text-emerald-600 font-semibold">{counts.completed ?? 0} completed</span>
           {' · '}
@@ -246,10 +303,13 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
           {' · '}
           <span className="text-sky-600 font-semibold">{counts.pending ?? 0} pending</span>
         </span>
-        <span>Auto-refresh 30 s</span>
+        <span>
+          {rows.length > 0 ? `Showing ${Math.min(visibleCount, rows.length)} of ${rows.length} · ` : ''}Auto-refresh 30 s
+        </span>
       </div>
     </div>
   );
 };
 
 export default InstructorFlightLogs;
+
