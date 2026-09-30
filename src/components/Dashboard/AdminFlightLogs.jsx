@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiMapPin } from 'react-icons/fi';
 import { reservationService } from '../../api/services/reservationService';
 
 // Add once in index.html:
@@ -267,12 +268,14 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                   type="button"
                   onClick={() => navigate(`/reservations/${f.id}${statusOf(f) === 'completed' ? '?tab=checkin' : ''}`)}
                   className="relative w-full text-left bg-white border border-slate-200 rounded-2xl pl-5 sm:pl-6 pr-4 py-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3 md:flex md:items-center md:gap-6 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
+                  className="relative w-full min-w-0 text-left bg-white border border-slate-200 rounded-2xl pl-4 sm:pl-6 pr-3 sm:pr-4 py-3 sm:py-4 grid grid-cols-[minmax(0,1fr)_108px] items-start gap-x-2 sm:gap-x-3 gap-y-3 md:flex md:items-center md:gap-6 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
                 >
                   <span className={`absolute left-0 top-0 bottom-0 w-1.5 ${st.accent}`} />
 
                   {/* Tail + aircraft (phone: top-left) */}
                   <div className="col-start-1 row-start-1 min-w-0 md:w-40 md:flex-shrink-0">
                     <div className={`${MONO} text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
+                    <div className={`${MONO} text-base sm:text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
                       {tailOf(f) ?? '—'}
                     </div>
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
@@ -283,15 +286,16 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                   {/* Name + flight type (phone: bottom-left) */}
                   <div className="col-start-1 row-start-2 min-w-0 md:flex-1">
                     <div className="text-lg md:text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
+                    <div className="text-base sm:text-lg md:text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
                       {studentsLabel(f.students)}
                     </div>
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
                       {detail || f.title || '—'}
                     </div>
                     {showLocation && (
-                      <div className={`${MONO} mt-2 text-[10px] uppercase tracking-[0.08em] text-slate-500 truncate`}>
-                        <span className="text-slate-400">Operating from </span>
-                        <span className="font-semibold text-slate-700">{location}</span>
+                      <div className={`${MONO} mt-2 flex min-w-0 items-center gap-1.5 text-[10px] uppercase tracking-[0.08em] text-slate-500`}>
+                        <FiMapPin size={12} className="shrink-0 text-slate-400" aria-hidden="true" />
+                        <span className="truncate font-semibold text-slate-700">{location}</span>
                       </div>
                     )}
                     {showRoute && (
@@ -309,6 +313,7 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                   {/* Time (phone: bottom-right) */}
                   <div className="col-start-2 row-start-2 text-right md:flex-shrink-0">
                     <div className={`${MONO} text-[15px] md:text-[17px] text-sky-600 tracking-[0.02em] md:tracking-[0.04em] mb-1.5 whitespace-nowrap`}>
+                    <div className={`${MONO} text-[13px] sm:text-[15px] md:text-[17px] text-sky-600 tracking-[0.02em] md:tracking-[0.04em] mb-1.5 whitespace-nowrap`}>
                       {timeRange(f)}
                     </div>
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400`}>
@@ -318,6 +323,7 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
 
                   {/* Status (phone: top-right) */}
                   <div className="col-start-2 row-start-1 justify-self-end flex flex-col gap-1 md:flex-shrink-0 md:w-28">
+                  <div className="col-start-2 row-start-1 justify-self-end flex w-[108px] flex-col gap-1 md:flex-shrink-0 md:w-28">
                     <span className={`${MONO} text-center px-2 py-1.5 md:py-2 rounded-lg border text-[10px] md:text-[11px] font-bold tracking-[0.08em] ${st.pill}`}>
                       {st.label}
                     </span>
