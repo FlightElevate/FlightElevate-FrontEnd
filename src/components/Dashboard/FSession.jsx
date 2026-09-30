@@ -39,7 +39,8 @@ const CustomBarShape = (props) => {
 };
 
 const FSession = () => {
-  const [timePeriod, setTimePeriod] = useState("Monthly");
+  const [timePeriod, setTimePeriod] = useState("30d");
+  const [rangeMenuOpen, setRangeMenuOpen] = useState(false);
   const [logbookData, setLogbookData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,73 +83,59 @@ const FSession = () => {
     return classLower.includes('amel') || classLower.includes('ames');
   };
 
-  // Process data based on time period
+  // Build buckets for the selected window, keeping the organization-wide logbook data.
   const processedData = useMemo(() => {
     const dataMap = {};
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-    // Generate last 7 periods
-    for (let i = 6; i >= 0; i--) {
-      let d = new Date(today);
-      let periodKey = '';
-      let periodLabel = '';
-
-      if (timePeriod === "Daily") {
-        d.setDate(d.getDate() - i);
-        periodKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        periodLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      } else if (timePeriod === "Weekly") {
-        d.setDate(d.getDate() - (i * 7));
-        d.setDate(d.getDate() - d.getDay());
-        periodKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        periodLabel = `Week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      } else { // Monthly
-        d.setMonth(d.getMonth() - i);
-        d.setDate(1);
-        periodKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        periodLabel = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    if (timePeriod === "24h") {
+      const start = new Date(now);
+      start.setMinutes(0, 0, 0);
+      start.setHours(start.getHours() - 23);
+      for (let i = 0; i < 24; i += 1) {
+        const date = new Date(start);
+        date.setHours(start.getHours() + i);
+        const key = `${dateKey(date)}-${String(date.getHours()).padStart(2, '0')}`;
+        dataMap[key] = { key, month: date.toLocaleTimeString('en-US', { hour: 'numeric' }), single: 0, multi: 0 };
       }
-
-      dataMap[periodKey] = {
-        key: periodKey,
-        month: periodLabel,
-        single: 0,
-        multi: 0
-      };
+    } else if (timePeriod === "30d") {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      start.setDate(start.getDate() - 29);
+      for (let i = 0; i < 30; i += 1) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + i);
+        const key = dateKey(date);
+        dataMap[key] = { key, month: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), single: 0, multi: 0 };
+      }
+    } else {
+      const count = timePeriod === "6m" ? 6 : 12;
+      const start = new Date(now.getFullYear(), now.getMonth() - count + 1, 1);
+      for (let i = 0; i < count; i += 1) {
+        const date = new Date(start.getFullYear(), start.getMonth() + i, 1);
+        const key = monthKey(date);
+        dataMap[key] = { key, month: date.toLocaleDateString('en-US', { month: 'short', ...(timePeriod === '1y' ? { year: '2-digit' } : {}) }), single: 0, multi: 0 };
+      }
     }
 
-    if (logbookData && Array.isArray(logbookData)) {
-      logbookData.forEach(logbook => {
-        if (!logbook.flight_date || !logbook.total_hours) return;
+    logbookData.forEach((logbook) => {
+      if (!logbook.flight_date) return;
+      const date = new Date(logbook.flight_date);
+      if (Number.isNaN(date.getTime()) || date > now) return;
+      const key = timePeriod === '24h'
+        ? `${dateKey(date)}-${String(date.getHours()).padStart(2, '0')}`
+        : timePeriod === '30d' ? dateKey(date) : monthKey(date);
+      const bucket = dataMap[key];
+      if (!bucket) return;
+      const totalHours = Number.parseFloat(logbook.total_hours) || 0;
+      const aircraftClass = `${logbook.aircraft_class || ''} ${logbook.aircraft_category || ''}`;
+      if (isSingleEngine(aircraftClass)) bucket.single += totalHours;
+      else if (isMultiEngine(aircraftClass)) bucket.multi += totalHours;
+    });
 
-        const date = new Date(logbook.flight_date);
-        const totalHours = parseFloat(logbook.total_hours) || 0;
-        const aircraftClass = logbook.aircraft_class || '';
-
-        let periodKey = '';
-
-        if (timePeriod === "Daily") {
-          periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        } else if (timePeriod === "Weekly") {
-          const weekStart = new Date(date);
-          weekStart.setDate(date.getDate() - date.getDay());
-          periodKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
-        } else { // Monthly
-          periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        }
-
-        if (dataMap[periodKey]) {
-          if (isSingleEngine(aircraftClass)) {
-            dataMap[periodKey].single += totalHours;
-          } else if (isMultiEngine(aircraftClass)) {
-            dataMap[periodKey].multi += totalHours;
-          }
-        }
-      });
-    }
-
-    return Object.values(dataMap).sort((a, b) => new Date(a.key) - new Date(b.key));
+    return Object.values(dataMap);
   }, [logbookData, timePeriod]);
 
   // Calculate summary totals
@@ -174,9 +161,9 @@ const FSession = () => {
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
-      <div className="mb-5 flex items-center gap-4 overflow-x-auto whitespace-nowrap pb-1">
+      <div className="relative z-20 mb-5 flex flex-wrap items-center gap-4 pb-1 sm:flex-nowrap">
         <div className="shrink-0">
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">Logbook analytics</p>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">Organization-wide summary</p>
           <h2 className="font-heading mt-1 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">Flight session summary</h2>
         </div>
 
@@ -196,33 +183,59 @@ const FSession = () => {
           </div>
         </div>
 
-        <label className="relative flex shrink-0 items-center" aria-label="Choose chart time period">
-          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute left-2.5 h-4 w-4 text-gray-500">
-            <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-            <circle cx="7" cy="5" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
-            <circle cx="12.5" cy="10" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
-            <circle cx="9" cy="15" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-          <select
-            value={timePeriod}
-            onChange={(e) => setTimePeriod(e.target.value)}
-            className="min-h-10 appearance-none rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-8 text-xs font-medium text-gray-700 outline-none transition hover:bg-gray-50 focus:ring-2 focus:ring-slate-300 sm:text-sm"
+        <div className="relative z-30 ml-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => setRangeMenuOpen((open) => !open)}
+            aria-expanded={rangeMenuOpen}
+            aria-haspopup="menu"
+            aria-label={`Filter period: ${{ '24h': '24 hours', '30d': '30 days', '6m': '6 months', '1y': '1 year' }[timePeriod]}`}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
           >
-            <option value="Daily">Daily</option>
-            <option value="Weekly">Weekly</option>
-            <option value="Monthly">Monthly</option>
-          </select>
-          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="pointer-events-none absolute right-2.5 h-4 w-4 text-gray-400">
-            <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </label>
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-gray-500">
+              <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              <circle cx="7" cy="5" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="12.5" cy="10" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="9" cy="15" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span>{{ '24h': '24 hours', '30d': '30 days', '6m': '6 months', '1y': '1 year' }[timePeriod]}</span>
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-gray-400">
+              <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {rangeMenuOpen && (
+            <>
+              <button className="fixed inset-0 z-10 cursor-default" aria-label="Close period menu" onClick={() => setRangeMenuOpen(false)} />
+              <div className="absolute right-0 z-40 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-lg" role="menu" aria-label="Flight summary period">
+                {[
+                  { id: '24h', label: '24 hours' },
+                  { id: '30d', label: '30 days' },
+                  { id: '6m', label: '6 months' },
+                  { id: '1y', label: '1 year' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={timePeriod === item.id}
+                    onClick={() => { setTimePeriod(item.id); setRangeMenuOpen(false); }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${timePeriod === item.id ? 'bg-slate-100 font-medium text-slate-900' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    {item.label}
+                    {timePeriod === item.id && <span aria-hidden="true" className="text-slate-600">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="h-72 w-full sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={processedData} barGap={3} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
             <CartesianGrid strokeDasharray="4 4" stroke="#E5E7EB" vertical={false} />
-            <XAxis dataKey="month" tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="month" interval={timePeriod === "24h" ? 3 : timePeriod === "30d" ? 4 : 0} tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} width={42} />
             <Tooltip
               cursor={{ fill: "#F9FAFB" }}
@@ -240,4 +253,5 @@ const FSession = () => {
 };
 
 export default FSession;
+
 
