@@ -1,228 +1,308 @@
-import React, { useState, useEffect, useRef } from "react";
-import { FiSearch } from "react-icons/fi";
-import { HiDotsVertical } from "react-icons/hi";
-import { lessonService } from "../../api/services/lessonService";
-import { useAuth } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { reservationService } from '../../api/services/reservationService';
+import { useAuth } from '../../context/AuthContext';
 
+// Add once in index.html:
+// <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+const MONO = "font-['JetBrains_Mono',ui-monospace,monospace]";
 
-const getStatusColor = (status) => {
-  if (!status) return "bg-gray-100 text-gray-600";
-  
-  const statusLower = status.toLowerCase();
-  switch (statusLower) {
-    case 'pending':
-      return "bg-[#FFF1DA] text-[#C47E0A]";
-    case 'ongoing':
-      return "bg-[#EBF0FB] text-[#113B98]";
-    case 'completed':
-      return "bg-[#E1FAEA] text-[#016626]";
-    default:
-      return "bg-gray-100 text-gray-600";
+const STATUSES = ['completed', 'requested', 'pending'];
+
+const STATUS_STYLES = {
+  completed: { label: 'COMPLETED', accent: 'bg-emerald-400', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  requested: { label: 'REQUESTED', accent: 'bg-blue-500',    pill: 'bg-blue-50 text-blue-700 border-blue-200' },
+  pending:   { label: 'PENDING',   accent: 'bg-sky-300',     pill: 'bg-sky-50 text-sky-700 border-sky-200' },
+};
+
+const FILTERS = [{ id: 'all', label: 'All' }, ...STATUSES.map((s) => ({ id: s, label: s[0].toUpperCase() + s.slice(1) }))];
+
+const statusOf = (f) => String(f.status).toLowerCase();
+
+const shortName = (name) => {
+  if (!name) return '—';
+  const parts = name.trim().split(/\s+/);
+  return parts.length === 1 ? parts[0] : `${parts[0][0]}. ${parts[parts.length - 1]}`;
+};
+
+const instructorsLabel = (instructors = []) => {
+  if (!instructors.length) return 'No instructor';
+  return instructors.length === 1
+    ? shortName(instructors[0].name)
+    : `${shortName(instructors[0].name)} +${instructors.length - 1}`;
+};
+
+// Read the first non-empty value from a list of possible field names ("a.b" paths allowed)
+const pick = (obj, keys) => {
+  for (const k of keys) {
+    const v = k.split('.').reduce((o, part) => (o == null ? o : o[part]), obj);
+    if (v != null && v !== '') return v;
   }
+  return null;
 };
 
+const tailOf = (f) =>
+  pick(f, ['aircraft.registration', 'aircraft.tail_number', 'aircraft.tail_no', 'aircraft.registration_number',
+           'aircraft.n_number', 'aircraft_registration', 'aircraft_tail_number', 'tail_number', 'registration']);
+const dateOf = (f) => pick(f, ['lesson_date', 'date', 'start_date', 'start_at', 'starts_at', 'scheduled_at', 'checked_in_at']);
+const startOf = (f) => pick(f, ['lesson_time', 'start_time', 'start_at', 'starts_at', 'scheduled_start']);
+const endOf = (f) => pick(f, ['end_time', 'end_at', 'ends_at', 'scheduled_end']);
 
-const formatStatus = (status) => {
-  if (!status) return "Pending";
-  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+const fmtTime = (v) => {
+  if (!v) return null;
+  const str = String(v);
+  if (/^\d{1,2}:\d{2}/.test(str)) return str.slice(0, 5);
+  const d = new Date(str);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 };
 
-const StudentFlightLogs = () => {
-  const { user } = useAuth();
+const timeRange = (f) => {
+  const a = fmtTime(startOf(f));
+  const b = fmtTime(endOf(f));
+  if (!a) return '—';
+  return b ? `${a}–${b}` : a;
+};
+
+const sortKey = (f) => {
+  const d = dateOf(f);
+  if (!d) return 0;
+  const s = startOf(f);
+  const t = s && /^\d{1,2}:\d{2}/.test(String(s)) ? String(s).slice(0, 5) : '00:00';
+  const v = new Date(`${String(d).slice(0, 10)}T${t}`).getTime();
+  return Number.isNaN(v) ? 0 : v;
+};
+
+const fmtDate = (iso) =>
+  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+
+const StudentFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', station }) => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [openMenu, setOpenMenu] = useState(null);
-  const [lessons, setLessons] = useState([]);
+  const { user } = useAuth();
+  const uid = user?.id;
+
+  const [flights, setFlights] = useState([]);       // rows from the list endpoint (already scoped to this instructor)
+  const [details, setDetails] = useState({});       // id -> detail payload (tail number, slot time...)
   const [loading, setLoading] = useState(true);
-  const menuRefs = useRef({});
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(batchSize);
+
+  const requested = useRef(new Set());              // ids whose detail we already asked for
+  const scrollRef = useRef(null);
+
+  // True when the logged-in user is one of the students on this reservation
+  const hasMe = useCallback((f) => {
+    const stu = f.students;
+    if (uid == null || !Array.isArray(stu)) return false;
+    return stu.some((x) => [x.id, x.user_id, x.student_id].some((v) => v != null && String(v) === String(uid)));
+  }, [uid]);
+
+  // Rows with no student info at all are kept rather than hiding everything by mistake
+  const isMine = useCallback((f) => {
+    if (uid == null || !Array.isArray(f.students) || f.students.length === 0) return true;
+    return hasMe(f);
+  }, [uid, hasMe]);
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const res = await reservationService.getReservations({ limit });
+      const body = res?.data?.data ?? res?.data ?? res;
+      const list = Array.isArray(body)
+        ? body
+        : body?.data ?? body?.reservations ?? body?.items ?? body?.results ?? [];
+
+      const wanted = list.filter((f) => STATUSES.includes(statusOf(f)));
+
+      const mine = wanted.filter(isMine);
+      if (wanted.length && !mine.length) {
+        console.warn('[FlightLogs] no rows matched user id', uid);
+      }
+
+      setFlights(mine);
+      setError(null);
+    } catch (err) {
+      console.error('[FlightLogs] load failed:', err);
+      setError(err?.message ?? 'Failed to load flight logs');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [limit, hasMe, isMine, uid]);
 
   useEffect(() => {
-    const fetchLessons = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        return;
-      }
+    load();
+    const t = setInterval(() => load(true), 30000);
+    return () => clearInterval(t);
+  }, [load]);
 
-      setLoading(true);
-      try {
-        const response = await lessonService.getUserLessons(user.id, {
-          per_page: 10, 
-          page: 1,
-          type: 'student',
-        });
-
-        if (response.success) {
-          const transformedLessons = (response.data || []).map((lesson) => ({
-            id: lesson.id,
-            date: lesson.date || lesson.full_date || lesson.lesson_date,
-            time: lesson.time || lesson.full_time || lesson.lesson_time,
-            instructor: lesson.instructor_name || lesson.instructor || 'N/A',
-            status: lesson.status || 'Pending',
-            flightType: lesson.flight_type || 'N/A',
-          }));
-          
-          setLessons(transformedLessons);
-        }
-      } catch (error) {
-        console.error('Error fetching flight logs:', error);
-        setLessons([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLessons();
-  }, [user?.id]);
-
-  
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (openMenu !== null && menuRefs.current[openMenu] && !menuRefs.current[openMenu].contains(event.target)) {
-        setOpenMenu(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openMenu]);
-
-  const filteredLessons = lessons.filter((lesson) =>
-    (lesson.instructor && lesson.instructor.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (lesson.flightType && lesson.flightType.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (lesson.date && lesson.date.toString().toLowerCase().includes(searchTerm.toLowerCase()))
+  // List rows + any detail we've fetched so far
+  const merged = useMemo(
+    () => flights.map((f) => (details[f.id] ? { ...f, ...details[f.id] } : f)),
+    [flights, details]
   );
 
-  const handleMenuToggle = (id) => {
-    setOpenMenu(openMenu === id ? null : id);
+  const sorted = useMemo(() => [...merged].sort((a, b) => sortKey(b) - sortKey(a)), [merged]);
+
+  const counts = useMemo(
+    () => STATUSES.reduce((acc, s) => ({ ...acc, [s]: merged.filter((f) => statusOf(f) === s).length }), {}),
+    [merged]
+  );
+
+  const rows = filter === 'all' ? sorted : sorted.filter((f) => statusOf(f) === filter);
+  const visibleRows = rows.slice(0, visibleCount);
+
+  // The list endpoint returns a trimmed reservation (no tail number / slot time), so fetch the
+  // detail only for rows currently on screen. Cached per id, so scrolling never repeats a call.
+  useEffect(() => {
+    const missing = visibleRows.filter((f) => (!tailOf(f) || !startOf(f)) && !requested.current.has(f.id));
+    if (!missing.length) return;
+    missing.forEach((f) => requested.current.add(f.id));
+    let cancelled = false;
+    (async () => {
+      const got = {};
+      await Promise.all(
+        missing.map(async (f) => {
+          try {
+            const r = await reservationService.getReservationDetail(f.id);
+            got[f.id] = r?.data?.data ?? r?.data ?? r;
+          } catch (e) {
+            console.error('[FlightLogs] detail failed for', f.id, e);
+          }
+        })
+      );
+      if (!cancelled && Object.keys(got).length) setDetails((prev) => ({ ...prev, ...got }));
+    })();
+    return () => { cancelled = true; };
+  }, [visibleRows]);
+
+  const onScroll = (e) => {
+    const el = e.currentTarget;
+    if (visibleCount < rows.length && el.scrollTop + el.clientHeight >= el.scrollHeight - 200) {
+      setVisibleCount((c) => c + batchSize);
+    }
   };
 
-  const handleViewDetails = (lessonId) => {
-    navigate(`/my-lessons/${lessonId}`);
-    setOpenMenu(null);
+  const changeFilter = (id) => {
+    setFilter(id);
+    setVisibleCount(batchSize);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
-
-  if (loading) {
-    return (
-      <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="bg-white shadow-sm rounded-xl p-6 border border-gray-100">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-        <h2 className="text-xl font-semibold text-gray-800">Flight Logs</h2>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg shadow-sm flex-grow sm:flex-grow-0 sm:w-[250px]">
-            <FiSearch className="text-gray-400 mr-2" size={16} />
-            <input
-              type="text"
-              placeholder="Q Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
-            />
-          </div>
-        </div>
+    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/70">
+        <h2 className={`${MONO} text-xs tracking-[0.3em] uppercase text-slate-500`}>
+          {title}{station ? ` · ${station}` : ''}
+        </h2>
+        <span className={`${MONO} flex items-center gap-2 text-xs tracking-[0.14em] text-slate-500`}>
+          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Live
+        </span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Dates
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Time
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Instructor
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Status
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Flight Type
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Action
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLessons.length > 0 ? (
-              filteredLessons.map((lesson) => (
-                <tr
-                  key={lesson.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition"
+      {/* Filter chips */}
+      <div className="flex gap-2 px-6 pt-4 overflow-x-auto">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => changeFilter(f.id)}
+            className={`${MONO} px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.1em] border whitespace-nowrap transition-colors ${
+              filter === f.id
+                ? 'bg-slate-800 text-white border-slate-800'
+                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Rows (scrolls; loads more as you reach the bottom) */}
+      <div ref={scrollRef} onScroll={onScroll} className="p-4 sm:p-6 space-y-3 max-h-[600px] overflow-y-auto">
+        {loading ? (
+          <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>Loading flight logs…</p>
+        ) : error ? (
+          <p className="py-10 text-center text-sm text-red-500">{error}</p>
+        ) : rows.length === 0 ? (
+          <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>No flight logs found</p>
+        ) : (
+          <>
+            {visibleRows.map((f) => {
+              const st = STATUS_STYLES[statusOf(f)];
+              const aircraftSub = [f.aircraft?.model, f.aircraft?.engine_type].filter(Boolean).join(' · ');
+              const detail = f.flight_type || '';
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => navigate(`/reservations/${f.id}${statusOf(f) === 'completed' ? '?tab=checkin' : ''}`)}
+                  className="relative w-full flex items-center gap-4 sm:gap-6 text-left bg-white border border-slate-200 rounded-2xl pl-6 pr-4 py-4 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
                 >
-                  <td className="py-4 px-4 text-sm text-gray-700">
-                    {lesson.date ? new Date(lesson.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-700">
-                    {lesson.time || 'N/A'}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-700">
-                    {lesson.instructor}
-                  </td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(lesson.status)}`}
-                    >
-                      {formatStatus(lesson.status)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-700">
-                    {lesson.flightType}
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="relative" ref={(el) => (menuRefs.current[lesson.id] = el)}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMenuToggle(lesson.id);
-                        }}
-                        className="p-1 hover:bg-gray-100 rounded transition"
-                      >
-                        <HiDotsVertical className="text-gray-600" size={18} />
-                      </button>
-                      {openMenu === lesson.id && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewDetails(lesson.id);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg"
-                          >
-                            View Details
-                          </button>
-                        </div>
-                      )}
+                  <span className={`absolute left-0 top-0 bottom-0 w-1.5 ${st.accent}`} />
+
+                  {/* Tail + aircraft */}
+                  <div className="w-28 sm:w-40 flex-shrink-0">
+                    <div className={`${MONO} text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
+                      {tailOf(f) ?? '—'}
                     </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan="6"
-                  className="text-center py-8 text-gray-500 text-sm"
-                >
-                  No flight logs found
-                </td>
-              </tr>
+                    <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400 truncate`}>
+                      {aircraftSub || f.aircraft?.name || 'No aircraft'}
+                    </div>
+                  </div>
+
+                  {/* Student + flight type */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
+                      {instructorsLabel(f.instructors)}
+                    </div>
+                    <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400 truncate`}>
+                      {detail || f.title || '—'}
+                    </div>
+                  </div>
+
+                  {/* Time */}
+                  <div className="hidden sm:block text-right flex-shrink-0">
+                    <div className={`${MONO} text-[17px] text-sky-600 tracking-[0.04em] mb-1.5`}>
+                      {timeRange(f)}
+                    </div>
+                    <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400`}>
+                      {fmtDate(dateOf(f))}
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <span className={`${MONO} flex-shrink-0 w-28 text-center px-3 py-2 rounded-lg border text-xs font-bold tracking-[0.14em] ${st.pill}`}>
+                    {st.label}
+                  </span>
+                </button>
+              );
+            })}
+
+            {visibleCount < rows.length && (
+              <p className={`${MONO} py-3 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>
+                Scroll for more…
+              </p>
             )}
-          </tbody>
-        </table>
+          </>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className={`${MONO} flex flex-wrap items-center justify-between gap-2 px-6 py-4 border-t border-slate-200 bg-slate-50/70 text-xs tracking-[0.12em] text-slate-500`}>
+        <span>
+          <span className="text-emerald-600 font-semibold">{counts.completed ?? 0} completed</span>
+          {' · '}
+          <span className="text-blue-600 font-semibold">{counts.requested ?? 0} requested</span>
+          {' · '}
+          <span className="text-sky-600 font-semibold">{counts.pending ?? 0} pending</span>
+        </span>
+        <span>
+          {rows.length > 0 ? `Showing ${Math.min(visibleCount, rows.length)} of ${rows.length} · ` : ''}Auto-refresh 30 s
+        </span>
       </div>
     </div>
   );
 };
 
 export default StudentFlightLogs;
-
