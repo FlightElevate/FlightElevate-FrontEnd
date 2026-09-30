@@ -74,7 +74,7 @@ const sortKey = (f) => {
 const fmtDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
 
-const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Organization Flight Logs', station }) => {
+const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', station }) => {
   const navigate = useNavigate();
 
   const [flights, setFlights] = useState([]);       // all matching reservations returned by the API
