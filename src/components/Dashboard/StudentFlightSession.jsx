@@ -163,6 +163,7 @@ const makeEmptyBuckets = (range, now, start) => {
 const StudentFlightSession = () => {
   const { user } = useAuth();
   const [range, setRange] = useState("30d");
+  const [rangeMenuOpen, setRangeMenuOpen] = useState(false);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -226,43 +227,66 @@ const StudentFlightSession = () => {
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="flight-session-title">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">Flight analytics</p>
-          <h3 id="flight-session-title" className="mt-1 text-xl font-semibold tracking-tight text-gray-900">
+      <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-1">
+        <div className="min-w-fit shrink-0">
+          <p className="text-xs font-medium text-gray-500 sm:text-sm">Flight analytics</p>
+          <h3 id="flight-session-title" className="font-heading mt-1 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">
             Flight session summary
           </h3>
-          <p className="mt-1 text-sm text-gray-500">Logged hours by aircraft category</p>
         </div>
-        <div className="flex w-full gap-1 rounded-xl bg-gray-100 p-1 sm:w-auto" role="group" aria-label="Select flight summary period">
-          {RANGES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setRange(item.id)}
-              aria-pressed={range === item.id}
-              className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition sm:flex-none ${
-                range === item.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-emerald-50 p-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Single engine
+        <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
+          <div className="flex shrink-0 flex-col items-start gap-0.5">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Single engine</span>
+            <span className="font-num text-xl font-semibold leading-none tracking-tight text-gray-900 sm:text-2xl">{summary.singleEngine}<span className="ml-1 text-xs font-medium text-gray-500">hrs</span></span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">{summary.singleEngine}<span className="ml-1 text-sm font-medium text-gray-500">hrs</span></p>
-        </div>
-        <div className="rounded-xl bg-blue-50 p-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Multi engine
+          <div className="h-9 w-px bg-gray-200" aria-hidden="true" />
+          <div className="flex shrink-0 flex-col items-start gap-0.5">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Multi engine</span>
+            <span className="font-num text-xl font-semibold leading-none tracking-tight text-gray-900 sm:text-2xl">{summary.multiEngine}<span className="ml-1 text-xs font-medium text-gray-500">hrs</span></span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">{summary.multiEngine}<span className="ml-1 text-sm font-medium text-gray-500">hrs</span></p>
+        </div>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setRangeMenuOpen((open) => !open)}
+            aria-expanded={rangeMenuOpen}
+            aria-haspopup="menu"
+            aria-label={`Filter period: ${RANGES.find((item) => item.id === range)?.label}`}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm"
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+              <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              <circle cx="7" cy="5" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="12.5" cy="10" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="9" cy="15" r="1.5" fill="white" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span>{RANGES.find((item) => item.id === range)?.label}</span>
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-gray-400">
+              <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {rangeMenuOpen && (
+            <>
+              <button className="fixed inset-0 z-10 cursor-default" aria-label="Close period menu" onClick={() => setRangeMenuOpen(false)} />
+              <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-lg" role="menu" aria-label="Flight summary period">
+                {RANGES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={range === item.id}
+                    onClick={() => { setRange(item.id); setRangeMenuOpen(false); }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      range === item.id ? "bg-emerald-50 font-medium text-emerald-800" : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {item.label}
+                    {range === item.id && <span aria-hidden="true" className="text-emerald-600">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -296,3 +320,4 @@ const StudentFlightSession = () => {
 };
 
 export default StudentFlightSession;
+
