@@ -47,6 +47,13 @@ const dateOf = (f) => pick(f, ['lesson_date', 'date', 'start_date', 'start_at', 
 const startOf = (f) => pick(f, ['lesson_time', 'start_time', 'start_at', 'starts_at', 'scheduled_start']);
 const endOf = (f) => pick(f, ['end_time', 'end_at', 'ends_at', 'scheduled_end']);
 
+const paymentStatusOf = (flight) => {
+  const status = String(pick(flight, ['invoice.status', 'invoice.payment_status', 'payment_status']) ?? '').toLowerCase();
+  if (status === 'paid') return 'paid';
+  if (status === 'refunded') return 'refunded';
+  return 'pending';
+};
+
 const fmtTime = (v) => {
   if (!v) return null;
   const str = String(v);
@@ -85,6 +92,7 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
   const [visibleCount, setVisibleCount] = useState(batchSize);
 
   const requested = useRef(new Set());              // ids whose detail we already asked for
+  const requestedInvoices = useRef(new Set());       // ids whose invoice we already requested
   const scrollRef = useRef(null);
 
   const load = useCallback(async (silent = false) => {
@@ -131,26 +139,51 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
   const rows = filter === 'all' ? sorted : sorted.filter((f) => statusOf(f) === filter);
   const visibleRows = rows.slice(0, visibleCount);
 
-  // The list endpoint returns a trimmed reservation (no tail number / slot time), so fetch the
-  // detail only for rows currently on screen. Cached per id, so scrolling never repeats a call.
+  // Fetch missing aircraft/time details and invoice state only for visible rows.
+  // Payment state is authoritative from invoice.status (the same source used by checkout).
   useEffect(() => {
-    const missing = visibleRows.filter((f) => (!tailOf(f) || !startOf(f)) && !requested.current.has(f.id));
-    if (!missing.length) return;
-    missing.forEach((f) => requested.current.add(f.id));
+    const missingDetails = visibleRows.filter(
+      (f) => (!tailOf(f) || !startOf(f)) && !requested.current.has(f.id)
+    );
+    const missingInvoices = visibleRows.filter(
+      (f) => !f.invoice && !requestedInvoices.current.has(f.id)
+    );
+    if (!missingDetails.length && !missingInvoices.length) return;
+
+    missingDetails.forEach((f) => requested.current.add(f.id));
+    missingInvoices.forEach((f) => requestedInvoices.current.add(f.id));
     let cancelled = false;
     (async () => {
       const got = {};
-      await Promise.all(
-        missing.map(async (f) => {
+      await Promise.all([
+        ...missingDetails.map(async (f) => {
           try {
             const r = await reservationService.getReservationDetail(f.id);
-            got[f.id] = r?.data?.data ?? r?.data ?? r;
+            const detail = r?.data?.data ?? r?.data ?? r;
+            got[f.id] = { ...(got[f.id] || {}), ...detail };
           } catch (e) {
             console.error('[AdminFlightLogs] detail failed for', f.id, e);
           }
-        })
-      );
-      if (!cancelled && Object.keys(got).length) setDetails((prev) => ({ ...prev, ...got }));
+        }),
+        ...missingInvoices.map(async (f) => {
+          try {
+            const r = await reservationService.getInvoice(f.id);
+            const invoice = r?.data?.data ?? r?.data ?? r;
+            got[f.id] = { ...(got[f.id] || {}), invoice };
+          } catch (e) {
+            // An invoice may not exist yet; leave it as payment pending.
+          }
+        }),
+      ]);
+      if (!cancelled && Object.keys(got).length) {
+        setDetails((prev) => {
+          const next = { ...prev };
+          Object.entries(got).forEach(([id, value]) => {
+            next[id] = { ...(prev[id] || {}), ...value };
+          });
+          return next;
+        });
+      }
     })();
     return () => { cancelled = true; };
   }, [visibleRows]);
@@ -210,6 +243,7 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
           <>
             {visibleRows.map((f) => {
               const st = STATUS_STYLES[statusOf(f)];
+              const paymentStatus = paymentStatusOf(f);
               const aircraftSub = [f.aircraft?.model, f.aircraft?.engine_type].filter(Boolean).join(' · ');
               const detail = [f.flight_type, f.instructors?.[0]?.name && `CFI ${f.instructors[0].name.split(' ').pop()}`]
                 .filter(Boolean).join(' · ');
@@ -253,9 +287,14 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                   </div>
 
                   {/* Status (phone: top-right) */}
-                  <span className={`${MONO} col-start-2 row-start-1 justify-self-end md:flex-shrink-0 md:w-28 text-center px-3 py-1.5 md:py-2 rounded-lg border text-[11px] md:text-xs font-bold tracking-[0.1em] md:tracking-[0.14em] ${st.pill}`}>
-                    {st.label}
-                  </span>
+                  <div className="col-start-2 row-start-1 justify-self-end flex flex-col gap-1 md:flex-shrink-0 md:w-28">
+                    <span className={`${MONO} text-center px-2 py-1.5 md:py-2 rounded-lg border text-[10px] md:text-[11px] font-bold tracking-[0.08em] ${st.pill}`}>
+                      {st.label}
+                    </span>
+                    <span className={`${MONO} text-center px-2 py-1 rounded-lg border text-[9px] md:text-[10px] font-semibold tracking-[0.04em] ${paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : paymentStatus === 'refunded' ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                      {paymentStatus === 'paid' ? 'PAID' : paymentStatus === 'refunded' ? 'REFUNDED' : 'PAYMENT PENDING'}
+                    </span>
+                  </div>
                 </button>
               );
             })}
