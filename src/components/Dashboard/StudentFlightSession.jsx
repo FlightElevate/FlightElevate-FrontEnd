@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { useAuth } from "../../context/AuthContext";
-import { lessonService } from "../../api/services/lessonService";
+import { logbookService } from "../../api/services/logbookService";
 
 const RANGES = [
   { id: "24h", label: "24 hours" },
@@ -18,12 +18,8 @@ const RANGES = [
   { id: "1y", label: "1 year" },
 ];
 
-const HOUR_FIELDS = [
-  "flight_dual_hours",
-  "flight_solo_hours",
-  "flight_cross_country_dual_hours",
-  "flight_cross_country_solo_hours",
-];
+const SINGLE_ENGINE_FIELDS = ["asel_hours", "ases_hours"];
+const MULTI_ENGINE_FIELDS = ["amel_hours", "ames_hours"];
 
 const toHours = (value) => {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
@@ -32,12 +28,12 @@ const toHours = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const getLessons = (response) => {
+const getEntries = (response) => {
   const data = response?.data;
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.lessons)) return data.lessons;
-  if (Array.isArray(response?.lessons)) return response.lessons;
+  if (Array.isArray(data?.entries)) return data.entries;
+  if (Array.isArray(response?.entries)) return response.entries;
   return [];
 };
 
@@ -46,32 +42,31 @@ const getPageInfo = (response) => {
   return response?.pagination || response?.meta || data?.pagination || data?.meta || {};
 };
 
-const fetchAllLessons = async (userId) => {
+const fetchAllLogbookEntries = async (userId) => {
   const perPage = 500;
-  const allLessons = [];
+  const allEntries = [];
   const seenPages = new Set();
   let page = 1;
 
   // Continue until the service says there are no more pages, or a short page
   // indicates the end when pagination metadata is not included in the response.
   while (page <= 1000) {
-    const response = await lessonService.getUserLessons(userId, {
-      type: "student",
+    const response = await logbookService.getUserEntries(userId, {
       page,
       per_page: perPage,
     });
     if (response?.success === false) {
-      throw new Error(response.message || "Could not load flight sessions.");
+      throw new Error(response.message || "Could not load logbook entries.");
     }
 
-    const pageLessons = getLessons(response);
-    if (!pageLessons.length) break;
+    const pageEntries = getEntries(response);
+    if (!pageEntries.length) break;
 
     // Avoid an infinite loop if the endpoint ignores the page parameter.
-    const signature = pageLessons.map((lesson) => lesson?.id ?? `${lesson?.lesson_date}-${lesson?.full_date}`).join("|");
+    const signature = pageEntries.map((entry) => entry?.id ?? `${entry?.flight_date}-${entry?.created_at}`).join("|");
     if (seenPages.has(signature)) break;
     seenPages.add(signature);
-    allLessons.push(...pageLessons);
+    allEntries.push(...pageEntries);
 
     const info = getPageInfo(response);
     const currentPage = Number(info.current_page ?? info.page ?? page);
@@ -81,27 +76,44 @@ const fetchAllLessons = async (userId) => {
     if (Number.isFinite(lastPage) && lastPage > 0) {
       if (currentPage >= lastPage) break;
     } else if (Number.isFinite(total) && total >= 0) {
-      if (allLessons.length >= total) break;
-    } else if (pageLessons.length < perPage) {
+      if (allEntries.length >= total) break;
+    } else if (pageEntries.length < perPage) {
       break;
     }
     page += 1;
   }
 
-  return allLessons;
+  return allEntries;
 };
 
-const getLessonHours = (lesson) => HOUR_FIELDS.reduce((sum, field) => sum + toHours(lesson?.[field]), 0);
+const getEngineHours = (entry) => {
+  const single = SINGLE_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+  const multi = MULTI_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+  if (single || multi) return { single, multi };
 
-const getLessonDate = (lesson) => {
-  const value = lesson?.full_date || lesson?.lesson_date || lesson?.date || lesson?.created_at;
+  const total = toHours(entry?.total_hours);
+  const aircraftClass = `${entry?.aircraft_class || ""} ${entry?.aircraft_category || ""}`.toLowerCase();
+  if (aircraftClass.includes("multi") || aircraftClass.includes("amel") || aircraftClass.includes("ames")) {
+    return { single: 0, multi: total };
+  }
+  if (aircraftClass.includes("single") || aircraftClass.includes("asel") || aircraftClass.includes("ases")) {
+    return { single: total, multi: 0 };
+  }
+  return { single: 0, multi: 0 };
+};
+
+const getEntryDate = (entry) => {
+  const value = entry?.flight_date || entry?.date || entry?.created_at;
   if (!value) return null;
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
+  if (Number.isNaN(date.getTime())) return null;
 
-const isMultiEngine = (lesson) =>
-  `${lesson?.aircraft_category || ""} ${lesson?.flight_type || ""}`.toLowerCase().includes("multi");
+  if (entry?.flight_date && entry?.flight_time) {
+    const [hours, minutes] = String(entry.flight_time).split(":").map(Number);
+    if (Number.isFinite(hours) && Number.isFinite(minutes)) date.setHours(hours, minutes, 0, 0);
+  }
+  return date;
+};
 
 const rounded = (value) => Math.round(value * 10) / 10;
 
@@ -164,35 +176,35 @@ const StudentFlightSession = () => {
   const { user } = useAuth();
   const [range, setRange] = useState("30d");
   const [rangeMenuOpen, setRangeMenuOpen] = useState(false);
-  const [lessons, setLessons] = useState([]);
+  const [logbookEntries, setLogbookEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
 
-    const fetchLessons = async () => {
+    const fetchEntries = async () => {
       if (!user?.id) {
-        setLessons([]);
+        setLogbookEntries([]);
         setLoading(false);
         return;
       }
       setLoading(true);
       setError("");
       try {
-        const allLessons = await fetchAllLessons(user.id);
-        if (active) setLessons(allLessons);
+        const entries = await fetchAllLogbookEntries(user.id);
+        if (active) setLogbookEntries(entries);
       } catch (err) {
         if (active) {
-          setLessons([]);
-          setError(err?.message || "Could not load flight sessions.");
+          setLogbookEntries([]);
+          setError(err?.message || "Could not load logbook entries.");
         }
       } finally {
         if (active) setLoading(false);
       }
     };
 
-    fetchLessons();
+    fetchEntries();
     return () => { active = false; };
   }, [user?.id]);
 
@@ -204,26 +216,23 @@ const StudentFlightSession = () => {
     let singleEngine = 0;
     let multiEngine = 0;
 
-    lessons.forEach((lesson) => {
-      const date = getLessonDate(lesson);
+    logbookEntries.forEach((entry) => {
+      const date = getEntryDate(entry);
       if (!date || date < start || date > now) return;
       const bucket = bucketMap.get(getBucket(date, range).key);
       if (!bucket) return;
-      const hours = getLessonHours(lesson);
-      if (isMultiEngine(lesson)) {
-        bucket.multi += hours;
-        multiEngine += hours;
-      } else {
-        bucket.single += hours;
-        singleEngine += hours;
-      }
+      const hours = getEngineHours(entry);
+      bucket.single += hours.single;
+      bucket.multi += hours.multi;
+      singleEngine += hours.single;
+      multiEngine += hours.multi;
     });
 
     return {
       chartData: buckets,
       summary: { singleEngine: rounded(singleEngine), multiEngine: rounded(multiEngine) },
     };
-  }, [lessons, range]);
+  }, [logbookEntries, range]);
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="flight-session-title">
@@ -320,4 +329,5 @@ const StudentFlightSession = () => {
 };
 
 export default StudentFlightSession;
+
 
