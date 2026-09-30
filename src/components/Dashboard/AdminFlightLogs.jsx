@@ -46,6 +46,10 @@ const tailOf = (f) =>
 const dateOf = (f) => pick(f, ['lesson_date', 'date', 'start_date', 'start_at', 'starts_at', 'scheduled_at', 'checked_in_at']);
 const startOf = (f) => pick(f, ['lesson_time', 'start_time', 'start_at', 'starts_at', 'scheduled_start']);
 const endOf = (f) => pick(f, ['end_time', 'end_at', 'ends_at', 'scheduled_end']);
+const routeFromOf = (f) => pick(f, ['route_from', 'checkin.route_from', 'check_out.route_from']);
+const routeViaOf = (f) => pick(f, ['route_via', 'checkin.route_via', 'check_out.route_via']);
+const routeToOf = (f) => pick(f, ['route_to', 'checkin.route_to', 'check_out.route_to']);
+const locationOf = (f) => pick(f, ['location.name', 'location.airport_name', 'location.icao_code', 'location.icao', 'location.code', 'location_name', 'operating_location']);
 
 const paymentStatusOf = (flight) => {
   const status = String(pick(flight, ['invoice.status', 'invoice.payment_status', 'payment_status']) ?? '').toLowerCase();
@@ -144,6 +148,10 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
   useEffect(() => {
     const missingDetails = visibleRows.filter(
       (f) => (!tailOf(f) || !startOf(f)) && !requested.current.has(f.id)
+      (f) => {
+        const routeMissing = statusOf(f) === 'completed' && (!routeFromOf(f) || !routeToOf(f));
+        return (!tailOf(f) || !startOf(f) || !locationOf(f) || routeMissing) && !requested.current.has(f.id);
+      }
     );
     const missingInvoices = visibleRows.filter(
       (f) => !f.invoice && !requestedInvoices.current.has(f.id)
@@ -244,6 +252,12 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
             {visibleRows.map((f) => {
               const st = STATUS_STYLES[statusOf(f)];
               const paymentStatus = paymentStatusOf(f);
+              const routeFrom = routeFromOf(f);
+              const routeVia = routeViaOf(f);
+              const routeTo = routeToOf(f);
+              const location = locationOf(f);
+              const showLocation = Boolean(location);
+              const showRoute = statusOf(f) === 'completed' && (routeFrom || routeTo);
               const aircraftSub = [f.aircraft?.model, f.aircraft?.engine_type].filter(Boolean).join(' · ');
               const detail = [f.flight_type, f.instructors?.[0]?.name && `CFI ${f.instructors[0].name.split(' ').pop()}`]
                 .filter(Boolean).join(' · ');
@@ -274,6 +288,22 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
                       {detail || f.title || '—'}
                     </div>
+                    {showLocation && (
+                      <div className={`${MONO} mt-2 text-[10px] uppercase tracking-[0.08em] text-slate-500 truncate`}>
+                        <span className="text-slate-400">Operating from </span>
+                        <span className="font-semibold text-slate-700">{location}</span>
+                      </div>
+                    )}
+                    {showRoute && (
+                      <div className={`${MONO} mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.08em] text-slate-500`}>
+                        <span className="text-slate-400">From</span>
+                        <span className="font-semibold text-slate-700">{routeFrom || '—'}</span>
+                        {routeVia && <><span className="text-slate-400">via</span><span className="font-semibold text-slate-700">{routeVia}</span></>}
+                        <span aria-hidden="true" className="text-slate-300">→</span>
+                        <span className="text-slate-400">To</span>
+                        <span className="font-semibold text-slate-700">{routeTo || '—'}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Time (phone: bottom-right) */}
