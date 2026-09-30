@@ -42,13 +42,20 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      // Backend must scope by role (instructor sees own reservations)
-      const res = await reservationService.getReservations({ status: STATUSES.join(','), limit });
+      // No status param: fetch everything, filter on the client
+      const res = await reservationService.getReservations({ limit });
+      console.log('[FlightLogs] raw response:', res);
+
       const body = res?.data?.data ?? res?.data ?? res;
-      const list = Array.isArray(body) ? body : body?.data ?? [];
-      setFlights(list.filter((f) => STATUSES.includes(f.status)));
+      const list = Array.isArray(body)
+        ? body
+        : body?.data ?? body?.reservations ?? body?.items ?? body?.results ?? [];
+      console.log('[FlightLogs] parsed list:', list);
+
+      setFlights(list.filter((f) => STATUSES.includes(String(f.status).toLowerCase())));
       setError(null);
     } catch (err) {
+      console.error('[FlightLogs] load failed:', err);
       setError(err?.message ?? 'Failed to load flight logs');
     } finally {
       if (!silent) setLoading(false);
@@ -72,11 +79,11 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
   );
 
   const counts = useMemo(
-    () => STATUSES.reduce((acc, s) => ({ ...acc, [s]: flights.filter((f) => f.status === s).length }), {}),
+    () => STATUSES.reduce((acc, s) => ({ ...acc, [s]: flights.filter((f) => String(f.status).toLowerCase() === s).length }), {}),
     [flights]
   );
 
-  const rows = filter === 'all' ? sorted : sorted.filter((f) => f.status === filter);
+  const rows = filter === 'all' ? sorted : sorted.filter((f) => String(f.status).toLowerCase() === filter);
 
   return (
     <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
@@ -118,7 +125,7 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
           <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>No flight logs found</p>
         ) : (
           rows.map((f) => {
-            const st = STATUS_STYLES[f.status];
+            const st = STATUS_STYLES[String(f.status).toLowerCase()];
             const aircraftSub = [f.aircraft?.model, f.aircraft?.engine_type].filter(Boolean).join(' · ');
             const detail = [f.flight_type, f.instructors?.[0]?.name && `CFI ${f.instructors[0].name.split(' ').pop()}`]
               .filter(Boolean).join(' · ');
@@ -126,7 +133,7 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
               <button
                 key={f.id}
                 type="button"
-                onClick={() => navigate(`/reservations/${f.id}${f.status === 'completed' ? '?tab=checkin' : ''}`)}
+                onClick={() => navigate(`/reservations/${f.id}${String(f.status).toLowerCase() === 'completed' ? '?tab=checkin' : ''}`)}
                 className="relative w-full flex items-center gap-4 sm:gap-6 text-left bg-white border border-slate-200 rounded-2xl pl-6 pr-4 py-4 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
               >
                 <span className={`absolute left-0 top-0 bottom-0 w-1.5 ${st.accent}`} />
