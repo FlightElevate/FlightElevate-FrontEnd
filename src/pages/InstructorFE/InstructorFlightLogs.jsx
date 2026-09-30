@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reservationService } from '../../api/services/reservationService';
 
@@ -79,6 +79,26 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const detailCache = useRef({});
+
+  // The list endpoint returns a trimmed reservation (no tail number / slot time),
+  // so fill the gaps from the detail endpoint, which we know has them. Cached per id.
+  const enrich = useCallback(async (list) => {
+    const missing = list
+      .filter((f) => (!tailOf(f) || !startOf(f)) && !detailCache.current[f.id])
+      .slice(0, 25);
+    await Promise.all(
+      missing.map(async (f) => {
+        try {
+          const r = await reservationService.getReservationDetail(f.id);
+          detailCache.current[f.id] = r?.data?.data ?? r?.data ?? r;
+        } catch (e) {
+          console.error('[FlightLogs] detail failed for', f.id, e);
+        }
+      })
+    );
+    return list.map((f) => (detailCache.current[f.id] ? { ...f, ...detailCache.current[f.id] } : f));
+  }, []);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -94,7 +114,8 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
       console.log('[FlightLogs] parsed list:', list);
       console.log('[FlightLogs] first item:', JSON.stringify(list[0], null, 2));
 
-      setFlights(list.filter((f) => STATUSES.includes(String(f.status).toLowerCase())));
+      const wanted = list.filter((f) => STATUSES.includes(String(f.status).toLowerCase()));
+      setFlights(await enrich(wanted));
       setError(null);
     } catch (err) {
       console.error('[FlightLogs] load failed:', err);
@@ -102,7 +123,7 @@ const InstructorFlightLogs = ({ limit = 30, title = 'Flight Logs', station }) =>
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [limit]);
+  }, [limit, enrich]);
 
   useEffect(() => {
     load();
