@@ -236,7 +236,7 @@ const InstructorFlightSession = () => {
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="flight-session-title">
-      <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-1">
+      <div className="flex flex-wrap items-center gap-3 pb-1 sm:flex-nowrap">
         <div className="min-w-fit shrink-0">
           <p className="text-xs font-medium text-gray-500 sm:text-sm">Flight analytics</p>
           <h3 id="flight-session-title" className="font-heading mt-1 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">
@@ -254,7 +254,7 @@ const InstructorFlightSession = () => {
             <span className="font-num text-xl font-semibold leading-none tracking-tight text-gray-900 sm:text-2xl">{summary.multiEngine}<span className="ml-1 text-xs font-medium text-gray-500">hrs</span></span>
           </div>
         </div>
-        <div className="relative shrink-0">
+        <div className="relative z-30 shrink-0">
           <button
             type="button"
             onClick={() => setRangeMenuOpen((open) => !open)}
@@ -277,7 +277,7 @@ const InstructorFlightSession = () => {
           {rangeMenuOpen && (
             <>
               <button className="fixed inset-0 z-10 cursor-default" aria-label="Close period menu" onClick={() => setRangeMenuOpen(false)} />
-              <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-lg" role="menu" aria-label="Flight summary period">
+              <div className="absolute right-0 z-40 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-lg" role="menu" aria-label="Flight summary period">
                 {RANGES.map((item) => (
                   <button
                     key={item.id}
@@ -329,6 +329,7 @@ const InstructorFlightSession = () => {
 };
 
 export default InstructorFlightSession;
+
 
 
 
