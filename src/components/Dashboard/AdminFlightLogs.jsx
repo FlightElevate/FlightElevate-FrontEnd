@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiMapPin } from 'react-icons/fi';
 import { reservationService } from '../../api/services/reservationService';
 
 // Add once in index.html:
@@ -46,6 +47,10 @@ const tailOf = (f) =>
 const dateOf = (f) => pick(f, ['lesson_date', 'date', 'start_date', 'start_at', 'starts_at', 'scheduled_at', 'checked_in_at']);
 const startOf = (f) => pick(f, ['lesson_time', 'start_time', 'start_at', 'starts_at', 'scheduled_start']);
 const endOf = (f) => pick(f, ['end_time', 'end_at', 'ends_at', 'scheduled_end']);
+const routeFromOf = (f) => pick(f, ['route_from', 'checkin.route_from', 'check_out.route_from']);
+const routeViaOf = (f) => pick(f, ['route_via', 'checkin.route_via', 'check_out.route_via']);
+const routeToOf = (f) => pick(f, ['route_to', 'checkin.route_to', 'check_out.route_to']);
+const locationOf = (f) => pick(f, ['location.name', 'location.airport_name', 'location.icao_code', 'location.icao', 'location.code', 'location_name', 'operating_location']);
 
 const paymentStatusOf = (flight) => {
   const status = String(pick(flight, ['invoice.status', 'invoice.payment_status', 'payment_status']) ?? '').toLowerCase();
@@ -142,9 +147,10 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
   // Fetch missing aircraft/time details and invoice state only for visible rows.
   // Payment state is authoritative from invoice.status (the same source used by checkout).
   useEffect(() => {
-    const missingDetails = visibleRows.filter(
-      (f) => (!tailOf(f) || !startOf(f)) && !requested.current.has(f.id)
-    );
+    const missingDetails = visibleRows.filter((f) => {
+      const routeMissing = statusOf(f) === 'completed' && (!routeFromOf(f) || !routeToOf(f));
+      return (!tailOf(f) || !startOf(f) || !locationOf(f) || routeMissing) && !requested.current.has(f.id);
+    });
     const missingInvoices = visibleRows.filter(
       (f) => !f.invoice && !requestedInvoices.current.has(f.id)
     );
@@ -244,6 +250,11 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
             {visibleRows.map((f) => {
               const st = STATUS_STYLES[statusOf(f)];
               const paymentStatus = paymentStatusOf(f);
+              const routeFrom = routeFromOf(f);
+              const routeVia = routeViaOf(f);
+              const routeTo = routeToOf(f);
+              const location = locationOf(f);
+              const showRoute = statusOf(f) === 'completed' && (routeFrom || routeTo);
               const aircraftSub = [f.aircraft?.model, f.aircraft?.engine_type].filter(Boolean).join(' · ');
               const detail = [f.flight_type, f.instructors?.[0]?.name && `CFI ${f.instructors[0].name.split(' ').pop()}`]
                 .filter(Boolean).join(' · ');
@@ -252,13 +263,13 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                   key={f.id}
                   type="button"
                   onClick={() => navigate(`/reservations/${f.id}${statusOf(f) === 'completed' ? '?tab=checkin' : ''}`)}
-                  className="relative w-full text-left bg-white border border-slate-200 rounded-2xl pl-5 sm:pl-6 pr-4 py-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3 md:flex md:items-center md:gap-6 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
+                  className="relative w-full min-w-0 text-left bg-white border border-slate-200 rounded-2xl pl-4 sm:pl-6 pr-3 sm:pr-4 py-3 sm:py-4 grid grid-cols-[minmax(0,1fr)_108px] items-start gap-x-2 sm:gap-x-3 gap-y-3 md:flex md:items-center md:gap-6 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
                 >
                   <span className={`absolute left-0 top-0 bottom-0 w-1.5 ${st.accent}`} />
 
                   {/* Tail + aircraft (phone: top-left) */}
                   <div className="col-start-1 row-start-1 min-w-0 md:w-40 md:flex-shrink-0">
-                    <div className={`${MONO} text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
+                    <div className={`${MONO} text-base sm:text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
                       {tailOf(f) ?? '—'}
                     </div>
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
@@ -268,17 +279,33 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
 
                   {/* Name + flight type (phone: bottom-left) */}
                   <div className="col-start-1 row-start-2 min-w-0 md:flex-1">
-                    <div className="text-lg md:text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
+                    <div className="text-base sm:text-lg md:text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
                       {studentsLabel(f.students)}
                     </div>
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
                       {detail || f.title || '—'}
                     </div>
+                    {location && (
+                      <div className={`${MONO} mt-2 flex min-w-0 items-center gap-1.5 text-[10px] uppercase tracking-[0.08em] text-slate-500`}>
+                        <FiMapPin size={12} className="shrink-0 text-slate-400" aria-hidden="true" />
+                        <span className="truncate font-semibold text-slate-700">{location}</span>
+                      </div>
+                    )}
+                    {showRoute && (
+                      <div className={`${MONO} mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.08em] text-slate-500`}>
+                        <span className="text-slate-400">From</span>
+                        <span className="font-semibold text-slate-700">{routeFrom || '—'}</span>
+                        {routeVia && <><span className="text-slate-400">via</span><span className="font-semibold text-slate-700">{routeVia}</span></>}
+                        <span aria-hidden="true" className="text-slate-300">→</span>
+                        <span className="text-slate-400">To</span>
+                        <span className="font-semibold text-slate-700">{routeTo || '—'}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Time (phone: bottom-right) */}
                   <div className="col-start-2 row-start-2 text-right md:flex-shrink-0">
-                    <div className={`${MONO} text-[15px] md:text-[17px] text-sky-600 tracking-[0.02em] md:tracking-[0.04em] mb-1.5 whitespace-nowrap`}>
+                    <div className={`${MONO} text-[13px] sm:text-[15px] md:text-[17px] text-sky-600 tracking-[0.02em] md:tracking-[0.04em] mb-1.5 whitespace-nowrap`}>
                       {timeRange(f)}
                     </div>
                     <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400`}>
@@ -287,7 +314,7 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
                   </div>
 
                   {/* Status (phone: top-right) */}
-                  <div className="col-start-2 row-start-1 justify-self-end flex flex-col gap-1 md:flex-shrink-0 md:w-28">
+                  <div className="col-start-2 row-start-1 justify-self-end flex w-[108px] flex-col gap-1 md:flex-shrink-0 md:w-28">
                     <span className={`${MONO} text-center px-2 py-1.5 md:py-2 rounded-lg border text-[10px] md:text-[11px] font-bold tracking-[0.08em] ${st.pill}`}>
                       {st.label}
                     </span>
