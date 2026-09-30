@@ -107,52 +107,53 @@ const SummaryCards = () => {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Widgets
-        bgColor="#F7FAFF"
+        bgColor="#F2F6FC"
         textColor="#475569"
         label="Total Flights"
         count={loading.flights ? '...' : totalFlights}
         viewLink="/logbook"
-        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        cardClassName="rounded-xl border border-[#DCE7F5] p-5 transition-colors hover:border-[#C5D7EF]"
         labelClassName="font-heading !mb-4 !text-sm !font-medium"
         countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
-        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
+        linkClassName="mt-5 block border-t border-[#DCE7F5] pt-3 !text-sm !font-medium"
       />
       <Widgets
-        bgColor="#F7FAFF"
+        bgColor="#F2F6FC"
         textColor="#475569"
         label="Upcoming Bookings"
         count={loading.bookings ? '...' : upcomingBookings}
         viewLink="/calendar"
-        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        cardClassName="rounded-xl border border-[#DCE7F5] p-5 transition-colors hover:border-[#C5D7EF]"
         labelClassName="font-heading !mb-4 !text-sm !font-medium"
         countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
-        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
+        linkClassName="mt-5 block border-t border-[#DCE7F5] pt-3 !text-sm !font-medium"
       />
       <Widgets
-        bgColor="#F7FAFF"
+        bgColor="#F2F6FC"
         textColor="#475569"
         label="Aircraft In Use"
         count={loading.aircraft ? '...' : aircraftInUse}
         viewLink="/air-craft-profile"
-        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        cardClassName="rounded-xl border border-[#DCE7F5] p-5 transition-colors hover:border-[#C5D7EF]"
         labelClassName="font-heading !mb-4 !text-sm !font-medium"
         countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
-        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
+        linkClassName="mt-5 block border-t border-[#DCE7F5] pt-3 !text-sm !font-medium"
       />
       <Widgets
-        bgColor="#F7FAFF"
+        bgColor="#F2F6FC"
         textColor="#475569"
         label="Support Tickets"
         count={loading.tickets ? '...' : supportTicketsCount}
         viewLink="/support"
-        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        cardClassName="rounded-xl border border-[#DCE7F5] p-5 transition-colors hover:border-[#C5D7EF]"
         labelClassName="font-heading !mb-4 !text-sm !font-medium"
         countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
-        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
+        linkClassName="mt-5 block border-t border-[#DCE7F5] pt-3 !text-sm !font-medium"
       />
     </div>
   );
 };
 
 export default SummaryCards;
+
 
