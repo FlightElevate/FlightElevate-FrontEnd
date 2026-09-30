@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { lessonService } from "../../api/services/lessonService";
 import { logbookService } from "../../api/services/logbookService";
 
 const PER_PAGE = 500;
@@ -21,7 +20,9 @@ const getLessons = (response) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.lessons)) return data.lessons;
+  if (Array.isArray(data?.reservations)) return data.reservations;
   if (Array.isArray(response?.lessons)) return response.lessons;
+  if (Array.isArray(response?.reservations)) return response.reservations;
   return [];
 };
 
@@ -71,14 +72,26 @@ const fetchAllPages = async (fetchPage) => {
 
 const roundHours = (hours) => Math.round(hours * 10) / 10;
 
+const getCombinedFlightHours = (entry) => {
+  const single = SINGLE_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+  const multi = MULTI_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+  if (single || multi) return single + multi;
+
+  const className = `${entry?.aircraft_class || ""} ${entry?.aircraft_category || ""}`.toLowerCase();
+  if (["single", "asel", "ases", "multi", "amel", "ames"].some((kind) => className.includes(kind))) {
+    return toHours(entry?.total_hours);
+  }
+  return 0;
+};
+
 const InstructorSummaryCards = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalFlightHours: 0,
-    totalGroundHours: 0,
-    singleEngineHours: 0,
-    multiEngineHours: 0,
+    last30Days: 0,
+    last60Days: 0,
+    last90Days: 0,
   });
 
   useEffect(() => {
@@ -87,49 +100,44 @@ const InstructorSummaryCards = () => {
 
     const fetchInstructorStats = async () => {
       if (!instructorId) {
-        setStats({ totalFlightHours: 0, totalGroundHours: 0, singleEngineHours: 0, multiEngineHours: 0 });
+        setStats({ totalFlightHours: 0, last30Days: 0, last60Days: 0, last90Days: 0 });
         setLoading(false);
         return;
       }
 
       setLoading(true);
       try {
-        const [logbooks, lessons] = await Promise.all([
-          fetchAllPages((page) => logbookService.getUserEntries(instructorId, { page, per_page: PER_PAGE })),
-          fetchAllPages((page) => lessonService.getUserLessons(instructorId, { type: "instructor", page, per_page: PER_PAGE })),
-        ]);
+        const logbooks = await fetchAllPages((page) =>
+          logbookService.getUserEntries(instructorId, { page, per_page: PER_PAGE })
+        );
+        const now = Date.now();
+        const windows = { last30Days: 30, last60Days: 60, last90Days: 90 };
 
         const totals = logbooks.reduce((result, entry) => {
-          const totalHours = toHours(entry?.total_hours);
-          const singleCategoryHours = SINGLE_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
-          const multiCategoryHours = MULTI_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
-          const className = `${entry?.aircraft_class || ""} ${entry?.aircraft_category || ""}`.toLowerCase();
+          const hours = getCombinedFlightHours(entry);
+          result.totalFlightHours += hours;
 
-          result.totalFlightHours += totalHours;
-          if (singleCategoryHours || multiCategoryHours) {
-            result.singleEngineHours += singleCategoryHours;
-            result.multiEngineHours += multiCategoryHours;
-          } else if (className.includes("multi") || className.includes("amel") || className.includes("ames")) {
-            result.multiEngineHours += totalHours;
-          } else if (className.includes("single") || className.includes("asel") || className.includes("ases")) {
-            result.singleEngineHours += totalHours;
+          const rawDate = entry?.flight_date || entry?.date || entry?.created_at;
+          const timestamp = rawDate ? new Date(rawDate).getTime() : Number.NaN;
+          if (Number.isFinite(timestamp) && timestamp <= now) {
+            Object.entries(windows).forEach(([key, days]) => {
+              if (timestamp >= now - days * 24 * 60 * 60 * 1000) result[key] += hours;
+            });
           }
           return result;
-        }, { totalFlightHours: 0, totalGroundHours: 0, singleEngineHours: 0, multiEngineHours: 0 });
-
-        totals.totalGroundHours = lessons.reduce((sum, lesson) => sum + toHours(lesson?.ground_hours), 0);
+        }, { totalFlightHours: 0, last30Days: 0, last60Days: 0, last90Days: 0 });
 
         if (active) {
           setStats({
             totalFlightHours: roundHours(totals.totalFlightHours),
-            totalGroundHours: roundHours(totals.totalGroundHours),
-            singleEngineHours: roundHours(totals.singleEngineHours),
-            multiEngineHours: roundHours(totals.multiEngineHours),
+            last30Days: roundHours(totals.last30Days),
+            last60Days: roundHours(totals.last60Days),
+            last90Days: roundHours(totals.last90Days),
           });
         }
       } catch (error) {
         console.error("Error fetching instructor stats:", error);
-        if (active) setStats({ totalFlightHours: 0, totalGroundHours: 0, singleEngineHours: 0, multiEngineHours: 0 });
+        if (active) setStats({ totalFlightHours: 0, last30Days: 0, last60Days: 0, last90Days: 0 });
       } finally {
         if (active) setLoading(false);
       }
@@ -140,20 +148,20 @@ const InstructorSummaryCards = () => {
   }, [user?.id]);
 
   const cards = [
-    { label: "Total flight time", value: stats.totalFlightHours, detail: "All recorded flight hours", to: "/logbook" },
-    { label: "Ground training", value: stats.totalGroundHours, detail: "All recorded ground hours", to: "/lessons" },
-    { label: "Single engine", value: stats.singleEngineHours, detail: "Single engine flight time", to: "/logbook" },
-    { label: "Multi engine", value: stats.multiEngineHours, detail: "Multi engine flight time", to: "/logbook" },
+    { label: "Total hours", value: stats.totalFlightHours, detail: "All recorded single + multi engine hours", to: "/logbook" },
+    { label: "Last 30 days", value: stats.last30Days, detail: "Single + multi engine hours", to: "/logbook" },
+    { label: "Last 60 days", value: stats.last60Days, detail: "Single + multi engine hours", to: "/logbook" },
+    { label: "Last 90 days", value: stats.last90Days, detail: "Single + multi engine hours", to: "/logbook" },
   ];
 
   return (
     <section aria-labelledby="instructor-hours-title">
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">Training summary</p>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-gray-500">Flight summary</p>
           <h2 id="instructor-hours-title" className="font-heading mt-1 text-lg font-semibold tracking-tight text-gray-900">Hours overview</h2>
         </div>
-        <span className="mb-0.5 rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600">All time</span>
+        <span className="mb-0.5 rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600">Single + multi engine</span>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
