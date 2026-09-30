@@ -5,6 +5,7 @@ import { FiSearch, FiMenu, FiX } from 'react-icons/fi';
 import { HiBell } from 'react-icons/hi';
 import { HiChevronDown } from 'react-icons/hi';
 import { showConfirmDialog } from '../utils/notifications';
+import Notifications from './Notifications';
 import { userService } from '../api/services/userService';
 import { settingsService } from '../api/services/settingsService';
 import { getImageUrl } from '../utils/imageUtils';
@@ -431,13 +432,7 @@ const Header = ({ toggleSidebar }) => {
           {}
           <div className={`flex items-center gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 flex-shrink-0 ${searchOpen ? 'hidden md:flex' : 'flex'}`}>
             {}
-            <button 
-              className="hidden min-[360px]:flex text-gray-600 hover:text-gray-900 transition-colors relative min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg hover:bg-gray-100"
-              aria-label="Notifications"
-            >
-              <HiBell size={20} />
-              {}
-            </button>
+            <Notifications />
 
             {}
             <div className="hidden min-[360px]:block h-6 w-px bg-gray-300 flex-shrink-0"></div>
