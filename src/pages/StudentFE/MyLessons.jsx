@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import "../../fonts.css";
 import { HiDotsVertical } from "react-icons/hi";
 import { FiSearch, FiX, FiPlus } from "react-icons/fi";
 import { MdFilterList } from "react-icons/md";
@@ -40,7 +41,7 @@ const MyLessons = ({ showReadyButton = false }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortBy, setSortBy] = useState("Newest");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [sortOpen, setSortOpen] = useState(false);
@@ -338,7 +339,7 @@ const MyLessons = ({ showReadyButton = false }) => {
   if (loading) {
     return (
       <div className="p-3">
-        <div className="border border-gray-200 bg-white rounded-xl p-8 text-center">
+        <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading lessons...</p>
         </div>
@@ -348,10 +349,10 @@ const MyLessons = ({ showReadyButton = false }) => {
 
   return (
     <div className="p-3">
-      <div className="border border-gray-200 bg-white rounded-xl">
-        <div className="overflow-visible flex flex-col sm:flex-row justify-between gap-3 py-5 px-4 border-b border-[#F3F4F6]">
+      <div className="bg-white rounded-2xl shadow-sm">
+        <div className="overflow-visible flex flex-col sm:flex-row justify-between gap-3 px-5 py-5 sm:px-6">
           <div className="flex items-center justify-between sm:justify-start gap-3">
-            <h2 className="text-xl font-semibold">
+            <h2 className="font-heading text-xl font-semibold tracking-tight text-gray-900">
               {(isAdmin || isSuperAdmin) ? 'Lessons' : 'My Lessons'}
             </h2>
             {(isAdmin || isSuperAdmin) && (
@@ -427,7 +428,7 @@ const MyLessons = ({ showReadyButton = false }) => {
         {}
         {/* Lesson Cards View */}
         <div className="py-4 sm:py-5 px-3 sm:px-4">
-          <div className="space-y-3">
+          <div className="divide-y divide-gray-100">
             {currentItems.length > 0 ? (
               currentItems.map((lesson) => {
                 const lessonTitle = lesson.lesson_number && lesson.lesson_title
@@ -440,11 +441,11 @@ const MyLessons = ({ showReadyButton = false }) => {
                 return (
                   <div
                     key={lesson.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 px-3 py-4 sm:px-4 hover:bg-gray-50/70 transition-colors"
                   >
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold text-gray-900 break-words">{lessonTitle}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
+                    <div className="flex flex-1 min-w-0 flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+                      <h3 className="font-heading text-base font-semibold tracking-tight text-gray-900 break-words">{lessonTitle}</h3>
+                      <p className="text-sm text-gray-500 sm:shrink-0">
                         {tasksCount} {tasksCount === 1 ? 'Task' : 'Tasks'}
                       </p>
                     </div>
@@ -676,3 +677,4 @@ const MyLessons = ({ showReadyButton = false }) => {
 };
 
 export default MyLessons;
+
