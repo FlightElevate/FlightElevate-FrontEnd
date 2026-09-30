@@ -18,9 +18,10 @@ const InstructorProfile = () => {
   const { id: instructorId } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
-  
+
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [userError, setUserError] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [flightLogs, setFlightLogs] = useState([]);
@@ -48,6 +49,20 @@ const InstructorProfile = () => {
     notes: '',
   });
 
+  // Only admins/staff or the instructor themselves can edit/delete documents.
+  // Adjust the role names below to match what your backend returns.
+  const currentRoles = Array.isArray(currentUser?.roles)
+    ? currentUser.roles
+    : currentUser?.role
+    ? [currentUser.role]
+    : [];
+  const isAdminOrStaff = currentRoles.some((r) => {
+    const roleName = typeof r === 'string' ? r : r?.name || '';
+    return /admin|owner|staff/i.test(roleName);
+  });
+  const isOwnProfile = String(currentUser?.id) === String(instructorId);
+  const canManageDocs = isAdminOrStaff || isOwnProfile;
+
   useEffect(() => {
     if (instructorId) {
       fetchUser();
@@ -58,13 +73,19 @@ const InstructorProfile = () => {
 
   const fetchUser = async () => {
     setLoadingUser(true);
+    setUserError(null);
     try {
       const response = await userService.getUser(instructorId);
       if (response.success) {
         setUser(response.data);
+      } else {
+        setUserError(response.message || 'Request failed');
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
+      const status = error.response?.status;
+      console.error('Error fetching user:', status, error.response?.data);
+      const message = error.response?.data?.message || error.message || 'Request failed';
+      setUserError(status ? `${status}: ${message}` : message);
     } finally {
       setLoadingUser(false);
     }
@@ -86,7 +107,7 @@ const InstructorProfile = () => {
     }
   };
 
-  
+
   const getInstructorImage = (instructor) => {
     if (instructor?.avatar || instructor?.image || instructor?.profile_image) {
       return instructor.avatar || instructor.image || instructor.profile_image;
@@ -113,7 +134,7 @@ const InstructorProfile = () => {
   const handleDeleteDoc = async (documentId, docTitle) => {
     const confirmed = await showDeleteConfirm(docTitle || 'this document');
     if (!confirmed) return;
-    
+
     try {
       await documentService.deleteDocument(instructorId, documentId);
       showSuccessToast('Document deleted successfully');
@@ -166,11 +187,11 @@ const InstructorProfile = () => {
 
       // Check availability for instructor
       const response = await calendarService.getAvailableTimeSlots(params);
-      
+
       if (response.success) {
         const selectedTime = requestForm.lesson_time;
         const availableSlots = response.data.available_slots || [];
-        
+
         // Check if selected time is in available slots for instructor
         const isInstructorAvailable = availableSlots.some(slot => {
           const slotTime = slot.time.split(':');
@@ -180,7 +201,7 @@ const InstructorProfile = () => {
 
         // Now check aircraft availability
         const availableAircraftList = [];
-        
+
         for (const ac of aircraft) {
           const aircraftParams = {
             date: requestForm.lesson_date,
@@ -189,7 +210,7 @@ const InstructorProfile = () => {
           };
 
           const aircraftResponse = await calendarService.getAvailableTimeSlots(aircraftParams);
-          
+
           if (aircraftResponse.success) {
             const aircraftSlots = aircraftResponse.data.available_slots || [];
             const isAircraftAvailable = aircraftSlots.some(slot => {
@@ -259,7 +280,7 @@ const InstructorProfile = () => {
 
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!currentUser?.id || !instructorId) {
       showErrorToast('Unable to submit request. Please try again.');
       return;
@@ -293,12 +314,12 @@ const InstructorProfile = () => {
         duration_minutes: requestForm.duration_minutes || 60,
         notes: requestForm.notes || '',
         aircraft_id: requestForm.aircraft_id || null,
-        is_request: true, 
-        status: 'requested', 
+        is_request: true,
+        status: 'requested',
       };
 
       const response = await lessonService.createLesson(requestData);
-      
+
       if (response.success) {
         showSuccessToast('Session request submitted successfully!');
         setShowRequestModal(false);
@@ -322,9 +343,9 @@ const InstructorProfile = () => {
       }
     } catch (error) {
       console.error('Error submitting request:', error);
-      const errorMessage = error.message || error.response?.data?.message || 
+      const errorMessage = error.message || error.response?.data?.message ||
                           error.message || error.response?.data?.errors?.message ||
-                          error.message || 
+                          error.message ||
                           'Failed to submit session request';
       showErrorToast(errorMessage);
     } finally {
@@ -357,7 +378,7 @@ const InstructorProfile = () => {
 
 
 
-  
+
   const filteredFlightLogs = flightLogs.filter((log) => {
     if (!searchLogs) return true;
     const searchLower = searchLogs.toLowerCase();
@@ -394,6 +415,15 @@ const InstructorProfile = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">User Not Found</h2>
           <p className="text-gray-600">The user with ID {instructorId} could not be found.</p>
+          {userError && (
+            <p className="text-sm text-red-600 mt-2">Details: {userError}</p>
+          )}
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     );
@@ -411,9 +441,9 @@ const InstructorProfile = () => {
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200">
               {getInstructorImage(user) ? (
-                <img 
-                  src={getInstructorImage(user)} 
-                  alt={user?.name || 'Instructor'} 
+                <img
+                  src={getInstructorImage(user)}
+                  alt={user?.name || 'Instructor'}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -500,12 +530,12 @@ const InstructorProfile = () => {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center border border-gray-300 bg-white px-3 py-2 rounded-lg w-64">
                     <FiSearch className="text-gray-400 mr-2" size={16} />
-                    <input 
-                      type="text" 
-                      placeholder="Search flights..." 
+                    <input
+                      type="text"
+                      placeholder="Search flights..."
                       value={searchLogs}
                       onChange={(e) => setSearchLogs(e.target.value)}
-                      className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full" 
+                      className="outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent w-full"
                     />
                   </div>
                 </div>
@@ -572,15 +602,17 @@ const InstructorProfile = () => {
                         </p>
                       ) : null}
                     </div>
-                    <button className="p-2 hover:bg-gray-100 rounded menu-container relative" onClick={() => toggleMenu(index)}>
-                      <FiMoreVertical className="text-gray-500" />
-                      {openMenu === index && (
-                        <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                          <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => alert(`Edit: ${doc.title}`)}>Edit</button>
-                          <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100" onClick={() => handleDeleteDoc(doc.id, doc.title)}>Delete</button>
-                        </div>
-                      )}
-                    </button>
+                    {canManageDocs && (
+                      <button className="p-2 hover:bg-gray-100 rounded menu-container relative" onClick={() => toggleMenu(index)}>
+                        <FiMoreVertical className="text-gray-500" />
+                        {openMenu === index && (
+                          <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                            <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onClick={() => alert(`Edit: ${doc.title}`)}>Edit</button>
+                            <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100" onClick={() => handleDeleteDoc(doc.id, doc.title)}>Delete</button>
+                          </div>
+                        )}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -714,18 +746,18 @@ const InstructorProfile = () => {
                         <option value="">No aircraft selected</option>
                         {aircraft.map((ac) => {
                           // Check if this aircraft is available (only if we've checked availability)
-                          const isAvailable = availableAircraft.length > 0 
+                          const isAvailable = availableAircraft.length > 0
                             ? availableAircraft.some(avAc => avAc.id === ac.id)
                             : true; // Show all as available if we haven't checked yet
-                          
+
                           return (
-                            <option 
-                              key={ac.id} 
+                            <option
+                              key={ac.id}
                               value={ac.id}
                               disabled={!isAvailable && availableAircraft.length > 0 && !availabilityStatus.checking}
                               style={!isAvailable && availableAircraft.length > 0 ? { color: '#999' } : {}}
                             >
-                              {ac.name} {ac.model ? `(${ac.model})` : ''} 
+                              {ac.name} {ac.model ? `(${ac.model})` : ''}
                               {availableAircraft.length > 0 && !isAvailable && !availabilityStatus.checking ? ' (Not available)' : ''}
                               {isAvailable && availableAircraft.length > 0 && !availabilityStatus.checking ? ' ✓ Available' : ''}
                             </option>
@@ -745,8 +777,8 @@ const InstructorProfile = () => {
                 {/* Availability Status */}
                 {availabilityMessage && (
                   <div className={`p-3 rounded-lg text-sm ${
-                    availabilityMessage.includes('✅') 
-                      ? 'bg-green-50 text-green-800 border border-green-200' 
+                    availabilityMessage.includes('✅')
+                      ? 'bg-green-50 text-green-800 border border-green-200'
                       : availabilityMessage.includes('⚠️')
                       ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                       : 'bg-red-50 text-red-800 border border-red-200'
