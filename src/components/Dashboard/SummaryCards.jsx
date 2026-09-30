@@ -24,8 +24,8 @@ const SummaryCards = () => {
       try {
         const response = await api.get(ENDPOINTS.SUPPORT.LIST, {
           params: {
-            per_page: 1, 
-            status: 'open', 
+            per_page: 1,
+            status: 'open',
           },
         });
 
@@ -60,7 +60,7 @@ const SummaryCards = () => {
     // Fetch Upcoming Bookings (Reservations with pending/ongoing status)
     const fetchUpcomingBookings = async () => {
       try {
-        const response = await lessonService.getReservations({ 
+        const response = await lessonService.getReservations({
           per_page: 1,
           status: 'pending'
         });
@@ -79,13 +79,13 @@ const SummaryCards = () => {
     // Fetch Aircraft In Use (status: in_service)
     const fetchAircraftInUse = async () => {
       try {
-        const response = await aircraftService.getAircraft({ 
+        const response = await aircraftService.getAircraft({
           per_page: 1000,
           status: 'in_service'
         });
         if (response.success) {
           const aircraftList = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-          const inUseCount = aircraftList.filter(aircraft => 
+          const inUseCount = aircraftList.filter(aircraft =>
             aircraft.status === 'in_service' || aircraft.status === 'In Service'
           ).length;
           setAircraftInUse(inUseCount);
@@ -105,37 +105,54 @@ const SummaryCards = () => {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Widgets
-        bgColor="#E9F0FC"
-        textColor="#1751D0"
+        bgColor="#F7FAFF"
+        textColor="#475569"
         label="Total Flights"
         count={loading.flights ? '...' : totalFlights}
         viewLink="/logbook"
+        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        labelClassName="font-heading !mb-4 !text-sm !font-medium"
+        countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
+        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
       />
       <Widgets
-        bgColor="#E6F7E6"
-        textColor="#10B981"
+        bgColor="#F7FAFF"
+        textColor="#475569"
         label="Upcoming Bookings"
         count={loading.bookings ? '...' : upcomingBookings}
         viewLink="/calendar"
+        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        labelClassName="font-heading !mb-4 !text-sm !font-medium"
+        countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
+        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
       />
       <Widgets
-        bgColor="#FEE2E2"
-        textColor="#EF4444"
+        bgColor="#F7FAFF"
+        textColor="#475569"
         label="Aircraft In Use"
         count={loading.aircraft ? '...' : aircraftInUse}
         viewLink="/air-craft-profile"
+        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        labelClassName="font-heading !mb-4 !text-sm !font-medium"
+        countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
+        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
       />
       <Widgets
-        bgColor="#FFF1DA"
-        textColor="#EC980C"
+        bgColor="#F7FAFF"
+        textColor="#475569"
         label="Support Tickets"
         count={loading.tickets ? '...' : supportTicketsCount}
         viewLink="/support"
+        cardClassName="rounded-xl border border-[#E2EAF5] p-5 transition-colors hover:border-[#C8D8EC]"
+        labelClassName="font-heading !mb-4 !text-sm !font-medium"
+        countClassName="font-num !text-3xl !font-semibold !leading-none !tracking-tight !text-slate-950"
+        linkClassName="mt-5 block border-t border-[#E8EEF6] pt-3 !text-sm !font-medium"
       />
     </div>
   );
 };
 
 export default SummaryCards;
+
