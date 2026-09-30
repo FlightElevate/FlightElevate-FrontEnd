@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FiSearch, FiMenu, FiX } from 'react-icons/fi';
+import { HiBell } from 'react-icons/hi';
 import { HiChevronDown } from 'react-icons/hi';
-import { showConfirmDialog } from '../utils/notifications';
+import { showConfirmDialog, showSuccessToast, showInfoToast } from '../utils/notifications';
 import { userService } from '../api/services/userService';
 import { settingsService } from '../api/services/settingsService';
 import { getImageUrl } from '../utils/imageUtils';
-import Notifications from './Notifications';
+import echo from '../echo';
 
 const Header = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,10 +21,33 @@ const Header = ({ toggleSidebar }) => {
   const [searchUsers, setSearchUsers] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
   const searchResultsRef = useRef(null);
+
+  // Real-time notifications via Laravel Echo
+  useEffect(() => {
+    if (user?.id) {
+      const channel = echo.private(`user.${user.id}`);
+
+      channel.listen('.reservation.requested', (data) => {
+        showSuccessToast(`Student ${data.student_names || 'Someone'} has requested a new flight session!`);
+        setUnreadNotifications(prev => prev + 1);
+      });
+
+      channel.listen('.new.message', (data) => {
+        showInfoToast(`New message from ${data.sender_name || 'Someone'}`);
+        setUnreadNotifications(prev => prev + 1);
+      });
+
+      return () => {
+        channel.stopListening('.reservation.requested');
+        channel.stopListening('.new.message');
+      };
+    }
+  }, [user?.id]);
 
   // Fetch profile image from settings API (same as settings page)
   useEffect(() => {
@@ -435,7 +460,13 @@ const Header = ({ toggleSidebar }) => {
           {}
           <div className={`flex items-center gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 flex-shrink-0 ${searchOpen ? 'hidden md:flex' : 'flex'}`}>
             {}
-            <Notifications />
+            <button 
+              className="hidden min-[360px]:flex text-gray-600 hover:text-gray-900 transition-colors relative min-w-[44px] min-h-[44px] items-center justify-center p-2 rounded-lg hover:bg-gray-100"
+              aria-label="Notifications"
+            >
+              <HiBell size={20} />
+              {}
+            </button>
 
             {}
             <div className="hidden min-[360px]:block h-6 w-px bg-gray-300 flex-shrink-0"></div>
