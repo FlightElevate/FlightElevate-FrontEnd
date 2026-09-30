@@ -236,7 +236,7 @@ const StudentFlightSession = () => {
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="flight-session-title">
-      <div className="flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-1">
+      <div className="flex flex-wrap items-center gap-3 pb-1 sm:flex-nowrap">
         <div className="min-w-fit shrink-0">
           <p className="text-xs font-medium text-gray-500 sm:text-sm">Flight analytics</p>
           <h3 id="flight-session-title" className="font-heading mt-1 text-lg font-semibold tracking-tight text-gray-900 sm:text-xl">
@@ -329,5 +329,6 @@ const StudentFlightSession = () => {
 };
 
 export default StudentFlightSession;
+
 
 
