@@ -12,6 +12,42 @@ import {
 } from "recharts";
 import { logbookService } from "../../api/services/logbookService";
 
+const SINGLE_ENGINE_FIELDS = ["asel_hours", "ases_hours"];
+const MULTI_ENGINE_FIELDS = ["amel_hours", "ames_hours"];
+
+const toHours = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value !== "string") return 0;
+  const parsed = Number.parseFloat(value.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getLogbookEntries = (response) => {
+  const data = response?.data;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.entries)) return data.entries;
+  if (Array.isArray(response?.entries)) return response.entries;
+  return [];
+};
+
+const getPagination = (response) => {
+  const data = response?.data;
+  return response?.pagination || response?.meta || data?.pagination || data?.meta || {};
+};
+
+const getEngineHours = (entry) => {
+  const single = SINGLE_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+  const multi = MULTI_ENGINE_FIELDS.reduce((sum, field) => sum + toHours(entry?.[field]), 0);
+  if (single || multi) return { single, multi };
+
+  const total = toHours(entry?.total_hours);
+  const aircraftClass = `${entry?.aircraft_class || ""} ${entry?.aircraft_category || ""}`.toLowerCase();
+  if (["multi", "amel", "ames"].some((term) => aircraftClass.includes(term))) return { single: 0, multi: total };
+  if (["single", "asel", "ases"].some((term) => aircraftClass.includes(term))) return { single: total, multi: 0 };
+  return { single: 0, multi: 0 };
+};
+
 
 const CustomBarShape = (props) => {
   const { x, y, width, height, fill, value } = props;
@@ -49,14 +85,37 @@ const FSession = () => {
     const fetchLogbookData = async () => {
       setLoading(true);
       try {
-        const response = await logbookService.getEntries({
-          per_page: 1000 // Get all entries for accurate calculation
-        });
+        const allEntries = [];
+        const seenPages = new Set();
+        let page = 1;
+        const perPage = 500;
 
-        if (response.success) {
-          const logbooks = Array.isArray(response.data) ? response.data : [];
-          setLogbookData(logbooks);
+        while (page <= 1000) {
+          const response = await logbookService.getEntries({ page, per_page: perPage });
+          if (response?.success === false) throw new Error(response.message || "Could not load logbook entries.");
+          const entries = getLogbookEntries(response);
+          if (!entries.length) break;
+
+          const signature = entries.map((entry) => entry?.id ?? `${entry?.flight_date}-${entry?.created_at}`).join("|");
+          if (seenPages.has(signature)) break;
+          seenPages.add(signature);
+          allEntries.push(...entries);
+
+          const pagination = getPagination(response);
+          const currentPage = Number(pagination.current_page ?? pagination.page ?? page);
+          const lastPage = Number(pagination.last_page ?? pagination.total_pages ?? pagination.lastPage);
+          const total = Number(pagination.total ?? pagination.total_count ?? pagination.count);
+          if (Number.isFinite(lastPage) && lastPage > 0) {
+            if (currentPage >= lastPage) break;
+          } else if (Number.isFinite(total) && total >= 0) {
+            if (allEntries.length >= total) break;
+          } else if (entries.length < perPage) {
+            break;
+          }
+          page += 1;
         }
+
+        setLogbookData(allEntries);
       } catch (error) {
         console.error('Error fetching logbook data:', error);
         setLogbookData([]);
@@ -67,21 +126,6 @@ const FSession = () => {
 
     fetchLogbookData();
   }, []);
-
-  // Helper function to determine if aircraft is single or multi engine
-  const isSingleEngine = (aircraftClass) => {
-    if (!aircraftClass) return null;
-    const classLower = aircraftClass.toLowerCase();
-    // ASEL = Airplane Single Engine Land, ASES = Airplane Single Engine Sea
-    return classLower.includes('asel') || classLower.includes('ases');
-  };
-
-  const isMultiEngine = (aircraftClass) => {
-    if (!aircraftClass) return null;
-    const classLower = aircraftClass.toLowerCase();
-    // AMEL = Airplane Multi Engine Land, AMES = Airplane Multi Engine Sea
-    return classLower.includes('amel') || classLower.includes('ames');
-  };
 
   // Build buckets for the selected window, keeping the organization-wide logbook data.
   const processedData = useMemo(() => {
@@ -129,10 +173,9 @@ const FSession = () => {
         : timePeriod === '30d' ? dateKey(date) : monthKey(date);
       const bucket = dataMap[key];
       if (!bucket) return;
-      const totalHours = Number.parseFloat(logbook.total_hours) || 0;
-      const aircraftClass = `${logbook.aircraft_class || ''} ${logbook.aircraft_category || ''}`;
-      if (isSingleEngine(aircraftClass)) bucket.single += totalHours;
-      else if (isMultiEngine(aircraftClass)) bucket.multi += totalHours;
+      const engineHours = getEngineHours(logbook);
+      bucket.single += engineHours.single;
+      bucket.multi += engineHours.multi;
     });
 
     return Object.values(dataMap);
@@ -253,5 +296,6 @@ const FSession = () => {
 };
 
 export default FSession;
+
 
 
