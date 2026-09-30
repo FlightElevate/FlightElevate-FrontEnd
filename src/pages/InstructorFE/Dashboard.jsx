@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import InstructorSummaryCards from '../../components/Dashboard/InstructorSummaryCards';
 import InstructorFlightSession from '../../components/Dashboard/InstructorFlightSession';
-import InstructorFlightLogs from './InstructorFlightLogs';
+import InstructorFlightLogs from '../../components/Dashboard/InstructorFlightLogs';
 
 const InstructorDashboard = React.memo(() => {
   const { user } = useAuth();
