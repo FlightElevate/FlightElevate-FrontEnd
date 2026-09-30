@@ -191,7 +191,7 @@ const StudentFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs',
   return (
     <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/70">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-200 bg-slate-50/70">
         <h2 className={`${MONO} text-xs tracking-[0.3em] uppercase text-slate-500`}>
           {title}{station ? ` · ${station}` : ''}
         </h2>
@@ -201,13 +201,13 @@ const StudentFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs',
       </div>
 
       {/* Filter chips */}
-      <div className="flex gap-2 px-6 pt-4 overflow-x-auto">
+      <div className="flex flex-wrap gap-2 px-4 sm:px-6 pt-4">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             type="button"
             onClick={() => changeFilter(f.id)}
-            className={`${MONO} px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.1em] border whitespace-nowrap transition-colors ${
+            className={`${MONO} px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.06em] sm:tracking-[0.1em] border whitespace-nowrap transition-colors ${
               filter === f.id
                 ? 'bg-slate-800 text-white border-slate-800'
                 : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
@@ -219,7 +219,7 @@ const StudentFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs',
       </div>
 
       {/* Rows (scrolls; loads more as you reach the bottom) */}
-      <div ref={scrollRef} onScroll={onScroll} className="p-4 sm:p-6 space-y-3 max-h-[600px] overflow-y-auto">
+      <div ref={scrollRef} onScroll={onScroll} className="p-3 sm:p-6 space-y-3 max-h-[70vh] md:max-h-[600px] overflow-y-auto">
         {loading ? (
           <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>Loading flight logs…</p>
         ) : error ? (
@@ -237,42 +237,42 @@ const StudentFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs',
                   key={f.id}
                   type="button"
                   onClick={() => navigate(`/reservations/${f.id}${statusOf(f) === 'completed' ? '?tab=checkin' : ''}`)}
-                  className="relative w-full flex items-center gap-4 sm:gap-6 text-left bg-white border border-slate-200 rounded-2xl pl-6 pr-4 py-4 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
+                  className="relative w-full text-left bg-white border border-slate-200 rounded-2xl pl-5 sm:pl-6 pr-4 py-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3 md:flex md:items-center md:gap-6 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden"
                 >
                   <span className={`absolute left-0 top-0 bottom-0 w-1.5 ${st.accent}`} />
 
-                  {/* Tail + aircraft */}
-                  <div className="w-28 sm:w-40 flex-shrink-0">
+                  {/* Tail + aircraft (phone: top-left) */}
+                  <div className="col-start-1 row-start-1 min-w-0 md:w-40 md:flex-shrink-0">
                     <div className={`${MONO} text-[19px] font-bold text-slate-900 tracking-[0.04em] truncate mb-1.5`}>
                       {tailOf(f) ?? '—'}
                     </div>
-                    <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400 truncate`}>
+                    <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
                       {aircraftSub || f.aircraft?.name || 'No aircraft'}
                     </div>
                   </div>
 
-                  {/* Student + flight type */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
+                  {/* Name + flight type (phone: bottom-left) */}
+                  <div className="col-start-1 row-start-2 min-w-0 md:flex-1">
+                    <div className="text-lg md:text-xl font-semibold text-slate-900 truncate mb-1.5 tracking-tight">
                       {instructorsLabel(f.instructors)}
                     </div>
-                    <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400 truncate`}>
+                    <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400 truncate`}>
                       {detail || f.title || '—'}
                     </div>
                   </div>
 
-                  {/* Time */}
-                  <div className="hidden sm:block text-right flex-shrink-0">
-                    <div className={`${MONO} text-[17px] text-sky-600 tracking-[0.04em] mb-1.5`}>
+                  {/* Time (phone: bottom-right) */}
+                  <div className="col-start-2 row-start-2 text-right md:flex-shrink-0">
+                    <div className={`${MONO} text-[15px] md:text-[17px] text-sky-600 tracking-[0.02em] md:tracking-[0.04em] mb-1.5 whitespace-nowrap`}>
                       {timeRange(f)}
                     </div>
-                    <div className={`${MONO} text-xs uppercase tracking-[0.16em] text-slate-400`}>
+                    <div className={`${MONO} text-[11px] md:text-xs uppercase tracking-[0.08em] md:tracking-[0.16em] text-slate-400`}>
                       {fmtDate(dateOf(f))}
                     </div>
                   </div>
 
-                  {/* Status */}
-                  <span className={`${MONO} flex-shrink-0 w-28 text-center px-3 py-2 rounded-lg border text-xs font-bold tracking-[0.14em] ${st.pill}`}>
+                  {/* Status (phone: top-right) */}
+                  <span className={`${MONO} col-start-2 row-start-1 justify-self-end md:flex-shrink-0 md:w-28 text-center px-3 py-1.5 md:py-2 rounded-lg border text-[11px] md:text-xs font-bold tracking-[0.1em] md:tracking-[0.14em] ${st.pill}`}>
                     {st.label}
                   </span>
                 </button>
@@ -289,7 +289,7 @@ const StudentFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs',
       </div>
 
       {/* Footer */}
-      <div className={`${MONO} flex flex-wrap items-center justify-between gap-2 px-6 py-4 border-t border-slate-200 bg-slate-50/70 text-xs tracking-[0.12em] text-slate-500`}>
+      <div className={`${MONO} flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-4 border-t border-slate-200 bg-slate-50/70 text-[11px] sm:text-xs tracking-[0.08em] sm:tracking-[0.12em] text-slate-500`}>
         <span>
           <span className="text-emerald-600 font-semibold">{counts.completed ?? 0} completed</span>
           {' · '}
@@ -306,3 +306,4 @@ const StudentFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs',
 };
 
 export default StudentFlightLogs;
+
