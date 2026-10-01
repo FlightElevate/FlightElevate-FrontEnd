@@ -1,6 +1,4 @@
 
-
-Upcomingbookings · JSX
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { FiSearch, FiMoreVertical, FiCalendar, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
