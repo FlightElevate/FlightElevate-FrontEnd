@@ -65,7 +65,8 @@ const summaryOf = (r) => {
 const isAdmin = (user) => [user?.role, ...(Array.isArray(user?.roles) ? user.roles : [])]
   .some((r) => ['admin', 'administrator'].includes(String(typeof r === 'string' ? r : r?.name || r?.slug || '').toLowerCase()));
 
-export const NotificationProvider = ({ children, pollMs = 30000, pageSize = 20, toasts = true }) => {
+// Keep false until the backend notification endpoint is ready; reservation-based local notices still work.
+export const NotificationProvider = ({ children, pollMs = 30000, pageSize = 20, toasts = true, useBackendFeed = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const userId = user?.id;
@@ -119,21 +120,24 @@ export const NotificationProvider = ({ children, pollMs = 30000, pageSize = 20, 
     inFlight.current = true;
     setLoading(true);
     try {
-      // Use the backend feed when available; otherwise compare reservation snapshots locally.
-      try {
-        const res = await notificationService.list({ per_page: pageSize });
-        if (res?.success) {
-          const list = asList(res);
-          if (!list) throw new Error('Notifications API returned an unexpected response shape');
-          setItems(list);
-          setUnreadCount(res.unread_count ?? list.filter((n) => !n.read_at).length);
-          const fresh = list.filter((n) => !seen.current.has(n.id));
-          list.forEach((n) => seen.current.add(n.id));
-          if (primed.current && toasts) fresh.filter((n) => !n.read_at).reverse().forEach(announce);
-          primed.current = true;
-          return;
-        }
-      } catch { /* Backend notification routes are not ready; continue with reservations. */ }
+      // Skip the unavailable notifications endpoint by default. The local reservation
+      // snapshot fallback below continues to use the working reservations endpoint.
+      if (useBackendFeed) {
+        try {
+          const res = await notificationService.list({ per_page: pageSize });
+          if (res?.success) {
+            const list = asList(res);
+            if (!list) throw new Error('Notifications API returned an unexpected response shape');
+            setItems(list);
+            setUnreadCount(res.unread_count ?? list.filter((n) => !n.read_at).length);
+            const fresh = list.filter((n) => !seen.current.has(n.id));
+            list.forEach((n) => seen.current.add(n.id));
+            if (primed.current && toasts) fresh.filter((n) => !n.read_at).reverse().forEach(announce);
+            primed.current = true;
+            return;
+          }
+        } catch { /* Backend notification routes are not ready; continue with reservations. */ }
+      }
 
       const response = await reservationService.getReservations({ per_page: 1000 });
       const reservations = reservationList(response);
@@ -188,7 +192,7 @@ export const NotificationProvider = ({ children, pollMs = 30000, pageSize = 20, 
       inFlight.current = false;
       setLoading(false);
     }
-  }, [userId, user, pageSize, toasts, announce]);
+  }, [userId, user, pageSize, toasts, announce, useBackendFeed]);
 
   // Reset when the signed-in user changes (login/logout/switch account).
   useEffect(() => {
