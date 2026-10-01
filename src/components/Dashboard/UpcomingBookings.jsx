@@ -1,14 +1,32 @@
+
+
+Upcomingbookings · JSX
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { FiSearch, FiMoreVertical, FiCalendar, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { reservationService } from "../../api/services/reservationService";
+import { registerCacheClear } from "../../lib/sessionCache";
  
 const MAX_ROWS = 5;
 const FETCH_SIZE = 100;
 const MENU_WIDTH = 192;
 const MENU_HEIGHT = 130;
 const INACTIVE_STATUSES = ["cancelled", "canceled", "completed", "no_show", "no-show"];
+const STALE_MS = 60 * 1000; // cached bookings younger than this are shown without a refetch
+const SLOW_MS = 12 * 1000;  // after this long, tell the user the load is slow and offer a retry
+ 
+/* ---------- session cache ----------
+   In memory only: survives switching dashboard modules, wiped when the tab closes,
+   the page refreshes, or the user logs out (see src/lib/sessionCache.js). */
+const cache = { gen: 0, bookings: null, stats: null, fetchedAt: 0 };
+ 
+registerCacheClear(() => {
+  cache.gen += 1; // responses still in flight from the previous session are discarded
+  cache.bookings = null;
+  cache.stats = null;
+  cache.fetchedAt = 0;
+});
  
 /* ---------- helpers ---------- */
  
@@ -46,7 +64,7 @@ const TIME_KEYS = [
 const isFullDateTime = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}[T ]/.test(v);
 const isTimeOnly = (v) => typeof v === "string" && /^\d{1,2}:\d{2}/.test(v);
 const validDate = (d) => d instanceof Date && !Number.isNaN(d.getTime());
-
+ 
 const parseDateValue = (value) => {
   if (value instanceof Date) return validDate(value) ? value : null;
   if (typeof value === "number") {
@@ -62,7 +80,7 @@ const parseDateValue = (value) => {
   const d = new Date(text.replace(" ", "T"));
   return validDate(d) ? d : null;
 };
-
+ 
 /** Reads common reservation date fields from the record and nested schedule objects. */
 const parseSlotStart = (item) => {
   const sources = [item, item?.reservation, item?.booking, item?.schedule, item?.slot, item?.data]
@@ -70,10 +88,10 @@ const parseSlotStart = (item) => {
   const start = sources.map((source) => pick(source, START_KEYS)).find(Boolean);
   const dateValue = sources.map((source) => pick(source, DATE_KEYS)).find(Boolean);
   const time = sources.map((source) => pick(source, TIME_KEYS)).find(isTimeOnly);
-
+ 
   const startDate = parseDateValue(start);
   if (startDate && (isFullDateTime(start) || start instanceof Date)) return { date: startDate, hasTime: true };
-
+ 
   const date = parseDateValue(dateValue);
   if (date && isFullDateTime(dateValue)) return { date, hasTime: true };
   if (date && time) {
@@ -143,20 +161,30 @@ const extractList = (response) => {
  
 const UpcomingBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [bookings, setBookings] = useState([]);
-  const [stats, setStats] = useState(null); // why rows were dropped, shown when the list is empty
-  const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState(cache.bookings ?? []);
+  const [stats, setStats] = useState(cache.stats); // why rows were dropped, shown when the list is empty
+  const [loading, setLoading] = useState(!cache.bookings); // spinner only when nothing is cached
+  const [slow, setSlow] = useState(false);
   const [error, setError] = useState(null);
   const [menu, setMenu] = useState(null);
   const menuRef = useRef(null);
+  const mountedRef = useRef(true);
+  const requestRef = useRef(0);  // id of the latest request
+  const appliedRef = useRef(0);  // id of the newest response already shown
   const navigate = useNavigate();
  
-  const fetchBookings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchBookings = useCallback(async (silent = false) => {
+    const requestId = ++requestRef.current;
+    const gen = cache.gen;
+    if (!silent) {
+      setLoading(true);
+      setSlow(false);
+      setError(null);
+    }
     try {
       // Only per_page, like the original request, so an unsupported filter can't empty the result.
       const response = await reservationService.getReservations({ per_page: FETCH_SIZE });
+      if (gen !== cache.gen) return; // logged out while this request was in flight: drop the result
  
       if (response?.success === false) throw new Error(response?.message || "Could not load bookings");
  
@@ -179,19 +207,53 @@ const UpcomingBookings = () => {
       }
  
       upcoming.sort((a, b) => a.startsAt - b.startsAt);
-      setBookings(upcoming);
-      setStats(counts);
+ 
+      // Newest response wins. An older, slower response never overwrites a newer one.
+      if (requestId > appliedRef.current) {
+        appliedRef.current = requestId;
+        cache.bookings = upcoming;
+        cache.stats = counts;
+        cache.fetchedAt = Date.now();
+        if (mountedRef.current) {
+          setBookings(upcoming);
+          setStats(counts);
+          setError(null);
+        }
+      }
+      if (mountedRef.current) {
+        setLoading(false);
+        setSlow(false);
+      }
     } catch (err) {
       console.error("Error fetching upcoming bookings", err);
-      setError(err?.message || "Could not load bookings");
-    } finally {
-      setLoading(false);
+      if (!mountedRef.current) return;
+      // A failed background refresh keeps showing the bookings we already have.
+      if (!silent || !cache.bookings) setError(err?.message || "Could not load bookings");
+      if (requestId === requestRef.current) {
+        setLoading(false);
+        setSlow(false);
+      }
     }
   }, []);
  
   useEffect(() => {
-    fetchBookings();
+    mountedRef.current = true;
+    if (!cache.bookings) {
+      fetchBookings(false);                                   // nothing cached: normal first load
+    } else if (Date.now() - cache.fetchedAt > STALE_MS) {
+      fetchBookings(true);                                    // cached but old: show it now, refresh quietly
+    }
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchBookings]);
+ 
+  // If the first load drags on, say so and offer a retry instead of spinning silently.
+  useEffect(() => {
+    if (!loading) return undefined;
+    const timer = setTimeout(() => setSlow(true), SLOW_MS);
+    return () => clearTimeout(timer);
+  }, [loading]);
  
   useEffect(() => {
     if (!menu) return;
@@ -266,6 +328,7 @@ const UpcomingBookings = () => {
       if (res && res.success === false) throw new Error(res.message);
  
       setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      if (cache.bookings) cache.bookings = cache.bookings.filter((b) => b.id !== bookingId);
       Swal.fire("Cancelled", "The booking has been cancelled.", "success");
     } catch (err) {
       console.error("Cancellation error:", err);
@@ -288,7 +351,16 @@ const UpcomingBookings = () => {
         <div>
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Upcoming bookings</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            {loading ? "Loading…" : `${bookings.length} scheduled from today onward`}
+            {loading
+              ? slow
+                ? "Still loading. This is taking longer than usual. "
+                : "Loading…"
+              : `${bookings.length} scheduled from today onward`}
+            {loading && slow && (
+              <button type="button" onClick={() => fetchBookings(false)} className="text-blue-700 hover:underline">
+                Try again
+              </button>
+            )}
           </p>
         </div>
         <div className="flex w-full sm:w-[260px] min-w-0 items-center border border-gray-200 bg-white px-3 py-2 rounded-lg focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-400">
@@ -312,7 +384,7 @@ const UpcomingBookings = () => {
         ) : error ? (
           <div className="py-6 text-center">
             <p className="text-sm text-red-600 mb-3">{error}</p>
-            <button onClick={fetchBookings} className="inline-flex items-center gap-2 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
+            <button onClick={() => fetchBookings(false)} className="inline-flex items-center gap-2 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
               <FiRefreshCw size={14} /> Try again
             </button>
           </div>
@@ -351,7 +423,7 @@ const UpcomingBookings = () => {
           </div>
         )}
       </div>
-
+ 
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[720px]">
           <thead>
@@ -382,7 +454,7 @@ const UpcomingBookings = () => {
                 <td colSpan="7" className="text-center py-10">
                   <p className="text-sm text-red-600 mb-3">{error}</p>
                   <button
-                    onClick={fetchBookings}
+                    onClick={() => fetchBookings(false)}
                     className="inline-flex items-center gap-2 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50"
                   >
                     <FiRefreshCw size={14} /> Try again
@@ -476,3 +548,4 @@ const UpcomingBookings = () => {
  
 export default UpcomingBookings;
  
+
