@@ -37,10 +37,12 @@ const START_KEYS = [
   "startTime", "booking_start", "flight_start", "departure_time", "date_time", "datetime",
 ];
 const DATE_KEYS = [
-  "reservation_date", "date", "start_date", "scheduled_date", "booking_date", "flight_date",
+  "full_date", "reservation_date", "date", "start_date", "scheduled_date", "booking_date", "flight_date",
   "reservationDate", "scheduledDate", "startDate", "bookingDate",
 ];
-const TIME_KEYS = ["time", "start_time", "startTime", "departure_time", "scheduled_time"];
+const TIME_KEYS = [
+  "full_time", "start_time", "startTime", "departure_time", "scheduled_time", "time",
+];
 const isFullDateTime = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}[T ]/.test(v);
 const isTimeOnly = (v) => typeof v === "string" && /^\d{1,2}:\d{2}/.test(v);
 const validDate = (d) => d instanceof Date && !Number.isNaN(d.getTime());
