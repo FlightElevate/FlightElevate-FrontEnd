@@ -205,6 +205,15 @@ export const ENDPOINTS = {
   },
 
 
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    MARK_READ: (id) => `/notifications/${id}/read`,
+    READ_ALL: '/notifications/read-all',
+    DELETE: (id) => `/notifications/${id}`,
+    PREFERENCES: '/notifications/preferences',
+  },
+
 };
 
 
@@ -215,4 +224,3 @@ export const DEFAULT_CONFIG = {
   },
   withCredentials: true,
 };
-
