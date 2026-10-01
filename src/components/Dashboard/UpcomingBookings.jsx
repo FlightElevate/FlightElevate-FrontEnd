@@ -3,141 +3,163 @@ import { FiSearch, FiMoreVertical, FiCalendar, FiRefreshCw } from "react-icons/f
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { reservationService } from "../../api/services/reservationService";
-
+ 
 const MAX_ROWS = 5;
-const FETCH_SIZE = 50; // fetch more than we show so past/cancelled rows can't starve the list
+const FETCH_SIZE = 100;
 const MENU_WIDTH = 192;
 const MENU_HEIGHT = 130;
 const INACTIVE_STATUSES = ["cancelled", "canceled", "completed", "no_show", "no-show"];
-
+ 
 /* ---------- helpers ---------- */
-
+ 
 const fullName = (p) => {
   if (!p) return "";
-  if (p.name) return p.name.trim();
+  if (typeof p === "string") return p.trim();
+  if (p.name) return String(p.name).trim();
   return `${p.first_name || ""} ${p.last_name || ""}`.trim();
 };
-
+ 
 const joinNames = (list) => {
   const names = list.map(fullName).filter(Boolean);
   if (names.length === 0) return "—";
   if (names.length === 1) return names[0];
   return `${names[0]} +${names.length - 1}`;
 };
-
+ 
+const pick = (obj, keys) => {
+  for (const k of keys) if (obj?.[k] != null && obj[k] !== "") return obj[k];
+  return null;
+};
+ 
+const isFullDateTime = (v) => typeof v === "string" && /\d{4}-\d{2}-\d{2}/.test(v);
+const isTimeOnly = (v) => typeof v === "string" && /^\d{1,2}:\d{2}/.test(v);
+ 
 /**
- * Builds a local Date for the slot start.
- * Handles: full ISO start_time, "HH:mm[:ss]" start_time + reservation_date, or date only.
- * Avoids `new Date("YYYY-MM-DD")`, which parses as UTC and shows the previous day west of UTC.
+ * Local Date for the slot start. Tries the common field names; handles
+ * full ISO datetimes, date + "HH:mm[:ss]" pairs, and date-only values.
+ * (Avoids new Date("YYYY-MM-DD"), which parses as UTC and can show the previous day.)
  */
 const parseSlotStart = (item) => {
-  const start = item.start_time;
-  const date = item.reservation_date || item.date;
-
-  if (start && /\d{4}-\d{2}-\d{2}/.test(start)) {
+  const start = pick(item, ["start_time", "start_at", "starts_at", "scheduled_at", "start", "start_datetime"]);
+  const date = pick(item, ["reservation_date", "date", "start_date", "scheduled_date"]);
+ 
+  if (isFullDateTime(start)) {
     const d = new Date(start.replace(" ", "T"));
-    return isNaN(d) ? null : { date: d, hasTime: true };
+    if (!isNaN(d)) return { date: d, hasTime: true };
   }
   if (date) {
     const day = String(date).slice(0, 10);
-    if (start && /^\d{1,2}:\d{2}/.test(start)) {
-      const d = new Date(`${day}T${start.padStart(start.length === 4 ? 5 : start.length, "0")}`);
-      return isNaN(d) ? null : { date: d, hasTime: true };
+    if (isTimeOnly(start)) {
+      const [h, m] = start.split(":");
+      const d = new Date(`${day}T${h.padStart(2, "0")}:${m.slice(0, 2)}:00`);
+      if (!isNaN(d)) return { date: d, hasTime: true };
+    }
+    if (isFullDateTime(date) && String(date).length > 10 && !/T00:00:00/.test(String(date))) {
+      const d = new Date(String(date).replace(" ", "T"));
+      if (!isNaN(d)) return { date: d, hasTime: true };
     }
     const d = new Date(`${day}T00:00:00`);
-    return isNaN(d) ? null : { date: d, hasTime: false };
+    if (!isNaN(d)) return { date: d, hasTime: false };
   }
   return null;
 };
-
+ 
 const startOfToday = () => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   return d;
 };
-
+ 
 const formatDayLabel = (d) => {
-  const today = startOfToday();
-  const diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - today.getTime()) / 86400000);
+  const diff = Math.round((new Date(d).setHours(0, 0, 0, 0) - startOfToday().getTime()) / 86400000);
   if (diff === 0) return "Today";
   if (diff === 1) return "Tomorrow";
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 };
-
-const formatTime = (d) =>
-  d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-
+ 
+const formatTime = (d) => d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+ 
 const normalize = (item) => {
   const slot = parseSlotStart(item);
   if (!slot) return null;
-
+ 
   const students = item.students?.length ? item.students : item.student ? [item.student] : [];
-  const instructors = item.instructors?.length
-    ? item.instructors
-    : item.instructor
-    ? [item.instructor]
-    : [];
-
+  const instructors = item.instructors?.length ? item.instructors : item.instructor ? [item.instructor] : [];
+  const studentFallback = pick(item, ["student_name"]);
+  const instructorFallback = pick(item, ["instructor_name", "cfi_name"]);
+ 
+  const aircraftObj = item.aircraft;
+  const aircraft =
+    pick(aircraftObj || {}, ["registration", "tail_number", "serial_number", "name", "model"]) ||
+    pick(item, ["aircraft_registration", "aircraft_name", "tail_number"]) ||
+    "—";
+ 
+  const dayLabel = formatDayLabel(slot.date);
   return {
     id: item.id,
     status: String(item.status || "").toLowerCase(),
     startsAt: slot.date,
-    dayLabel: formatDayLabel(slot.date),
-    isToday: formatDayLabel(slot.date) === "Today",
+    dayLabel,
+    isToday: dayLabel === "Today",
     time: slot.hasTime ? formatTime(slot.date) : "—",
-    student: joinNames(students),
-    instructor: joinNames(instructors),
-    aircraft:
-      item.aircraft?.registration ||
-      item.aircraft?.serial_number ||
-      item.aircraft?.name ||
-      item.aircraft?.model ||
-      "—",
-    flightType: item.flight_type || item.type || item.lesson_type || "Flight",
+    student: students.length ? joinNames(students) : studentFallback || "—",
+    instructor: instructors.length ? joinNames(instructors) : instructorFallback || "—",
+    aircraft,
+    flightType: pick(item, ["flight_type", "type", "lesson_type"]) || "Flight",
   };
 };
-
+ 
+const extractList = (response) => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.data?.data)) return response.data.data;
+  if (Array.isArray(response?.data?.items)) return response.data.items;
+  if (Array.isArray(response?.reservations)) return response.reservations;
+  return [];
+};
+ 
 /* ---------- component ---------- */
-
+ 
 const UpcomingBookings = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [bookings, setBookings] = useState([]);
+  const [stats, setStats] = useState(null); // why rows were dropped, shown when the list is empty
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [menu, setMenu] = useState(null); // { id, top, left }
+  const [menu, setMenu] = useState(null);
   const menuRef = useRef(null);
   const navigate = useNavigate();
-
+ 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const today = new Date();
-      const isoToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
-        today.getDate()
-      ).padStart(2, "0")}`;
-
-      // NOTE: adjust param names to whatever your reservations API expects.
-      const response = await reservationService.getReservations({
-        per_page: FETCH_SIZE,
-        from_date: isoToday,
-        sort: "reservation_date",
-        order: "asc",
-      });
-
-      if (!response?.success) throw new Error(response?.message || "Could not load bookings");
-
-      const list = Array.isArray(response.data) ? response.data : response.data?.data || [];
-
-      // Server filter is a hint; enforce the rule client-side so it always holds.
+      // Only per_page, like the original request, so an unsupported filter can't empty the result.
+      const response = await reservationService.getReservations({ per_page: FETCH_SIZE });
+ 
+      if (response?.success === false) throw new Error(response?.message || "Could not load bookings");
+ 
+      const list = extractList(response);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[UpcomingBookings] response:", response);
+        console.log("[UpcomingBookings] first record:", list[0]);
+      }
+ 
       const cutoff = startOfToday();
-      const upcoming = list
-        .map(normalize)
-        .filter(Boolean)
-        .filter((b) => b.startsAt >= cutoff && !INACTIVE_STATUSES.includes(b.status))
-        .sort((a, b) => a.startsAt - b.startsAt);
-
+      const counts = { raw: list.length, noDate: 0, past: 0, inactive: 0 };
+      const upcoming = [];
+ 
+      for (const item of list) {
+        const b = normalize(item);
+        if (!b) counts.noDate++;
+        else if (b.startsAt < cutoff) counts.past++;
+        else if (INACTIVE_STATUSES.includes(b.status)) counts.inactive++;
+        else upcoming.push(b);
+      }
+ 
+      upcoming.sort((a, b) => a.startsAt - b.startsAt);
       setBookings(upcoming);
+      setStats(counts);
     } catch (err) {
       console.error("Error fetching upcoming bookings", err);
       setError(err?.message || "Could not load bookings");
@@ -145,12 +167,11 @@ const UpcomingBookings = () => {
       setLoading(false);
     }
   }, []);
-
+ 
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
-
-  // Close menu on outside click, Escape, scroll, or resize.
+ 
   useEffect(() => {
     if (!menu) return;
     const close = () => setMenu(null);
@@ -169,21 +190,17 @@ const UpcomingBookings = () => {
       window.removeEventListener("resize", close);
     };
   }, [menu]);
-
+ 
   const visibleBookings = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     const filtered = q
       ? bookings.filter((b) =>
-          [b.student, b.instructor, b.aircraft, b.dayLabel, b.flightType, b.time]
-            .join(" ")
-            .toLowerCase()
-            .includes(q)
+          [b.student, b.instructor, b.aircraft, b.dayLabel, b.flightType, b.time].join(" ").toLowerCase().includes(q)
         )
       : bookings;
     return filtered.slice(0, MAX_ROWS);
   }, [bookings, searchTerm]);
-
-  // Fixed-position menu so the table's overflow container can't clip it.
+ 
   const handleMenuToggle = (e, id) => {
     e.stopPropagation();
     if (menu?.id === id) return setMenu(null);
@@ -195,10 +212,10 @@ const UpcomingBookings = () => {
       left: Math.max(8, rect.right - MENU_WIDTH),
     });
   };
-
+ 
   const handleCancelBooking = async (bookingId) => {
     setMenu(null);
-
+ 
     const { value: reason } = await Swal.fire({
       title: "Cancel booking",
       input: "textarea",
@@ -211,7 +228,7 @@ const UpcomingBookings = () => {
       inputValidator: (value) => (!value || !value.trim() ? "You need to provide a reason" : undefined),
     });
     if (!reason) return;
-
+ 
     const confirmResult = await Swal.fire({
       title: "Are you sure?",
       text: "You are about to cancel this booking permanently.",
@@ -222,15 +239,11 @@ const UpcomingBookings = () => {
       confirmButtonText: "Yes, cancel it",
     });
     if (!confirmResult.isConfirmed) return;
-
+ 
     try {
-      // If deleteReservation uses axios.delete, the body must be sent as { data: {...} }
-      // inside the service, otherwise cancel_reason is silently dropped.
-      const res = await reservationService.deleteReservation(bookingId, {
-        cancel_reason: reason.trim(),
-      });
+      const res = await reservationService.deleteReservation(bookingId, { cancel_reason: reason.trim() });
       if (res && res.success === false) throw new Error(res.message);
-
+ 
       setBookings((prev) => prev.filter((b) => b.id !== bookingId));
       Swal.fire("Cancelled", "The booking has been cancelled.", "success");
     } catch (err) {
@@ -238,12 +251,18 @@ const UpcomingBookings = () => {
       Swal.fire("Error", err?.message || "Failed to cancel the booking. Please try again.", "error");
     }
   };
-
+ 
   const activeBooking = menu ? bookings.find((b) => b.id === menu.id) : null;
-
+ 
+  const emptyHint =
+    stats && stats.raw > 0 && bookings.length === 0
+      ? `${stats.raw} loaded: ${stats.noDate} without a readable date, ${stats.past} in the past, ${stats.inactive} cancelled/completed`
+      : stats && stats.raw === 0
+      ? "The reservations API returned no records"
+      : null;
+ 
   return (
     <div className="bg-white shadow-sm rounded-xl border border-gray-100">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-6 pb-4">
         <div>
           <h2 className="text-xl font-semibold text-gray-800">Upcoming bookings</h2>
@@ -263,8 +282,7 @@ const UpcomingBookings = () => {
           />
         </div>
       </div>
-
-      {/* Table */}
+ 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px]">
           <thead>
@@ -337,14 +355,14 @@ const UpcomingBookings = () => {
                   <p className="text-sm text-gray-500">
                     {searchTerm ? "No bookings match your search" : "No upcoming bookings"}
                   </p>
+                  {!searchTerm && emptyHint && <p className="text-xs text-gray-400 mt-1">{emptyHint}</p>}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-
-      {/* Footer */}
+ 
       {!loading && !error && bookings.length > MAX_ROWS && !searchTerm && (
         <div className="px-6 py-3 border-t border-gray-100 text-right">
           <button onClick={() => navigate("/reservations")} className="text-sm font-medium text-blue-700 hover:underline">
@@ -352,8 +370,7 @@ const UpcomingBookings = () => {
           </button>
         </div>
       )}
-
-      {/* Action menu (fixed so table overflow never clips it) */}
+ 
       {menu && activeBooking && (
         <div
           ref={menuRef}
@@ -387,5 +404,7 @@ const UpcomingBookings = () => {
     </div>
   );
 };
-
+ 
 export default UpcomingBookings;
+ 
+
