@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck, FiArrowLeft } from "react-icons/fi";
+import { FiSearch, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck, FiArrowLeft } from "react-icons/fi";
 import { useParams, useNavigate } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
-import profileImg from "../../../assets/img/profile.jpg";
 import { userService } from "../../../api/services/userService";
 import { documentService } from "../../../api/services/documentService";
-import { lessonService } from "../../../api/services/lessonService";
 import { reservationService } from "../../../api/services/reservationService";
-import { settingsService } from "../../../api/services/settingsService";
 import { locationService } from "../../../api/services/locationService";
-import { logbookService } from "../../../api/services/logbookService";
-import { showDeleteConfirm, showSuccessToast, showErrorToast, showBlockUserConfirm } from "../../../utils/notifications";
-import { formatDate, formatTime } from "../../../utils/dateFormatter";
+import { showSuccessToast, showErrorToast, showBlockUserConfirm } from "../../../utils/notifications";
 import { getImageUrl } from "../../../utils/imageUtils";
 import { safeDisplay } from "../../../utils/safeDisplay";
 import EditUserModal from "../../../components/User/EditUserModal";
+import UserDocumentsTab from "../../../components/User/UserDocumentsTab";
 import { useAuth } from "../../../context/AuthContext";
 
 const getPersonalAvatar = (profile) =>
@@ -25,6 +20,23 @@ const getPersonalAvatar = (profile) =>
   profile?.settings?.avatar ||
   profile?.user_settings?.avatar ||
   null;
+
+// Turns a reservation's date/time fields into a real moment so the newest completed flight can be found.
+const getFlightMoment = (log) => {
+  const raw = log.lesson_date || log.full_date || log.date;
+  if (!raw) return null;
+  const rawTime = log.full_time || log.lesson_time || log.time || log.start_time;
+  const hasTime = Boolean(rawTime && /^\d{1,2}:\d{2}/.test(String(rawTime)));
+  const timePart = hasTime ? String(rawTime).slice(0, 5).padStart(5, '0') : '00:00';
+  const date = /^\d{4}-\d{2}-\d{2}/.test(String(raw))
+    ? new Date(`${String(raw).slice(0, 10)}T${timePart}`)
+    : new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  const label = hasTime
+    ? date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return { date, label };
+};
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -40,26 +52,6 @@ const UserProfile = () => {
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [searchLogs, setSearchLogs] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
-  const [openMenu, setOpenMenu] = useState(null);
-  const [showEditDocument, setShowEditDocument] = useState(false);
-  const [editingDocument, setEditingDocument] = useState(null);
-  const [editDocumentData, setEditDocumentData] = useState({
-    title: '',
-    expiry_date: '',
-    details: '',
-    file: null,
-  });
-  const [selectedEditFile, setSelectedEditFile] = useState(null);
-  const [updatingDoc, setUpdatingDoc] = useState(false);
-  const [showAddDocument, setShowAddDocument] = useState(false);
-  const [addingDoc, setAddingDoc] = useState(false);
-  const [addDocumentData, setAddDocumentData] = useState({
-    title: '',
-    expiry_date: '',
-    details: '',
-    file: null,
-  });
-  const [selectedAddFile, setSelectedAddFile] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const profileImageUrl = getImageUrl(profileImage || getPersonalAvatar(user));
   const profileRoleNames = (Array.isArray(user?.roles) ? user.roles : [])
@@ -126,10 +118,6 @@ const UserProfile = () => {
     }
   };
 
-  const handleEditSuccess = () => {
-    fetchUser();
-  };
-
   const fetchLocations = async (orgId = null) => {
     try {
       const params = orgId ? { organization_id: orgId } : {};
@@ -161,16 +149,6 @@ const UserProfile = () => {
     } finally {
       setLocationSaving(false);
     }
-  };
-
-  const toggleCalendarLocation = (locId) => {
-    const idStr = String(locId);
-    setLocationForm(prev => ({
-      ...prev,
-      calendar_location_ids: prev.calendar_location_ids.includes(idStr)
-        ? prev.calendar_location_ids.filter(id => id !== idStr)
-        : [...prev.calendar_location_ids, idStr],
-    }));
   };
 
   const fetchWalletTxns = async () => {
@@ -217,7 +195,7 @@ const UserProfile = () => {
     try {
       const response = await documentService.getUserDocuments(id);
       if (response.success) {
-        setDocuments(response.data);
+        setDocuments(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -237,7 +215,6 @@ const UserProfile = () => {
       let allEntries = [];
 
       do {
-        const response = await logbookService.getUserEntries(id, { page, per_page: perPage });
         const response = await reservationService.getReservations({ page, per_page: perPage });
         if (!response.success) break;
 
@@ -290,8 +267,6 @@ const UserProfile = () => {
 
       const today = new Date();
       today.setHours(23, 59, 59, 999);
-      setFlightLogs(allEntries.filter((entry) => {
-        const dateValue = entry.flight_date || entry.flight_date_formatted || entry.date;
       setFlightLogs(profileEntries.filter((entry) => {
         const dateValue = entry.full_date || entry.lesson_date || entry.date;
         if (!dateValue) return true;
@@ -303,129 +278,6 @@ const UserProfile = () => {
       setFlightLogs([]);
     } finally {
       setLoadingLogs(false);
-    }
-  };
-
-  const handleEditDocument = (doc) => {
-    setEditingDocument(doc);
-    setEditDocumentData({
-      title: doc.title || '',
-      expiry_date: doc.expiry_date || '',
-      details: doc.details || '',
-      file: null,
-    });
-    setSelectedEditFile(null);
-    setShowEditDocument(true);
-    setOpenMenu(null);
-  };
-
-  const handleEditDocumentChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === 'file' && files && files[0]) {
-      setSelectedEditFile(files[0]);
-      setEditDocumentData(prev => ({ ...prev, file: files[0] }));
-    } else {
-      setEditDocumentData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleUpdateDocument = async () => {
-    if (!id || !editingDocument?.id) return;
-    if (!editDocumentData.title.trim()) {
-      showErrorToast('Please enter document title');
-      return;
-    }
-
-    setUpdatingDoc(true);
-    try {
-      const formData = new FormData();
-      formData.append('title', editDocumentData.title);
-      if (editDocumentData.expiry_date) {
-        formData.append('expiry_date', editDocumentData.expiry_date);
-      }
-      if (editDocumentData.details) {
-        formData.append('details', editDocumentData.details);
-      }
-      if (editDocumentData.file) {
-        formData.append('file', editDocumentData.file);
-      }
-
-      const response = await documentService.updateDocument(id, editingDocument.id, formData);
-
-      if (response.success) {
-        showSuccessToast('Document updated successfully');
-        setShowEditDocument(false);
-        await fetchDocuments();
-      } else {
-        showErrorToast(response.message || 'Failed to update document');
-      }
-    } catch (error) {
-      console.error('Error updating document:', error);
-      showErrorToast(error?.message || 'Error updating document');
-    } finally {
-      setUpdatingDoc(false);
-    }
-  };
-
-  const handleAddDocumentChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === 'file' && files && files[0]) {
-      setSelectedAddFile(files[0]);
-      setAddDocumentData(prev => ({ ...prev, file: files[0] }));
-    } else {
-      setAddDocumentData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleCreateDocument = async () => {
-    if (!id) return;
-    if (!addDocumentData.title.trim()) {
-      showErrorToast('Please enter document title');
-      return;
-    }
-
-    setAddingDoc(true);
-    try {
-      const formData = new FormData();
-      formData.append('title', addDocumentData.title);
-      if (addDocumentData.expiry_date) {
-        formData.append('expiry_date', addDocumentData.expiry_date);
-      }
-      if (addDocumentData.details) {
-        formData.append('details', addDocumentData.details);
-      }
-      if (addDocumentData.file) {
-        formData.append('file', addDocumentData.file);
-      }
-
-      const response = await documentService.createDocument(id, formData);
-      if (response.success) {
-        showSuccessToast('Document added successfully');
-        setShowAddDocument(false);
-        setAddDocumentData({ title: '', expiry_date: '', details: '', file: null });
-        setSelectedAddFile(null);
-        await fetchDocuments();
-      } else {
-        showErrorToast(response.message || 'Failed to add document');
-      }
-    } catch (error) {
-      console.error('Error adding document:', error);
-      showErrorToast(error?.message || 'Error adding document');
-    } finally {
-      setAddingDoc(false);
-    }
-  };
-
-  const handleDeleteDocument = async (documentId, docTitle) => {
-    const confirmed = await showDeleteConfirm(docTitle || 'this document');
-    if (!confirmed) return;
-    
-    try {
-      await documentService.deleteDocument(id, documentId);
-      showSuccessToast('Document deleted successfully');
-      fetchDocuments();
-    } catch (error) {
-      showErrorToast('Failed to delete document');
     }
   };
 
@@ -444,17 +296,6 @@ const UserProfile = () => {
     }
   };
 
-  const toggleMenu = (index) => {
-    setOpenMenu(openMenu === index ? null : index);
-  };
-
-
-
-  
-  const isInstructorProfile = user?.roles?.some((role) =>
-    (typeof role === 'string' ? role : role?.name)?.toLowerCase() === 'instructor'
-  );
-
   const filteredFlightLogs = flightLogs.filter((log) => {
     if (!searchLogs) return true;
     const searchLower = searchLogs.toLowerCase();
@@ -465,28 +306,22 @@ const UserProfile = () => {
         : log.participant_name || log.student || log.instructor;
     const locationName = typeof log.location === 'string' ? log.location : log.location?.name;
     return (
-      (log.flight_date_formatted || log.flight_date || "")?.toLowerCase().includes(searchLower) ||
-      (log.flight_time || "")?.toLowerCase().includes(searchLower) ||
-      ((isInstructorProfile ? log.student : log.instructor) || "")?.toLowerCase().includes(searchLower) ||
       (log.date || log.full_date || log.lesson_date || "")?.toLowerCase().includes(searchLower) ||
       (log.time || log.full_time || log.lesson_time || "")?.toLowerCase().includes(searchLower) ||
       (personName || "")?.toLowerCase().includes(searchLower) ||
       (log.status || "")?.toLowerCase().includes(searchLower) ||
       (log.flight_type || log.lesson_title || "")?.toLowerCase().includes(searchLower) ||
-      (log.lesson_type || "")?.toLowerCase().includes(searchLower)
+      (log.lesson_type || "")?.toLowerCase().includes(searchLower) ||
       (locationName || "")?.toLowerCase().includes(searchLower)
     );
   });
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest(".menu-container")) {
-        setOpenMenu(null);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [openMenu]);
+  // Newest completed (checked-out) reservation for this person
+  const lastFlight = flightLogs.reduce((best, log) => {
+    const moment = getFlightMoment(log);
+    if (!moment) return best;
+    return !best || moment.date > best.date ? moment : best;
+  }, null);
 
   if (loadingUser) {
     return (
@@ -596,7 +431,7 @@ const UserProfile = () => {
                 </span>
                 {documents.length > 0 && (
                   <span className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-                    {documents.length} Documents
+                    {documents.length} {documents.length === 1 ? 'Document' : 'Documents'}
                   </span>
                 )}
               </div>
@@ -670,7 +505,12 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Balance</p><p className="text-sm font-bold text-green-700">${Number(user?.account_balance || 0).toFixed(2)}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Company</p><p className="text-sm font-medium text-gray-900">{user?.organization?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Created</p><p className="text-sm font-medium text-gray-900">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p></div>
-              <div><p className="text-sm text-gray-500 mb-1">Last Flight</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Last Flight</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {loadingLogs ? 'Loading…' : lastFlight ? lastFlight.label : 'No completed flights'}
+                </p>
+              </div>
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
             </div>
 
@@ -715,9 +555,6 @@ const UserProfile = () => {
                     </div>
                     <div className="space-y-3 py-3">
                       {filteredFlightLogs.map((log, index) => {
-                        const flightType = log.lesson_type || log.flight_type;
-                        const person = isInstructorProfile ? log.student : log.instructor;
-                        const date = log.flight_date_formatted || log.flight_date || log.date;
                         const flightType = log.flight_type || log.lesson_title;
                         const person = isInstructorProfile
                           ? log.student
@@ -746,7 +583,6 @@ const UserProfile = () => {
                               <p className="mt-1 truncate text-xs font-medium uppercase tracking-[0.12em] text-gray-500">
                                 {safeDisplay(flightType)}
                                 {aircraft ? ` · ${aircraft}` : ''}
-                                {person ? ` · ${isInstructorProfile ? 'Student' : 'Instructor'}` : ''}
                                 {location ? ` · ${location}` : ''}
                                 {person ? ` · ${isInstructorProfile ? 'Student' : isStudentProfile ? 'Instructor' : 'Participant'}` : ''}
                               </p>
@@ -754,7 +590,6 @@ const UserProfile = () => {
                             <div className="text-sm font-medium text-blue-700 sm:text-right">
                               <span>{safeDisplay(date)}</span>
                               <span className="px-2 text-gray-400">·</span>
-                              <span>{safeDisplay(log.flight_time)}</span>
                               <span>{safeDisplay(time)}</span>
                             </div>
                             <span className="inline-flex w-fit items-center rounded-md bg-blue-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">
@@ -900,286 +735,16 @@ const UserProfile = () => {
           </div>
         ) : (
           <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">User Documents</h3>
-              <button
-                onClick={() => setShowAddDocument(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-sm"
-              >
-                <FiPlusCircle size={16} />
-                Add Document
-              </button>
-            </div>
-            
-            {loadingDocs ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : documents.length === 0 ? (
-              <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                <p className="text-gray-500 mb-4">No documents have been uploaded for this user yet.</p>
-                <button
-                  onClick={() => setShowAddDocument(true)}
-                  className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-blue-700"
-                >
-                  <FiPlusCircle size={18} />
-                  Upload their first document
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {documents.map((doc, index) => (
-                  <div key={index} className="flex items-start justify-between p-4 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition">
-                    <div className="w-1/3">
-                      <h4 className="text-sm font-medium text-gray-900">{doc.title}</h4>
-                    </div>
-                    <div className="flex-1 flex flex-col items-end pr-4">
-                      {doc.details && doc.details.length > 0 ? (
-                        doc.details.map((detail, idx) => (
-                          <p key={idx} className={`text-sm ${detail.toLowerCase().includes('expired') && !detail.toLowerCase().includes('expires at') ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                            {detail}
-                          </p>
-                        ))
-                      ) : doc.expiry_date ? (
-                        <p className={`text-sm ${doc.is_expired ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                          {doc.is_expired ? 'Expired: ' : 'Expires at: '}{doc.expiry_date}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="relative menu-container">
-                      <button 
-                        className="p-2 hover:bg-gray-100 rounded" 
-                        onClick={() => toggleMenu(index)}
-                        aria-label="Document menu"
-                      >
-                        <FiMoreVertical className="text-gray-500" />
-                      </button>
-                      {openMenu === index && (
-                        <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                          <button 
-                            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px]" 
-                            onClick={() => handleEditDocument(doc)}
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 min-h-[44px]" 
-                            onClick={() => handleDeleteDocument(doc.id, doc.title)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <UserDocumentsTab
+              userId={id}
+              user={user}
+              documents={documents}
+              loading={loadingDocs}
+              onRefresh={fetchDocuments}
+            />
           </div>
         )}
       </div>
-
-      {/* --- ADD DOCUMENT MODAL --- */}
-      {showAddDocument && createPortal(
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-900">Add New Document</h3>
-                <button onClick={() => setShowAddDocument(false)} className="text-gray-400 hover:text-gray-600 focus:outline-none">
-                  <FiX size={24} />
-                </button>
-              </div>
-            </div>
-            <div className="p-6 overflow-y-auto space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Document Title <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={addDocumentData.title}
-                      onChange={handleAddDocumentChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Medical Certificate"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date (Optional)</label>
-                    <input
-                      type="date"
-                      name="expiry_date"
-                      value={addDocumentData.expiry_date}
-                      onChange={handleAddDocumentChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description / Details (Optional)</label>
-                    <textarea
-                      name="details"
-                      value={addDocumentData.details}
-                      onChange={handleAddDocumentChange}
-                      rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter any additional details..."
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Document File</label>
-                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-                      <div className="space-y-1 text-center">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <div className="flex text-sm text-gray-600 justify-center">
-                          <label htmlFor="add-file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                            <span>Upload a file</span>
-                            <input id="add-file-upload" name="file" type="file" className="sr-only" onChange={handleAddDocumentChange} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
-                          </label>
-                        </div>
-                        <p className="text-xs text-gray-500">PDF, DOC, JPG, PNG up to 10MB</p>
-                      </div>
-                    </div>
-                    {selectedAddFile && (
-                      <p className="mt-2 text-sm text-green-600 flex items-center">
-                        <FiCheck className="mr-1" /> {selectedAddFile.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-              <button
-                type="button"
-                disabled={addingDoc}
-                onClick={() => setShowAddDocument(false)}
-                className="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={addingDoc}
-                onClick={handleCreateDocument}
-                className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm disabled:opacity-50"
-              >
-                {addingDoc ? 'Adding...' : 'Add Document'}
-              </button>
-            </div>
-          </div>
-        </div>
-      , document.body)}
-
-      {/* --- EDIT DOCUMENT MODAL --- */}
-      {showEditDocument && editingDocument && createPortal(
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">Edit Document</h3>
-                <button
-                  onClick={() => {
-                    setShowEditDocument(false);
-                    setEditingDocument(null);
-                    setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
-                    setSelectedEditFile(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={editDocumentData.title}
-                    onChange={handleEditDocumentChange}
-                    placeholder="Enter document title..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Expiry Date (Optional)
-                  </label>
-                  <input
-                    type="date"
-                    name="expiry_date"
-                    value={editDocumentData.expiry_date}
-                    onChange={handleEditDocumentChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Details (Optional)
-                  </label>
-                  <textarea
-                    name="details"
-                    value={editDocumentData.details}
-                    onChange={handleEditDocumentChange}
-                    placeholder="Enter document details..."
-                    rows="3"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    File (Optional - Leave empty to keep current file)
-                  </label>
-                  <input
-                    type="file"
-                    name="file"
-                    onChange={handleEditDocumentChange}
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                  />
-                  {selectedEditFile && (
-                    <p className="mt-2 text-sm text-gray-600">
-                      Selected: {selectedEditFile.name}
-                    </p>
-                  )}
-                  {!selectedEditFile && editingDocument.file_path && (
-                    <p className="mt-2 text-sm text-gray-500 italic">
-                      Current file will be kept
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowEditDocument(false);
-                    setEditingDocument(null);
-                    setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
-                    setSelectedEditFile(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition min-h-[44px]"
-                  disabled={updatingDoc}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateDocument}
-                  disabled={updatingDoc}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updatingDoc ? 'Updating...' : 'Update Document'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      , document.body)}
 
       {editModalOpen && (
         <EditUserModal
