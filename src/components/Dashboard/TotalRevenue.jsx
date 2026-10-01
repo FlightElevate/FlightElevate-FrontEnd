@@ -43,6 +43,27 @@ const getCurrentFullDate = () => {
   return today.toISOString().split('T')[0];
 };
 
+// Side labels: $0, $250, $500 ... $1k, $1.25k. Small values stay in dollars so labels never repeat.
+const formatAxisValue = (value) => {
+  if (value >= 1000000) return `$${parseFloat((value / 1000000).toFixed(2))}M`;
+  if (value >= 1000) return `$${parseFloat((value / 1000).toFixed(2))}k`;
+  return `$${Math.round(value)}`;
+};
+
+// Evenly spaced, round tick values that scale with the data (about 4 steps from $0 to the top).
+const buildAxis = (maxValue) => {
+  const max = Math.max(maxValue, 100);
+  const raw = max / 4;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / pow;
+  const base = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+  const step = base * pow;
+  const top = Math.ceil(max / step) * step;
+  const ticks = [];
+  for (let v = 0; v <= top + step / 2; v += step) ticks.push(Math.round(v * 100) / 100);
+  return { ticks, top };
+};
+
 const TotalRevenue = () => {
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -219,6 +240,11 @@ const TotalRevenue = () => {
     return Math.round(sum / filteredData.length);
   }, [filteredData]);
 
+  const yAxisScale = useMemo(
+    () => buildAxis(filteredData.reduce((max, item) => Math.max(max, item.revenue), 0)),
+    [filteredData]
+  );
+
   // Export function
   const handleExport = () => {
     if (filteredData.length === 0) {
@@ -251,36 +277,34 @@ const TotalRevenue = () => {
     }
   };
   return (
-    <div className="bg-white shadow-sm rounded-xl p-4 sm:p-6 border border-gray-100">
-      <div className="flex flex-col gap-4 mb-6">
+    <div className="bg-white shadow-sm rounded-xl p-4 sm:p-6 border border-gray-100 h-full flex flex-col">
+      {/* Title on the left; period, custom dates and export on the right of the same line */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <h2 className="text-xl font-semibold text-gray-800">
           Total Revenue
         </h2>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
-          {}
-          <div className="flex flex-col sm:flex-row gap-3 flex-1 sm:flex-initial">
-            <select 
-              value={timePeriod}
-              onChange={(e) => setTimePeriod(e.target.value)}
-              className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-            >
-              <option value="Last 30 days">Last 30 days</option>
-              <option value="Last 3 months">Last 3 months</option>
-              <option value="Last 6 months">Last 6 months</option>
-              <option value="Last year">Last year</option>
-              <option value="All time">All time</option>
-              <option value="Custom">Custom</option>
-            </select>
-          </div>
-          
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
+          <select 
+            value={timePeriod}
+            onChange={(e) => setTimePeriod(e.target.value)}
+            className="flex-1 sm:flex-none min-w-[140px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px]"
+          >
+            <option value="Last 30 days">Last 30 days</option>
+            <option value="Last 3 months">Last 3 months</option>
+            <option value="Last 6 months">Last 6 months</option>
+            <option value="Last year">Last year</option>
+            <option value="All time">All time</option>
+            <option value="Custom">Custom</option>
+          </select>
+
           {/* Date range pickers (only visible if Custom is selected) */}
           {timePeriod === 'Custom' && (
-            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                className="flex-1 sm:flex-initial min-w-0 border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px]"
               />
               <span className="text-gray-500 text-sm whitespace-nowrap">to</span>
               <input
@@ -288,24 +312,22 @@ const TotalRevenue = () => {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 max={new Date().toISOString().split('T')[0]}
-                className="flex-1 sm:flex-initial border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
+                className="flex-1 sm:flex-initial min-w-0 border border-gray-300 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px]"
               />
             </div>
           )}
-          
-          {}
+
           <button 
             onClick={handleExport}
             disabled={loading}
-            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[44px] whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium min-h-[40px] whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Loading...' : 'Export Report'}
           </button>
         </div>
       </div>
 
-      {}
-      <div className="mb-4">
+      <div className="mb-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-0.5 border-t-2 border-dashed border-gray-400"></div>
           <span className="text-sm text-gray-600">
@@ -315,98 +337,100 @@ const TotalRevenue = () => {
         </div>
       </div>
 
-      {}
-      <div className="w-full relative" style={{ height: '320px', minWidth: '300px', minHeight: '320px' }}>
-        <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <defs>
-              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#1D4ED8" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#1D4ED8" stopOpacity={0}/>
-              </linearGradient>
-              {}
-              <pattern id="currentDatePattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                <line x1="0" y1="0" x2="20" y2="20" stroke="#1D4ED8" strokeWidth="1" opacity="0.1"/>
-              </pattern>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tick={(props) => {
-                const { x, y, payload } = props;
-                const isCurrent = payload.fullDate === currentFullDate || payload.date === currentDate;
-                return (
-                  <g transform={`translate(${x},${y})`}>
-                    <text
-                      x={0}
-                      y={0}
-                      dy={16}
-                      textAnchor="middle"
-                      fill={isCurrent ? "#1D4ED8" : "#6B7280"}
-                      fontSize={12}
-                      fontWeight={isCurrent ? "600" : "400"}
-                    >
-                      {payload.value}
-                    </text>
-                  </g>
-                );
-              }}
-            />
-            <YAxis
-              tick={{ fill: "#6B7280", fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-            />
-            <Tooltip
-              cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
-              contentStyle={{
-                backgroundColor: "white",
-                border: "1px solid #E5E7EB",
-                borderRadius: "8px",
-                padding: "8px 12px",
-              }}
-              formatter={(value) => [
-                `$${value.toLocaleString()}`,
-                "Revenue"
-              ]}
-            />
-            {}
-            <Area
-              type="monotone"
-              dataKey="revenue"
-              stroke="none"
-              fill="url(#colorRevenue)"
-            />
-            {}
-            <Line
-              type="monotone"
-              dataKey="revenue"
-              stroke="#1D4ED8"
-              strokeWidth={2}
-              dot={(props) => {
-                const { cx, cy, payload, key } = props;
-                const isCurrent = payload.fullDate === currentFullDate || payload.date === currentDate;
-                return (
-                  <g key={key || `dot-${cx}-${cy}`}>
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={isCurrent ? 7 : 4}
-                      fill={isCurrent ? "#1D4ED8" : "#1D4ED8"}
-                      stroke={isCurrent ? "#FFFFFF" : "none"}
-                      strokeWidth={isCurrent ? 2 : 0}
-                    />
-                  </g>
-                );
-              }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-        {}
+      {/* The chart fills whatever height is left in the card, so it lines up with the tile beside it */}
+      <div className="w-full relative flex-1 min-h-[280px]">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={filteredData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1D4ED8" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#1D4ED8" stopOpacity={0}/>
+                </linearGradient>
+                <pattern id="currentDatePattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <line x1="0" y1="0" x2="20" y2="20" stroke="#1D4ED8" strokeWidth="1" opacity="0.1"/>
+                </pattern>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={(props) => {
+                  const { x, y, payload } = props;
+                  const isCurrent = payload.fullDate === currentFullDate || payload.date === currentDate;
+                  return (
+                    <g transform={`translate(${x},${y})`}>
+                      <text
+                        x={0}
+                        y={0}
+                        dy={16}
+                        textAnchor="middle"
+                        fill={isCurrent ? "#1D4ED8" : "#6B7280"}
+                        fontSize={12}
+                        fontWeight={isCurrent ? "600" : "400"}
+                      >
+                        {payload.value}
+                      </text>
+                    </g>
+                  );
+                }}
+              />
+              <YAxis
+                width={52}
+                domain={[0, yAxisScale.top]}
+                ticks={yAxisScale.ticks}
+                interval={0}
+                tick={{ fill: "#6B7280", fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={formatAxisValue}
+              />
+              <Tooltip
+                cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
+                contentStyle={{
+                  backgroundColor: "white",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                }}
+                formatter={(value) => [
+                  `$${value.toLocaleString()}`,
+                  "Revenue"
+                ]}
+              />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="none"
+                fill="url(#colorRevenue)"
+              />
+              <Line
+                type="monotone"
+                dataKey="revenue"
+                stroke="#1D4ED8"
+                strokeWidth={2}
+                dot={(props) => {
+                  const { cx, cy, payload, key } = props;
+                  const isCurrent = payload.fullDate === currentFullDate || payload.date === currentDate;
+                  return (
+                    <g key={key || `dot-${cx}-${cy}`}>
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={isCurrent ? 7 : 4}
+                        fill={isCurrent ? "#1D4ED8" : "#1D4ED8"}
+                        stroke={isCurrent ? "#FFFFFF" : "none"}
+                        strokeWidth={isCurrent ? 2 : 0}
+                      />
+                    </g>
+                  );
+                }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
         {filteredData.some(item => item.fullDate === currentFullDate || item.date === currentDate) && (
           <div 
             className="absolute top-0 right-0 w-32 h-full pointer-events-none"
