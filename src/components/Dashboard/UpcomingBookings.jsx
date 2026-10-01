@@ -31,36 +31,55 @@ const pick = (obj, keys) => {
   return null;
 };
  
-const isFullDateTime = (v) => typeof v === "string" && /\d{4}-\d{2}-\d{2}/.test(v);
+const START_KEYS = [
+  "start_time", "start_at", "starts_at", "scheduled_at", "start", "start_datetime",
+  "scheduled_start", "scheduled_start_at", "scheduled_start_time", "startDateTime",
+  "startTime", "booking_start", "flight_start", "departure_time", "date_time", "datetime",
+];
+const DATE_KEYS = [
+  "reservation_date", "date", "start_date", "scheduled_date", "booking_date", "flight_date",
+  "reservationDate", "scheduledDate", "startDate", "bookingDate",
+];
+const TIME_KEYS = ["time", "start_time", "startTime", "departure_time", "scheduled_time"];
+const isFullDateTime = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}[T ]/.test(v);
 const isTimeOnly = (v) => typeof v === "string" && /^\d{1,2}:\d{2}/.test(v);
- 
-/**
- * Local Date for the slot start. Tries the common field names; handles
- * full ISO datetimes, date + "HH:mm[:ss]" pairs, and date-only values.
- * (Avoids new Date("YYYY-MM-DD"), which parses as UTC and can show the previous day.)
- */
+const validDate = (d) => d instanceof Date && !Number.isNaN(d.getTime());
+
+const parseDateValue = (value) => {
+  if (value instanceof Date) return validDate(value) ? value : null;
+  if (typeof value === "number") {
+    const d = new Date(value < 1e12 ? value * 1000 : value);
+    return validDate(d) ? d : null;
+  }
+  if (typeof value !== "string" || !value.trim()) return null;
+  const text = value.trim();
+  let match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) return new Date(Number(match[3]), Number(match[1]) - 1, Number(match[2]));
+  const d = new Date(text.replace(" ", "T"));
+  return validDate(d) ? d : null;
+};
+
+/** Reads common reservation date fields from the record and nested schedule objects. */
 const parseSlotStart = (item) => {
-  const start = pick(item, ["start_time", "start_at", "starts_at", "scheduled_at", "start", "start_datetime"]);
-  const date = pick(item, ["reservation_date", "date", "start_date", "scheduled_date"]);
- 
-  if (isFullDateTime(start)) {
-    const d = new Date(start.replace(" ", "T"));
-    if (!isNaN(d)) return { date: d, hasTime: true };
+  const sources = [item, item?.reservation, item?.booking, item?.schedule, item?.slot, item?.data]
+    .filter((value) => value && typeof value === "object");
+  const start = sources.map((source) => pick(source, START_KEYS)).find(Boolean);
+  const dateValue = sources.map((source) => pick(source, DATE_KEYS)).find(Boolean);
+  const time = sources.map((source) => pick(source, TIME_KEYS)).find(isTimeOnly);
+
+  const startDate = parseDateValue(start);
+  if (startDate && (isFullDateTime(start) || start instanceof Date)) return { date: startDate, hasTime: true };
+
+  const date = parseDateValue(dateValue);
+  if (date && isFullDateTime(dateValue)) return { date, hasTime: true };
+  if (date && time) {
+    const [hour, minute] = time.split(":");
+    const withTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), Number(hour), Number(minute.slice(0, 2)));
+    if (validDate(withTime)) return { date: withTime, hasTime: true };
   }
-  if (date) {
-    const day = String(date).slice(0, 10);
-    if (isTimeOnly(start)) {
-      const [h, m] = start.split(":");
-      const d = new Date(`${day}T${h.padStart(2, "0")}:${m.slice(0, 2)}:00`);
-      if (!isNaN(d)) return { date: d, hasTime: true };
-    }
-    if (isFullDateTime(date) && String(date).length > 10 && !/T00:00:00/.test(String(date))) {
-      const d = new Date(String(date).replace(" ", "T"));
-      if (!isNaN(d)) return { date: d, hasTime: true };
-    }
-    const d = new Date(`${day}T00:00:00`);
-    if (!isNaN(d)) return { date: d, hasTime: false };
-  }
+  if (date) return { date, hasTime: false };
   return null;
 };
  
@@ -209,7 +228,7 @@ const UpcomingBookings = () => {
     setMenu({
       id,
       top: openUp ? rect.top - MENU_HEIGHT - 4 : rect.bottom + 4,
-      left: Math.max(8, rect.right - MENU_WIDTH),
+      left: Math.min(Math.max(8, rect.right - MENU_WIDTH), Math.max(8, window.innerWidth - MENU_WIDTH - 8)),
     });
   };
  
@@ -263,14 +282,14 @@ const UpcomingBookings = () => {
  
   return (
     <div className="bg-white shadow-sm rounded-xl border border-gray-100">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 pt-6 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 pt-4 sm:pt-6 pb-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">Upcoming bookings</h2>
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800">Upcoming bookings</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {loading ? "Loading…" : `${bookings.length} scheduled from today onward`}
           </p>
         </div>
-        <div className="flex items-center border border-gray-200 bg-white px-3 py-2 rounded-lg focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-400 sm:w-[260px]">
+        <div className="flex w-full sm:w-[260px] min-w-0 items-center border border-gray-200 bg-white px-3 py-2 rounded-lg focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-400">
           <FiSearch className="text-gray-400 mr-2 shrink-0" size={16} aria-hidden="true" />
           <input
             type="text"
@@ -283,7 +302,55 @@ const UpcomingBookings = () => {
         </div>
       </div>
  
-      <div className="overflow-x-auto">
+      <div className="md:hidden px-3 pb-3">
+        {loading ? (
+          <div className="space-y-3 py-2" aria-label="Loading bookings">
+            {[0, 1, 2].map((i) => <div key={i} className="h-24 rounded-lg bg-gray-100 animate-pulse" />)}
+          </div>
+        ) : error ? (
+          <div className="py-6 text-center">
+            <p className="text-sm text-red-600 mb-3">{error}</p>
+            <button onClick={fetchBookings} className="inline-flex items-center gap-2 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
+              <FiRefreshCw size={14} /> Try again
+            </button>
+          </div>
+        ) : visibleBookings.length ? (
+          <div className="space-y-3">
+            {visibleBookings.map((b) => (
+              <article key={b.id} className="rounded-lg border border-gray-200 p-3 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold ${b.isToday ? "text-blue-700" : "text-gray-800"}`}>{b.dayLabel} · {b.time}</p>
+                    <p className="mt-1 text-sm text-gray-700 break-words">Student: {b.student}</p>
+                    <p className="text-sm text-gray-700 break-words">Instructor: {b.instructor}</p>
+                  </div>
+                  <button
+                    onClick={(e) => handleMenuToggle(e, b.id)}
+                    aria-label="Booking actions"
+                    aria-haspopup="menu"
+                    aria-expanded={menu?.id === b.id}
+                    className="shrink-0 p-2 hover:bg-gray-100 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                  >
+                    <FiMoreVertical className="text-gray-600" size={18} />
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                  <span className="break-all">Aircraft: {b.aircraft}</span>
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 capitalize">{String(b.flightType).replace(/_/g, " ")}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center">
+            <FiCalendar className="mx-auto text-gray-300 mb-2" size={28} aria-hidden="true" />
+            <p className="text-sm text-gray-500">{searchTerm ? "No bookings match your search" : "No upcoming bookings"}</p>
+            {!searchTerm && emptyHint && <p className="text-xs text-gray-400 mt-2">{emptyHint}</p>}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[720px]">
           <thead>
             <tr className="border-y border-gray-200 bg-gray-50/60">
@@ -407,4 +474,3 @@ const UpcomingBookings = () => {
  
 export default UpcomingBookings;
  
-
