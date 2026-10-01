@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { FiMapPin } from 'react-icons/fi';
 import { reservationService } from '../../api/services/reservationService';
+import { registerCacheClear } from '../../lib/sessionCache';
 
 // Add once in index.html:
 // <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -16,6 +17,39 @@ const STATUS_STYLES = {
 };
 
 const FILTERS = [{ id: 'all', label: 'All' }, ...STATUSES.map((s) => ({ id: s, label: s[0].toUpperCase() + s.slice(1) }))];
+
+// ---------------------------------------------------------------------------
+// Session cache
+// Lives in memory only: it survives switching between dashboard modules, and it
+// is wiped when the tab/browser is closed or the page is refreshed.
+// ---------------------------------------------------------------------------
+const STALE_MS = 30 * 1000;            // data younger than this is shown without a refetch on return
+const POLL_MS = 60 * 1000;             // background refresh interval (skipped while the tab is hidden)
+const INVOICE_RECHECK_MS = 2 * 60 * 1000; // re-check unpaid invoices at most this often
+
+const store = {
+  gen: 0,           // bumped on every clear; late responses from an old session are discarded
+  limit: null,      // the `limit` the cached list was fetched with
+  flights: null,    // cached list of reservations
+  fetchedAt: 0,     // when the list was last fetched
+  details: {},      // id -> detail payload (tail number, slot time, invoice...)
+  detailKeys: {},   // id -> status the detail was fetched for
+  invoiceAt: {},    // id -> when the invoice was last requested
+};
+
+// Wipes everything cached here. It runs on logout (see src/lib/sessionCache.js),
+// so the next user on the same tab never sees the previous user's flight logs.
+export const clearAdminFlightLogsCache = () => {
+  store.gen += 1;
+  store.limit = null;
+  store.flights = null;
+  store.fetchedAt = 0;
+  store.details = {};
+  store.detailKeys = {};
+  store.invoiceAt = {};
+};
+
+registerCacheClear(clearAdminFlightLogsCache);
 
 const statusOf = (f) => String(f.status).toLowerCase();
 
@@ -89,48 +123,80 @@ const fmtDate = (iso) =>
 const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', station }) => {
   const navigate = useNavigate();
 
-  const [flights, setFlights] = useState([]);       // all matching reservations returned by the API
-  const [details, setDetails] = useState({});       // id -> detail payload (tail number, slot time...)
-  const [loading, setLoading] = useState(true);
+  // Start from the session cache when we have it, so returning to this module is instant.
+  const hasCache = store.limit === limit && Array.isArray(store.flights);
+
+  const [flights, setFlights] = useState(hasCache ? store.flights : []);   // all matching reservations returned by the API
+  const [details, setDetails] = useState(() => ({ ...store.details }));    // id -> detail payload (tail number, slot time...)
+  const [loading, setLoading] = useState(!hasCache);                        // spinner only when there is nothing cached
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(batchSize);
 
-  const requested = useRef(new Set());              // ids whose detail we already asked for
-  const requestedInvoices = useRef(new Set());       // ids whose invoice we already requested
+  const mountedRef = useRef(true);
   const scrollRef = useRef(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    const gen = store.gen;
     try {
       const res = await reservationService.getReservations({ limit });
+      if (gen !== store.gen) return; // logged out while this request was in flight: drop the result
       const body = res?.data?.data ?? res?.data ?? res;
       const list = Array.isArray(body)
         ? body
         : body?.data ?? body?.reservations ?? body?.items ?? body?.results ?? [];
 
+      // Do not filter by instructor: show every matching reservation returned by the API.
       const wanted = list.filter((f) => STATUSES.includes(statusOf(f)));
 
-      // Do not filter by instructor: show every matching reservation returned by the API.
-      setFlights(wanted);
-      setError(null);
+      store.limit = limit;
+      store.flights = wanted;
+      store.fetchedAt = Date.now();
+
+      if (mountedRef.current) {
+        setFlights(wanted);
+        setError(null);
+      }
     } catch (err) {
       console.error('[AdminFlightLogs] load failed:', err);
-      setError(err?.message ?? 'Failed to load flight logs');
+      // A failed background refresh keeps showing the data we already have.
+      if (!silent && mountedRef.current) setError(err?.message ?? 'Failed to load flight logs');
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent && mountedRef.current) setLoading(false);
     }
   }, [limit]);
 
   useEffect(() => {
-    load();
-    const t = setInterval(() => load(true), 30000);
-    return () => clearInterval(t);
-  }, [load]);
+    mountedRef.current = true;
 
-  // List rows + any detail we've fetched so far
+    if (!(store.limit === limit && Array.isArray(store.flights))) {
+      load(false);                                   // nothing cached: normal first load
+    } else if (Date.now() - store.fetchedAt > STALE_MS) {
+      load(true);                                    // cached but old: show it now, refresh quietly
+    }
+
+    const tick = () => {
+      if (!document.hidden) load(true);
+    };
+    const timer = setInterval(tick, POLL_MS);
+
+    const onVisible = () => {
+      if (!document.hidden && Date.now() - store.fetchedAt > STALE_MS) load(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      mountedRef.current = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [load, limit]);
+
+  // List rows + any detail we've fetched so far.
+  // The status always comes from the list, so a stale detail can never show an old status.
   const merged = useMemo(
-    () => flights.map((f) => (details[f.id] ? { ...f, ...details[f.id] } : f)),
+    () => flights.map((f) => (details[f.id] ? { ...f, ...details[f.id], status: f.status } : f)),
     [flights, details]
   );
 
@@ -141,57 +207,66 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
     [merged]
   );
 
-  const rows = filter === 'all' ? sorted : sorted.filter((f) => statusOf(f) === filter);
-  const visibleRows = rows.slice(0, visibleCount);
+  const rows = useMemo(
+    () => (filter === 'all' ? sorted : sorted.filter((f) => statusOf(f) === filter)),
+    [sorted, filter]
+  );
+  const visibleRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
 
   // Fetch missing aircraft/time details and invoice state only for visible rows.
   // Payment state is authoritative from invoice.status (the same source used by checkout).
+  // Each row updates as soon as its own request finishes, so rows no longer wait for the slowest one.
   useEffect(() => {
+    const now = Date.now();
+    const gen = store.gen;
+
+    const applyPatch = (id, patch) => {
+      if (gen !== store.gen) return; // logged out while this request was in flight: drop the result
+      store.details[id] = { ...(store.details[id] || {}), ...patch };
+      if (mountedRef.current) {
+        setDetails((prev) => ({ ...prev, [id]: store.details[id] }));
+      }
+    };
+
     const missingDetails = visibleRows.filter((f) => {
       const routeMissing = statusOf(f) === 'completed' && (!routeFromOf(f) || !routeToOf(f));
-      return (!tailOf(f) || !startOf(f) || !locationOf(f) || routeMissing) && !requested.current.has(f.id);
+      const needsDetail = !tailOf(f) || !startOf(f) || !locationOf(f) || routeMissing;
+      // Asked once per status, so a row that becomes "completed" can load its route.
+      return needsDetail && store.detailKeys[f.id] !== statusOf(f);
     });
-    const missingInvoices = visibleRows.filter(
-      (f) => !f.invoice && !requestedInvoices.current.has(f.id)
-    );
-    if (!missingDetails.length && !missingInvoices.length) return;
 
-    missingDetails.forEach((f) => requested.current.add(f.id));
-    missingInvoices.forEach((f) => requestedInvoices.current.add(f.id));
-    let cancelled = false;
-    (async () => {
-      const got = {};
-      await Promise.all([
-        ...missingDetails.map(async (f) => {
-          try {
-            const r = await reservationService.getReservationDetail(f.id);
-            const detail = r?.data?.data ?? r?.data ?? r;
-            got[f.id] = { ...(got[f.id] || {}), ...detail };
-          } catch (e) {
-            console.error('[AdminFlightLogs] detail failed for', f.id, e);
-          }
-        }),
-        ...missingInvoices.map(async (f) => {
-          try {
-            const r = await reservationService.getInvoice(f.id);
-            const invoice = r?.data?.data ?? r?.data ?? r;
-            got[f.id] = { ...(got[f.id] || {}), invoice };
-          } catch (e) {
-            // An invoice may not exist yet; leave it as payment pending.
-          }
-        }),
-      ]);
-      if (!cancelled && Object.keys(got).length) {
-        setDetails((prev) => {
-          const next = { ...prev };
-          Object.entries(got).forEach(([id, value]) => {
-            next[id] = { ...(prev[id] || {}), ...value };
-          });
-          return next;
+    const missingInvoices = visibleRows.filter((f) => {
+      const askedAt = store.invoiceAt[f.id];
+      if (!askedAt) return !f.invoice;
+      // Unpaid invoices are re-checked now and then so "Payment pending" doesn't stay stale.
+      return paymentStatusOf(f) === 'pending' && now - askedAt > INVOICE_RECHECK_MS;
+    });
+
+    missingDetails.forEach((f) => {
+      store.detailKeys[f.id] = statusOf(f);
+      reservationService
+        .getReservationDetail(f.id)
+        .then((r) => {
+          const detail = r?.data?.data ?? r?.data ?? r;
+          applyPatch(f.id, detail);
+        })
+        .catch((e) => {
+          console.error('[AdminFlightLogs] detail failed for', f.id, e);
         });
-      }
-    })();
-    return () => { cancelled = true; };
+    });
+
+    missingInvoices.forEach((f) => {
+      store.invoiceAt[f.id] = now;
+      reservationService
+        .getInvoice(f.id)
+        .then((r) => {
+          const invoice = r?.data?.data ?? r?.data ?? r;
+          applyPatch(f.id, { invoice });
+        })
+        .catch(() => {
+          // An invoice may not exist yet; leave it as payment pending.
+        });
+    });
   }, [visibleRows]);
 
   const onScroll = (e) => {
@@ -241,7 +316,7 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
       <div ref={scrollRef} onScroll={onScroll} className="p-3 sm:p-6 space-y-3 max-h-[70vh] md:max-h-[600px] overflow-y-auto">
         {loading ? (
           <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>Loading flight logs…</p>
-        ) : error ? (
+        ) : error && flights.length === 0 ? (
           <p className="py-10 text-center text-sm text-red-500">{error}</p>
         ) : rows.length === 0 ? (
           <p className={`${MONO} py-10 text-center text-xs uppercase tracking-[0.2em] text-slate-400`}>No flight logs found</p>
@@ -344,7 +419,7 @@ const AdminFlightLogs = ({ limit = 500, batchSize = 10, title = 'Flight Logs', s
           <span className="text-sky-600 font-semibold">{counts.pending ?? 0} pending</span>
         </span>
         <span>
-          {rows.length > 0 ? `Showing ${Math.min(visibleCount, rows.length)} of ${rows.length} · ` : ''}Auto-refresh 30 s
+          {rows.length > 0 ? `Showing ${Math.min(visibleCount, rows.length)} of ${rows.length} · ` : ''}Auto-refresh 60 s
         </span>
       </div>
     </div>
