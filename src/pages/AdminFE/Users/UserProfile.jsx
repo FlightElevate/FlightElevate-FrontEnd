@@ -53,6 +53,9 @@ const UserProfile = () => {
   const [selectedAddFile, setSelectedAddFile] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
 
+  // Last flight (latest checked-out reservation), stored as a timestamp in ms
+  const [lastFlight, setLastFlight] = useState(null);
+
   // Location settings state
   const [locationOptions, setLocationOptions] = useState([]);
   const [locationForm, setLocationForm] = useState({
@@ -73,6 +76,7 @@ const UserProfile = () => {
       fetchDocuments();
       fetchFlightLogs();
       fetchWalletTxns();
+      fetchLastFlight();
     }
   }, [id]);
 
@@ -109,6 +113,54 @@ const UserProfile = () => {
 
   const handleEditSuccess = () => {
     fetchUser();
+  };
+
+  // Latest checked-out reservation for this user -> "Last Flight"
+  const fetchLastFlight = async () => {
+    if (!id) return;
+
+    const toList = (res) => (Array.isArray(res?.data) ? res.data : (res?.data?.data || []));
+
+    const isDone = (r) =>
+      ['checked_out', 'checkedout', 'completed'].includes(
+        String(r.status || '').toLowerCase().replace(/[\s-]+/g, '_')
+      );
+
+    const getTime = (r) =>
+      new Date(
+        r.checked_out_at || r.checkin_at || r.end_time || r.end_date || r.start_time || r.date || 0
+      ).getTime();
+
+    const latest = (list) => {
+      const done = list.filter(isDone).sort((a, b) => getTime(b) - getTime(a));
+      return done.length ? getTime(done[0]) : null;
+    };
+
+    try {
+      // 1) user-scoped endpoint
+      let result = null;
+      try {
+        const res = await lessonService.getUserLessons(id, { per_page: 100 });
+        result = latest(toList(res));
+      } catch (e) {
+        console.warn('getUserLessons failed, falling back to reservations list:', e);
+      }
+
+      // 2) fallback: reservations list filtered by this user
+      if (!result) {
+        const res = await lessonService.getReservations({ user_id: id, per_page: 100 });
+        const mine = toList(res).filter((r) =>
+          [r.user_id, r.student_id, r.instructor_id, r.pilot_id, r.student?.id, r.instructor?.id]
+            .some((v) => v != null && String(v) === String(id))
+        );
+        result = latest(mine);
+      }
+
+      setLastFlight(result);
+    } catch (e) {
+      console.error('Error fetching last flight:', e);
+      setLastFlight(null);
+    }
   };
 
   const fetchLocations = async (orgId = null) => {
@@ -573,7 +625,7 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Balance</p><p className="text-sm font-bold text-green-700">${Number(user?.account_balance || 0).toFixed(2)}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Company</p><p className="text-sm font-medium text-gray-900">{user?.organization?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Created</p><p className="text-sm font-medium text-gray-900">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p></div>
-              <div><p className="text-sm text-gray-500 mb-1">Last Flight</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
+              <div><p className="text-sm text-gray-500 mb-1">Last Flight</p><p className="text-sm font-medium text-gray-900">{lastFlight ? new Date(lastFlight).toLocaleString() : 'No flights yet'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
             </div>
 
