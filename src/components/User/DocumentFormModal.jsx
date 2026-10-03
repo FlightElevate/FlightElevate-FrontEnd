@@ -256,6 +256,32 @@ const updatePrimaryExpiryDetail = (details, tpl, medicalClass, expiryISO) => {
   return lines.filter((line) => line.trim()).join('\n');
 };
 
+const parseDateFromDetails = (value) => {
+  const text = String(value || '').trim();
+  const iso = parseISO(text);
+  if (iso) return toISO(iso);
+  const us = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!us) return '';
+  const date = new Date(Number(us[3]), Number(us[1]) - 1, Number(us[2]));
+  return Number.isNaN(date.getTime()) ? '' : toISO(date);
+};
+
+const inferMedicalClassFromDetails = (details) => {
+  const text = detailsToText(details);
+  const match = text.match(/Class\s*([123])(?:\s*medical,?)?\s*exam/i);
+  if (match) return `Class ${match[1]}`;
+  if (/^First class medical exp:/im.test(text)) return 'Class 1';
+  if (/^Second class medical exp:/im.test(text)) return 'Class 2';
+  if (/^Third class medical exp:/im.test(text)) return 'Class 3';
+  return '';
+};
+
+const inferExamDateFromDetails = (details) => {
+  const text = detailsToText(details);
+  const match = text.match(/Class\s*[123](?:\s*medical,?)?\s*exam:?\s*([^\n]+)/i);
+  return match ? parseDateFromDetails(match[1]) : '';
+};
+
 const inferTemplateKey = (doc) => {
   if (!doc) return 'custom';
   if (doc.template_key && DOCUMENT_TEMPLATES.some((t) => t.key === doc.template_key)) return doc.template_key;
@@ -290,6 +316,8 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
     details: detailsToText(doc?.details),
     medical_class: doc?.medical_class || '',
     exam_date: doc?.exam_date ? String(doc.exam_date).slice(0, 10) : '',
+    medical_class: doc?.medical_class || inferMedicalClassFromDetails(doc?.details),
+    exam_date: doc?.exam_date ? String(doc.exam_date).slice(0, 10) : inferExamDateFromDetails(doc?.details),
     base_date: doc?.base_date ? String(doc.base_date).slice(0, 10) : '',
     date_of_birth: doc?.date_of_birth ? String(doc.date_of_birth).slice(0, 10) : (userDob ? String(userDob).slice(0, 10) : ''),
   }));
