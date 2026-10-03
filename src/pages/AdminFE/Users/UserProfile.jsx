@@ -825,14 +825,14 @@ const UserProfile = () => {
                               .replace(/Age at exam:/i, 'Age:')
                               .replace(/Age at exam not provided \(assumed 40 or over\)/i, 'Age assumed 40+');
                             return (
-                              <p key={idx} className={`text-sm text-left sm:text-right lg:whitespace-nowrap ${compactDetail.toLowerCase().includes('expired') && !compactDetail.toLowerCase().includes('expires at') ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                              <p key={idx} className={`text-sm text-left sm:text-right lg:whitespace-nowrap ${status.key === 'expired' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
                                 {compactDetail}
                               </p>
                             );
                           })
                         ) : doc.expiry_date ? (
-                          <p className={`text-sm ${doc.is_expired ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                            {doc.is_expired ? 'Expired: ' : 'Expires at: '}{doc.expiry_date}
+                          <p className={`text-sm ${status.key === 'expired' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                            {status.key === 'expired' ? 'Expired: ' : 'Expires at: '}{doc.expiry_date}
                           </p>
                         ) : null}
                       </div>
@@ -1178,4 +1178,5 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
 };
  
 export default UserProfile;
+ 
  
