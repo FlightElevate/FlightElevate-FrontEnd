@@ -190,6 +190,72 @@ export const getDocFileUrl = (doc) => {
 };
 const isImageUrl = (url) => !!url && /\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(String(url).split('?')[0]);
 
+const getMedicalClassNumber = (medicalClass, details) => {
+  const fromSelection = String(medicalClass || '').match(/([123])/);
+  if (fromSelection) return Number(fromSelection[1]);
+  const fromDetails = String(details || '').match(/Class\s*([123])(?:\s*(?:medical|exam|privileges))?/i);
+  return fromDetails ? Number(fromDetails[1]) : null;
+};
+
+const mergeComputedDetails = (details, tpl, computed) => {
+  const lines = detailsToText(details).split('\n').map((line) => line.trim()).filter(Boolean);
+  const isMedical = tpl.expiry === 'medical';
+  const isMonths = tpl.expiry === 'months';
+  const categoryFor = (line) => {
+    const lower = line.toLowerCase();
+    if (isMedical) {
+      if (/^(?:class\s*[123]\s*(?:medical,\s*)?exam:|class\s*[123]\s*medical,\s*exam\b)/i.test(line)) return 'exam';
+      if (/^(?:age:|age at exam:|age assumed|age at exam not provided)/i.test(line)) return 'age';
+      const tier = lower.match(/^(?:class\s*([123]) privileges until|(?:first|second|third) class medical exp):/i);
+      if (tier) return `tier-${tier[1] || ({ first: 1, second: 2, third: 3 }[lower.split(' ')[0]])}`;
+      if (/^first class medical exp:/i.test(line)) return 'tier-1';
+      if (/^second class medical exp:/i.test(line)) return 'tier-2';
+      if (/^third class medical exp:/i.test(line)) return 'tier-3';
+    }
+    if (isMonths) {
+      if (lower.startsWith(`${String(tpl.dateLabel).toLowerCase()}:`)) return 'base';
+      if (lower.startsWith(`${String(tpl.resultLabel).toLowerCase()}:`)) return 'result';
+    }
+    return null;
+  };
+
+  computed.lines.forEach((computedLine) => {
+    const category = categoryFor(computedLine);
+    if (!category) return;
+    const index = lines.findIndex((line) => categoryFor(line) === category);
+    if (index >= 0) lines[index] = computedLine;
+    else lines.push(computedLine);
+  });
+  return lines.join('\n');
+};
+
+const updatePrimaryExpiryDetail = (details, tpl, medicalClass, expiryISO) => {
+  const expiry = parseISO(expiryISO);
+  if (!expiry) return details;
+  const date = fmtDate(expiry);
+  const lines = detailsToText(details).split('\n');
+
+  if (tpl.expiry === 'medical') {
+    const classNumber = getMedicalClassNumber(medicalClass, details);
+    if (!classNumber) return details;
+    const tierNames = { 1: 'First', 2: 'Second', 3: 'Third' };
+    const canonical = `${tierNames[classNumber]} class medical exp: ${date}`;
+    const tierPatterns = {
+      1: /^(?:Class\s*1 privileges until|First class medical exp):/i,
+      2: /^(?:Class\s*2 privileges until|Second class medical exp):/i,
+      3: /^(?:Class\s*3 privileges until|Third class medical exp):/i,
+    };
+    const index = lines.findIndex((line) => tierPatterns[classNumber].test(line.trim()));
+    if (index >= 0) lines[index] = canonical;
+    else if (lines.length > 0) lines.push(canonical);
+  } else if (tpl.expiry === 'months') {
+    const label = String(tpl.resultLabel || 'Expires');
+    const index = lines.findIndex((line) => line.trim().toLowerCase().startsWith(`${label.toLowerCase()}:`));
+    if (index >= 0) lines[index] = `${label}: ${date}`;
+  }
+  return lines.filter((line) => line.trim()).join('\n');
+};
+
 const inferTemplateKey = (doc) => {
   if (!doc) return 'custom';
   if (doc.template_key && DOCUMENT_TEMPLATES.some((t) => t.key === doc.template_key)) return doc.template_key;
@@ -254,8 +320,12 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
         const c = computeTemplateExpiry(t, next);
         if (c) {
           next.expiry_date = toISO(c.expiry);
-          if (!detailsTouched.current) next.details = c.lines.join('\n');
+          next.details = detailsTouched.current
+            ? mergeComputedDetails(next.details, t, c)
+            : c.lines.join('\n');
         }
+      } else if (Object.prototype.hasOwnProperty.call(patch, 'expiry_date') && patch.expiry_date) {
+        next.details = updatePrimaryExpiryDetail(next.details, t, next.medical_class, patch.expiry_date);
       }
       return next;
     });
@@ -507,4 +577,3 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
 };
 
 export default DocumentFormModal;
-
