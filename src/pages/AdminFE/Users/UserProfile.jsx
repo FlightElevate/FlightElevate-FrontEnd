@@ -17,6 +17,14 @@ import { safeDisplay } from "../../../utils/safeDisplay";
 import EditUserModal from "../../../components/User/EditUserModal";
 import DocumentFormModal, { SEND_TEMPLATE_META, getDocStatus, getDocFileUrl, getDetailLines, DocThumb } from "../../../components/User/DocumentFormModal";
 import { useAuth } from "../../../context/AuthContext";
+
+const formatDocumentDate = (value) => {
+  const raw = String(value || '').slice(0, 10);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return raw;
+  const [, year, month, day] = match;
+  return `${Number(month)}/${Number(day)}/${year}`;
+};
  
 const UserProfile = () => {
   const { id } = useParams();
@@ -802,6 +810,7 @@ const UserProfile = () => {
                   const fileUrl = getDocFileUrl(doc);
                   const detailLines = getDetailLines(doc);
                   const currentExpiryDate = doc.expiry_date ? String(doc.expiry_date).slice(0, 10) : '';
+                  const currentExpiryDate = doc.expiry_date ? formatDocumentDate(doc.expiry_date) : '';
                   const staleExpiryLine = /^(?:class [123] privileges until|(?:first|second|third) class medical exp:|(?:training expires|recent experience ends|next flight review due):)/i;
                   const visibleDetailLines = currentExpiryDate
                     ? detailLines.filter((line) => !staleExpiryLine.test(line.trim()))
@@ -1182,5 +1191,6 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
 };
  
 export default UserProfile;
+ 
  
  
