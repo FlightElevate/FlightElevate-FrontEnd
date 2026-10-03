@@ -1,6 +1,3 @@
-
-
-Userprofile · JSX
 import React, { useState, useEffect } from "react";
 import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck, FiArrowLeft } from "react-icons/fi";
 import { useParams, useNavigate } from "react-router-dom";
