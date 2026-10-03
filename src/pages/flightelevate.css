@@ -169,10 +169,18 @@
 .fe-mobile a { display: block; padding: 14px 0; border-bottom: 1px solid var(--fe-rule); font-family: var(--fe-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--fe-text-mid); }
 .fe-mobile .fe-mobile-cta { display: flex; gap: 10px; padding: 18px 0; }
 .fe-mobile .fe-mobile-cta .fe-btn { flex: 1; }
-@media (max-width: 940px) {
+/* Collapse before the full navigation runs out of horizontal space. */
+@media (max-width: 1024px) {
   .fe-nav-links { display: none; }
   .fe-nav-cta .fe-hide-sm { display: none; }
   .fe-burger { display: inline-flex; }
+}
+/* Keep the brand and menu button clear on narrow phones; the CTA stays in the menu. */
+@media (max-width: 480px) {
+  .fe-nav-cta > .fe-btn-primary { display: none; }
+}
+@media (min-width: 1025px) {
+  .fe-mobile { display: none !important; }
 }
 
 /* ============================================================
