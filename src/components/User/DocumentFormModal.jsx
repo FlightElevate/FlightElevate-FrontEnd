@@ -130,16 +130,16 @@ const computeMedical = (cls, examISO, dobISO) => {
   let primaryN;
   if (cls === 'Class 1') {
     primaryN = over40 ? 6 : 12;
-    lines.push(`1st class exp: ${fmtDate(eom(primaryN))}`);
-    if (over40) lines.push(`2nd class exp: ${fmtDate(eom(12))}`);
-    lines.push(`3rd class exp: ${fmtDate(eom(thirdN))}`);
+    lines.push(`First class medical exp: ${fmtDate(eom(primaryN))}`);
+    if (over40) lines.push(`Second class medical exp: ${fmtDate(eom(12))}`);
+    lines.push(`Third class medical exp: ${fmtDate(eom(thirdN))}`);
   } else if (cls === 'Class 2') {
     primaryN = 12;
-    lines.push(`2nd class exp: ${fmtDate(eom(12))}`);
-    lines.push(`3rd class exp: ${fmtDate(eom(thirdN))}`);
+    lines.push(`Second class medical exp: ${fmtDate(eom(12))}`);
+    lines.push(`Third class medical exp: ${fmtDate(eom(thirdN))}`);
   } else {
     primaryN = thirdN;
-    lines.push(`3rd class exp: ${fmtDate(eom(thirdN))}`);
+    lines.push(`Third class medical exp: ${fmtDate(eom(thirdN))}`);
   }
   return { expiry: eom(primaryN), lines, assumedAge: age === null };
 };
