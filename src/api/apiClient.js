@@ -1,41 +1,35 @@
 import axios from 'axios';
 import { API_URL, DEFAULT_CONFIG } from './config';
 
-
 const apiClient = axios.create({
   baseURL: API_URL,
   ...DEFAULT_CONFIG,
 });
 
-
 apiClient.interceptors.request.use(
   (config) => {
-    // Token is now managed securely via HttpOnly cookie
-    
-    // Debug: Log FormData requests
+    const token = localStorage.getItem('auth_token');
+
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     if (config.data instanceof FormData) {
-      
-      // Ensure Content-Type is not set for FormData (axios will set it with boundary)
+      // Let Axios set the multipart boundary.
       if (config.headers['Content-Type']) {
         delete config.headers['Content-Type'];
       }
     }
-    
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-
 apiClient.interceptors.response.use(
-  (response) => {
-    
-    return response.data;
-  },
+  (response) => response.data,
   (error) => {
-    
     const errorResponse = {
       message: 'An error occurred',
       errors: null,
@@ -45,34 +39,48 @@ apiClient.interceptors.response.use(
 
     if (error.response) {
       const { data, status } = error.response;
-      
-      
+
       switch (status) {
-        case 401:
-          
-          // Token is managed by cookie, no need to clear localStorage
-          
+        case 401: {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+
           const currentPath = window.location.pathname;
-          const publicAuthPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+          const publicAuthPaths = [
+            '/',
+            '/login',
+            '/register',
+            '/forgot-password',
+            '/reset-password',
+          ];
+
           if (!publicAuthPaths.includes(currentPath)) {
             window.location.href = '/';
           }
-          errorResponse.message = data?.message || 'Unauthorized. Please login again.';
+
+          errorResponse.message =
+            data?.message || 'Unauthorized. Please login again.';
           break;
-        case 403:
-          
+        }
+
+        case 403: {
           errorResponse.message = data?.message || 'Access denied';
-          
-          // Handle subscription required redirection
+
           if (data?.subscription_required) {
             let isInstructorOrStudent = false;
+
             try {
               const storedUser = localStorage.getItem('user');
+
               if (storedUser) {
                 const userObj = JSON.parse(storedUser);
                 const roles = userObj.roles || [];
-                isInstructorOrStudent = roles.some(r => {
-                  const roleName = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+
+                isInstructorOrStudent = roles.some((role) => {
+                  const roleName = (
+                    typeof role === 'string' ? role : role?.name || ''
+                  ).toLowerCase();
+
                   return roleName === 'instructor' || roleName === 'student';
                 });
               }
@@ -84,132 +92,136 @@ apiClient.interceptors.response.use(
 
             if (!isInstructorOrStudent) {
               const currentPath = window.location.pathname;
+
               if (currentPath !== '/subscription') {
                 window.location.href = '/subscription';
               }
             }
           }
-          
+
           if (import.meta.env.DEV) {
             console.error('Access denied:', data);
           }
           break;
+        }
+
         case 404:
-          
           errorResponse.message = data?.message || 'Resource not found';
           break;
-        case 422:
-          
-          let msg = data?.errors?.message || data?.message || 'Validation failed';
-          if ((msg === 'Validation failed' || msg === 'The given data was invalid.') && data?.errors?.details) {
-            const errDetails = data.errors.details;
-            if (typeof errDetails === 'string') {
-              msg = errDetails;
-            } else if (Array.isArray(errDetails) && errDetails.length > 0) {
-              msg = errDetails[0];
-            } else if (typeof errDetails === 'object' && errDetails !== null) {
-              const details = Object.values(errDetails).flat();
-              if (details.length > 0) {
-                msg = details[0];
+
+        case 422: {
+          let msg =
+            data?.errors?.message ||
+            data?.message ||
+            'Validation failed';
+
+          if (
+            (msg === 'Validation failed' ||
+              msg === 'The given data was invalid.') &&
+            data?.errors?.details
+          ) {
+            const details = data.errors.details;
+
+            if (typeof details === 'string') {
+              msg = details;
+            } else if (Array.isArray(details) && details.length > 0) {
+              msg = details[0];
+            } else if (typeof details === 'object' && details !== null) {
+              const firstDetail = Object.values(details).flat()[0];
+
+              if (firstDetail) {
+                msg = firstDetail;
               }
             }
           }
+
           errorResponse.message = msg;
           errorResponse.errors = data?.errors || data;
+
           if (import.meta.env.DEV) {
             console.error('Validation failed:', data?.errors || data);
           }
           break;
+        }
+
         case 500:
-          
           errorResponse.message = data?.message || 'Internal server error';
+
           if (import.meta.env.DEV) {
             console.error('Server error:', data);
           }
           break;
+
         default:
-          errorResponse.message = data?.errors?.message || data?.message || `Error: ${status}`;
+          errorResponse.message =
+            data?.errors?.message || data?.message || `Error: ${status}`;
       }
-      
-      
+
       return Promise.reject(errorResponse);
     }
-    
-    
-    errorResponse.message = error.message || 'Network error. Please check your connection.';
+
+    errorResponse.message =
+      error.message || 'Network error. Please check your connection.';
+
     return Promise.reject(errorResponse);
   }
 );
 
-
 export const api = {
-  
   get: (url, config = {}) => {
-    // If second arg is { params: {...} } (query params), pass as-is. Else treat as query params object.
-    const axiosConfig = config && typeof config === 'object' && !Array.isArray(config) && 'params' in config
-      ? config
-      : { params: config };
+    // Accept either Axios config ({ params: ... }) or a plain params object.
+    const axiosConfig =
+      config &&
+      typeof config === 'object' &&
+      !Array.isArray(config) &&
+      'params' in config
+        ? config
+        : { params: config };
+
     return apiClient.get(url, axiosConfig);
   },
 
-  
   post: (url, data, config = {}) => {
-    // Handle FormData for file uploads
     if (data instanceof FormData) {
       return apiClient.post(url, data, {
         ...config,
         headers: {
           ...config.headers,
-          // Don't set Content-Type - axios will set it automatically with boundary
         },
       });
     }
+
     return apiClient.post(url, data, config);
   },
 
-  
   put: (url, data, config = {}) => {
-    // Handle FormData for file uploads
-    // Laravel sometimes has issues with PUT + FormData, so use POST with _method=PUT
     if (data instanceof FormData) {
-      // IMPORTANT: Add _method=PUT BEFORE appending files (Laravel requirement)
-      // Check if _method already exists to avoid duplicates
       if (!data.has('_method')) {
         data.append('_method', 'PUT');
       }
-      
-      // Use POST instead of PUT for FormData (Laravel will handle _method)
+
       return apiClient.post(url, data, {
         ...config,
         headers: {
           ...config.headers,
-          // Explicitly remove Content-Type to let axios set it with boundary
         },
-        // Ensure axios processes FormData correctly
-        transformRequest: [(data) => data], // Don't transform FormData
+        transformRequest: [(formData) => formData],
       });
     }
+
     return apiClient.put(url, data, config);
   },
 
-  
-  patch: (url, data) => {
-    return apiClient.patch(url, data);
-  },
+  patch: (url, data) => apiClient.patch(url, data),
 
-  
-  delete: (url) => {
-    return apiClient.delete(url);
-  },
+  delete: (url) => apiClient.delete(url),
 
-  
-  upload: (url, formData) => {
-    return apiClient.post(url, formData, {
+  upload: (url, formData) =>
+    apiClient.post(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    });
-  },
+    }),
 };
 
 export default apiClient;
