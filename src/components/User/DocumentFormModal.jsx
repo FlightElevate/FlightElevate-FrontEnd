@@ -124,22 +124,22 @@ const computeMedical = (cls, examISO, dobISO) => {
   const thirdN = over40 ? 24 : 60;
 
   const lines = [
-    `${cls} medical, exam ${fmtDate(exam)}`,
-    age === null ? 'Age at exam not provided (assumed 40 or over)' : `Age at exam: ${age}`,
+    `${cls} exam: ${fmtDate(exam)}`,
+    age === null ? 'Age assumed 40+' : `Age: ${age}`,
   ];
   let primaryN;
   if (cls === 'Class 1') {
     primaryN = over40 ? 6 : 12;
-    lines.push(`Class 1 privileges until ${fmtDate(eom(primaryN))}`);
-    if (over40) lines.push(`Class 2 privileges until ${fmtDate(eom(12))}`);
-    lines.push(`Class 3 privileges until ${fmtDate(eom(thirdN))}`);
+    lines.push(`1st class exp: ${fmtDate(eom(primaryN))}`);
+    if (over40) lines.push(`2nd class exp: ${fmtDate(eom(12))}`);
+    lines.push(`3rd class exp: ${fmtDate(eom(thirdN))}`);
   } else if (cls === 'Class 2') {
     primaryN = 12;
-    lines.push(`Class 2 privileges until ${fmtDate(eom(12))}`);
-    lines.push(`Class 3 privileges until ${fmtDate(eom(thirdN))}`);
+    lines.push(`2nd class exp: ${fmtDate(eom(12))}`);
+    lines.push(`3rd class exp: ${fmtDate(eom(thirdN))}`);
   } else {
     primaryN = thirdN;
-    lines.push(`Class 3 privileges until ${fmtDate(eom(thirdN))}`);
+    lines.push(`3rd class exp: ${fmtDate(eom(thirdN))}`);
   }
   return { expiry: eom(primaryN), lines, assumedAge: age === null };
 };
@@ -229,6 +229,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
   }));
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [removeExistingFile, setRemoveExistingFile] = useState(false);
   const detailsTouched = useRef(mode === 'edit' && detailsToText(doc?.details).length > 0);
 
   const tpl = getTemplate(form.template_key);
@@ -279,6 +280,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
       return;
     }
     setFile(f);
+    setRemoveExistingFile(false);
   };
 
   const handleSubmit = () => {
@@ -294,17 +296,17 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
       showErrorToast(`Please enter the ${tpl.dateLabel.toLowerCase()}`);
       return;
     }
-    onSubmit({ ...form, file });
+    onSubmit({ ...form, file, remove_file: removeExistingFile });
   };
 
-  const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
-  const labelCls = "block text-sm font-medium text-gray-700 mb-1";
+  const inputCls = "w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const labelCls = "block text-xs font-medium text-gray-700 mb-1";
   const isImageFile = file && file.type && file.type.startsWith('image/');
 
   return createPortal(
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="px-6 py-5 border-b border-gray-200">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-semibold text-gray-900">{mode === 'edit' ? 'Edit Document' : 'Add New Document'}</h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 focus:outline-none" disabled={saving}>
@@ -313,27 +315,18 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-5">
+        <div className="p-4 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Template picker */}
-          <div>
+          <div className="md:col-span-2">
             <label className={labelCls}>Document type</label>
-            <div className="flex flex-wrap gap-2">
-              {DOCUMENT_TEMPLATES.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => pickTemplate(t.key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                    form.template_key === t.key
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'
-                  }`}
-                >
-                  {t.title}
-                </button>
-              ))}
-            </div>
-            {tpl.hint && <p className="mt-2 text-xs text-gray-500">{tpl.hint}</p>}
+            <select
+              value={form.template_key}
+              onChange={(e) => pickTemplate(e.target.value)}
+              className={inputCls}
+            >
+              {DOCUMENT_TEMPLATES.map((t) => <option key={t.key} value={t.key}>{t.title}</option>)}
+            </select>
+            {tpl.hint && <p className="mt-1 text-xs text-gray-500">{tpl.hint}</p>}
           </div>
 
           <div>
@@ -349,7 +342,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
 
           {/* Medical inputs */}
           {tpl.expiry === 'medical' && (
-            <div className="space-y-4 bg-blue-50/40 border border-blue-100 rounded-xl p-4">
+            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-blue-50/40 border border-blue-100 rounded-xl p-3">
               <div>
                 <label className={labelCls}>Medical class</label>
                 <div className="flex gap-2">
@@ -358,7 +351,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
                       key={c}
                       type="button"
                       onClick={() => update({ medical_class: c })}
-                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition ${
+                      className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition ${
                         form.medical_class === c
                           ? 'bg-blue-600 text-white border-blue-600'
                           : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
@@ -369,7 +362,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:col-span-2">
                 <div>
                   <label className={labelCls}>Date of exam</label>
                   <input type="date" value={form.exam_date} onChange={(e) => update({ exam_date: e.target.value })} className={inputCls} />
@@ -379,7 +372,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
                   <input type="date" value={form.date_of_birth} onChange={(e) => update({ date_of_birth: e.target.value })} className={inputCls} />
                 </div>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 sm:col-span-3">
                 DOB is used to apply the under-40 / 40-and-over rules. If left blank, 40 or over is assumed (shorter validity).
               </p>
             </div>
@@ -412,7 +405,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
 
           {/* Computed preview */}
           {computed && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+            <div className="md:col-span-2 bg-green-50 border border-green-200 rounded-xl p-3">
               <p className="text-sm font-semibold text-green-800 mb-1">Expires {fmtDate(computed.expiry)}</p>
               <ul className="text-xs text-green-800/90 space-y-0.5">
                 {computed.lines.map((l, i) => <li key={i}>{l}</li>)}
@@ -423,22 +416,22 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
             </div>
           )}
 
-          <div>
+          <div className="md:col-span-2">
             <label className={labelCls}>Description / Details (Optional)</label>
             <textarea
               value={form.details}
               onChange={(e) => { detailsTouched.current = true; update({ details: e.target.value }); }}
-              rows="3"
+              rows="2"
               className={inputCls}
               placeholder="Enter any additional details..."
             />
           </div>
 
           {/* File / image */}
-          <div>
+          <div className="md:col-span-2">
             <label className={labelCls}>Document File {mode === 'edit' && <span className="text-gray-400 font-normal">(leave empty to keep current file)</span>}</label>
 
-            {(previewUrl || (!file && existingUrl)) && (
+            {(previewUrl || (!file && existingUrl && !removeExistingFile)) && (
               <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-2 flex items-center justify-center">
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="max-h-48 rounded object-contain" />
@@ -452,6 +445,19 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
                   </a>
                 )}
               </div>
+            )}
+
+            {mode === 'edit' && existingUrl && !removeExistingFile && !file && (
+              <button
+                type="button"
+                onClick={() => setRemoveExistingFile(true)}
+                className="mb-3 text-sm font-medium text-red-600 hover:text-red-700"
+              >
+                Remove current photo/file
+              </button>
+            )}
+            {removeExistingFile && (
+              <p className="mb-3 text-sm text-amber-700">The current photo/file will be removed when you save.</p>
             )}
 
             <div className="flex flex-col sm:flex-row gap-2">
@@ -476,7 +482,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
           </div>
         </div>
 
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
           <button
             type="button"
             disabled={saving}
@@ -501,3 +507,4 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
 };
 
 export default DocumentFormModal;
+
