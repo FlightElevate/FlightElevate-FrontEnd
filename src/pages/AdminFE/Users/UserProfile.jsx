@@ -802,8 +802,8 @@ const UserProfile = () => {
                   const fileUrl = getDocFileUrl(doc);
                   const detailLines = getDetailLines(doc);
                   const rowTone =
-                    status.key === 'expired' ? 'border-red-200 bg-red-50/40'
-                    : status.key === 'soon' ? 'border-amber-200 bg-amber-50/40'
+                    status.key === 'expired' ? 'border-red-300 bg-red-50'
+                    : status.key === 'soon' ? 'border-amber-300 bg-amber-50'
                     : 'border-gray-200 bg-white hover:bg-gray-50';
                   return (
                     <div key={doc.id ?? index} className={`flex flex-col sm:flex-row sm:items-start lg:items-center gap-3 sm:gap-4 p-4 border rounded-lg transition ${rowTone}`}>
@@ -818,9 +818,9 @@ const UserProfile = () => {
                         {detailLines.length > 0 ? (
                           detailLines.map((detail, idx) => {
                             const compactDetail = detail
-                              .replace(/Class 1 privileges until/i, '1st class exp:')
-                              .replace(/Class 2 privileges until/i, '2nd class exp:')
-                              .replace(/Class 3 privileges until/i, '3rd class exp:')
+                              .replace(/Class 1 privileges until/i, 'First class medical exp:')
+                              .replace(/Class 2 privileges until/i, 'Second class medical exp:')
+                              .replace(/Class 3 privileges until/i, 'Third class medical exp:')
                               .replace(/Class ([123]) medical, exam/i, 'Class $1 exam:')
                               .replace(/Age at exam:/i, 'Age:')
                               .replace(/Age at exam not provided \(assumed 40 or over\)/i, 'Age assumed 40+');
@@ -1179,5 +1179,3 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
  
 export default UserProfile;
  
- 
-
