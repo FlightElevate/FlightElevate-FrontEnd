@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck, FiArrowLeft } from "react-icons/fi";
 import { useParams, useNavigate } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
-import profileImg from "../../../assets/img/profile.jpg";
+import profileImg from "../../../assets/img/profile.jpg"; 
 import { userService } from "../../../api/services/userService";
 import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
