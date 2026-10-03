@@ -1,5 +1,7 @@
+
+
+Userprofile · JSX
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { FiSearch, FiMoreVertical, FiMapPin, FiPlusCircle, FiDollarSign, FiArrowUpCircle, FiArrowDownCircle, FiEdit2, FiX, FiChevronDown, FiCheck, FiArrowLeft } from "react-icons/fi";
 import { useParams, useNavigate } from "react-router-dom";
 import gear_filler from "../../../assets/SVG/gear-filled.svg";
@@ -7,6 +9,7 @@ import profileImg from "../../../assets/img/profile.jpg";
 import { userService } from "../../../api/services/userService";
 import { documentService } from "../../../api/services/documentService";
 import { lessonService } from "../../../api/services/lessonService";
+import { reservationService } from "../../../api/services/reservationService";
 import { settingsService } from "../../../api/services/settingsService";
 import { locationService } from "../../../api/services/locationService";
 import { logbookService } from "../../../api/services/logbookService";
@@ -15,8 +18,9 @@ import { formatDate, formatTime } from "../../../utils/dateFormatter";
 import { getImageUrl } from "../../../utils/imageUtils";
 import { safeDisplay } from "../../../utils/safeDisplay";
 import EditUserModal from "../../../components/User/EditUserModal";
+import DocumentFormModal, { SEND_TEMPLATE_META, getDocStatus, getDocFileUrl, getDetailLines, DocThumb } from "../../../components/User/DocumentFormModal";
 import { useAuth } from "../../../context/AuthContext";
-
+ 
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,27 +36,15 @@ const UserProfile = () => {
   const [searchLogs, setSearchLogs] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
   const [openMenu, setOpenMenu] = useState(null);
-  const [showEditDocument, setShowEditDocument] = useState(false);
-  const [editingDocument, setEditingDocument] = useState(null);
-  const [editDocumentData, setEditDocumentData] = useState({
-    title: '',
-    expiry_date: '',
-    details: '',
-    file: null,
-  });
-  const [selectedEditFile, setSelectedEditFile] = useState(null);
-  const [updatingDoc, setUpdatingDoc] = useState(false);
-  const [showAddDocument, setShowAddDocument] = useState(false);
-  const [addingDoc, setAddingDoc] = useState(false);
-  const [addDocumentData, setAddDocumentData] = useState({
-    title: '',
-    expiry_date: '',
-    details: '',
-    file: null,
-  });
-  const [selectedAddFile, setSelectedAddFile] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
-
+ 
+  // Document modal: null | { mode: 'add' } | { mode: 'edit', doc }
+  const [docModal, setDocModal] = useState(null);
+  const [savingDoc, setSavingDoc] = useState(false);
+ 
+  // Last flight (latest checked-out reservation), stored as a timestamp in ms
+  const [lastFlight, setLastFlight] = useState(null);
+ 
   // Location settings state
   const [locationOptions, setLocationOptions] = useState([]);
   const [locationForm, setLocationForm] = useState({
@@ -60,22 +52,23 @@ const UserProfile = () => {
     calendar_location_ids: [],
   });
   const [locationSaving, setLocationSaving] = useState(false);
-
+ 
   // Wallet state
   const [walletTxns, setWalletTxns] = useState([]);
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [depositForm, setDepositForm] = useState({ amount: '', payment_method: 'card', description: '' });
   const [depositLoading, setDepositLoading] = useState(false);
-
+ 
   useEffect(() => {
     if (id) {
       fetchUser();
       fetchDocuments();
       fetchFlightLogs();
       fetchWalletTxns();
+      fetchLastFlight();
     }
   }, [id]);
-
+ 
   const fetchUser = async () => {
     setLoadingUser(true);
     try {
@@ -106,11 +99,62 @@ const UserProfile = () => {
       setLoadingUser(false);
     }
   };
-
+ 
   const handleEditSuccess = () => {
     fetchUser();
   };
-
+ 
+  // Last Flight = newest completed (checked-out) reservation involving this user
+  const fetchLastFlight = async () => {
+    if (!id) return;
+    try {
+      const toList = (res) => (Array.isArray(res?.data) ? res.data : (res?.data?.data || []));
+      const isDone = (r) =>
+        ['completed', 'complete', 'checked_out', 'checkedout'].includes(
+          String(r.status || '').toLowerCase().replace(/[\s-]+/g, '_')
+        );
+      const involvesUser = (r) => {
+        const people = ['instructors', 'students', 'participants', 'users', 'pilots']
+          .flatMap((k) => (Array.isArray(r[k]) ? r[k] : []));
+        const ids = [
+          r.user_id, r.student_id, r.instructor_id, r.pilot_id, r.participant_id,
+          r.student_user_id, r.instructor_user_id,
+          ...(Array.isArray(r.user_ids) ? r.user_ids : []),
+          ...people.map((p) => p?.id),
+        ].filter((v) => v != null && v !== '');
+        return ids.some((v) => String(v) === String(id));
+      };
+      const getDate = (r) => r.full_date || r.lesson_date || r.date || r.start_time || null;
+      const getTime = (r) => r.time || r.full_time || r.lesson_time || null;
+ 
+      let best = null;
+      const perPage = 100;
+      let page = 1;
+      let lastPage = 1;
+      do {
+        const res = await reservationService.getReservations({ user_id: id, page, per_page: perPage });
+        if (!res?.success) break;
+        const list = toList(res);
+        list.filter((r) => isDone(r) && involvesUser(r)).forEach((r) => {
+          const d = getDate(r);
+          const t = d ? new Date(d).getTime() : NaN;
+          if (!Number.isNaN(t) && (!best || t > best.t)) {
+            best = { t, date: d, time: getTime(r) };
+          }
+        });
+        const meta = res.meta || res.data?.meta || {};
+        const reported = Number(meta.last_page || meta.lastPage || 0);
+        lastPage = reported || (list.length === perPage ? page + 1 : page);
+        page += 1;
+      } while (page <= lastPage && page <= 50);
+ 
+      setLastFlight(best);
+    } catch (e) {
+      console.error('Error fetching last flight:', e);
+      setLastFlight(null);
+    }
+  };
+ 
   const fetchLocations = async (orgId = null) => {
     try {
       const params = orgId ? { organization_id: orgId } : {};
@@ -122,7 +166,7 @@ const UserProfile = () => {
       console.error('Error fetching locations:', e);
     }
   };
-
+ 
   const handleSaveLocationSettings = async () => {
     setLocationSaving(true);
     try {
@@ -143,7 +187,7 @@ const UserProfile = () => {
       setLocationSaving(false);
     }
   };
-
+ 
   const toggleCalendarLocation = (locId) => {
     const idStr = String(locId);
     setLocationForm(prev => ({
@@ -153,7 +197,7 @@ const UserProfile = () => {
         : [...prev.calendar_location_ids, idStr],
     }));
   };
-
+ 
   const fetchWalletTxns = async () => {
     if (!id) return;
     setLoadingWallet(true);
@@ -166,7 +210,7 @@ const UserProfile = () => {
       setLoadingWallet(false);
     }
   };
-
+ 
   const handleDeposit = async (e) => {
     e.preventDefault();
     if (!depositForm.amount || parseFloat(depositForm.amount) <= 0) return;
@@ -191,7 +235,7 @@ const UserProfile = () => {
       setDepositLoading(false);
     }
   };
-
+ 
   const fetchDocuments = async () => {
     if (!id) return;
     setLoadingDocs(true);
@@ -207,7 +251,7 @@ const UserProfile = () => {
       setLoadingDocs(false);
     }
   };
-
+ 
   const fetchFlightLogs = async () => {
     if (!id) return;
     setLoadingLogs(true);
@@ -223,117 +267,54 @@ const UserProfile = () => {
       setLoadingLogs(false);
     }
   };
-
-  const handleEditDocument = (doc) => {
-    setEditingDocument(doc);
-    setEditDocumentData({
-      title: doc.title || '',
-      expiry_date: doc.expiry_date || '',
-      details: doc.details || '',
-      file: null,
-    });
-    setSelectedEditFile(null);
-    setShowEditDocument(true);
+ 
+  const openEditDocument = (doc) => {
+    setDocModal({ mode: 'edit', doc });
     setOpenMenu(null);
   };
-
-  const handleEditDocumentChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === 'file' && files && files[0]) {
-      setSelectedEditFile(files[0]);
-      setEditDocumentData(prev => ({ ...prev, file: files[0] }));
-    } else {
-      setEditDocumentData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleUpdateDocument = async () => {
-    if (!id || !editingDocument?.id) return;
-    if (!editDocumentData.title.trim()) {
-      showErrorToast('Please enter document title');
-      return;
-    }
-
-    setUpdatingDoc(true);
+ 
+  // Shared save handler for add + edit
+  const handleSaveDocument = async (f) => {
+    if (!id || !docModal) return;
+    const isEdit = docModal.mode === 'edit';
+    if (isEdit && !docModal.doc?.id) return;
+ 
+    setSavingDoc(true);
     try {
       const formData = new FormData();
-      formData.append('title', editDocumentData.title);
-      if (editDocumentData.expiry_date) {
-        formData.append('expiry_date', editDocumentData.expiry_date);
+      formData.append('title', f.title.trim());
+      if (f.expiry_date) formData.append('expiry_date', f.expiry_date);
+      if (f.details) formData.append('details', f.details);
+      if (f.file) formData.append('file', f.file);
+ 
+      // BACKEND HOOK (see SEND_TEMPLATE_META in DocumentFormModal.jsx)
+      if (SEND_TEMPLATE_META) {
+        formData.append('template_key', f.template_key);
+        if (f.medical_class) formData.append('medical_class', f.medical_class);
+        if (f.exam_date) formData.append('exam_date', f.exam_date);
+        if (f.base_date) formData.append('base_date', f.base_date);
+        if (f.date_of_birth) formData.append('date_of_birth', f.date_of_birth);
       }
-      if (editDocumentData.details) {
-        formData.append('details', editDocumentData.details);
-      }
-      if (editDocumentData.file) {
-        formData.append('file', editDocumentData.file);
-      }
-
-      const response = await documentService.updateDocument(id, editingDocument.id, formData);
-
+ 
+      const response = isEdit
+        ? await documentService.updateDocument(id, docModal.doc.id, formData)
+        : await documentService.createDocument(id, formData);
+ 
       if (response.success) {
-        showSuccessToast('Document updated successfully');
-        setShowEditDocument(false);
+        showSuccessToast(isEdit ? 'Document updated successfully' : 'Document added successfully');
+        setDocModal(null);
         await fetchDocuments();
       } else {
-        showErrorToast(response.message || 'Failed to update document');
+        showErrorToast(response.message || (isEdit ? 'Failed to update document' : 'Failed to add document'));
       }
     } catch (error) {
-      console.error('Error updating document:', error);
-      showErrorToast(error?.message || 'Error updating document');
+      console.error('Error saving document:', error);
+      showErrorToast(error?.message || 'Error saving document');
     } finally {
-      setUpdatingDoc(false);
+      setSavingDoc(false);
     }
   };
-
-  const handleAddDocumentChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === 'file' && files && files[0]) {
-      setSelectedAddFile(files[0]);
-      setAddDocumentData(prev => ({ ...prev, file: files[0] }));
-    } else {
-      setAddDocumentData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleCreateDocument = async () => {
-    if (!id) return;
-    if (!addDocumentData.title.trim()) {
-      showErrorToast('Please enter document title');
-      return;
-    }
-
-    setAddingDoc(true);
-    try {
-      const formData = new FormData();
-      formData.append('title', addDocumentData.title);
-      if (addDocumentData.expiry_date) {
-        formData.append('expiry_date', addDocumentData.expiry_date);
-      }
-      if (addDocumentData.details) {
-        formData.append('details', addDocumentData.details);
-      }
-      if (addDocumentData.file) {
-        formData.append('file', addDocumentData.file);
-      }
-
-      const response = await documentService.createDocument(id, formData);
-      if (response.success) {
-        showSuccessToast('Document added successfully');
-        setShowAddDocument(false);
-        setAddDocumentData({ title: '', expiry_date: '', details: '', file: null });
-        setSelectedAddFile(null);
-        await fetchDocuments();
-      } else {
-        showErrorToast(response.message || 'Failed to add document');
-      }
-    } catch (error) {
-      console.error('Error adding document:', error);
-      showErrorToast(error?.message || 'Error adding document');
-    } finally {
-      setAddingDoc(false);
-    }
-  };
-
+ 
   const handleDeleteDocument = async (documentId, docTitle) => {
     const confirmed = await showDeleteConfirm(docTitle || 'this document');
     if (!confirmed) return;
@@ -346,7 +327,7 @@ const UserProfile = () => {
       showErrorToast('Failed to delete document');
     }
   };
-
+ 
   const handleBlockUser = async () => {
     const confirmed = await showBlockUserConfirm(user?.name);
     if (!confirmed) return;
@@ -361,13 +342,13 @@ const UserProfile = () => {
       showErrorToast('Failed to update user status');
     }
   };
-
+ 
   const toggleMenu = (index) => {
     setOpenMenu(openMenu === index ? null : index);
   };
-
-
-
+ 
+ 
+ 
   
   const filteredFlightLogs = flightLogs.filter((log) => {
     if (!searchLogs) return true;
@@ -380,7 +361,18 @@ const UserProfile = () => {
       (log.lesson_type || "")?.toLowerCase().includes(searchLower)
     );
   });
-
+ 
+  // Number of documents that are expired or expiring soon (shown on the Documents tab)
+  const docAttentionCount = documents.filter((d) => {
+    const k = getDocStatus(d).key;
+    return k === 'expired' || k === 'soon';
+  }).length;
+ 
+  const lastFlightLabel = !lastFlight ? 'No flights yet'
+    : (typeof lastFlight.date === 'string' && lastFlight.date.includes('T'))
+      ? new Date(lastFlight.date).toLocaleString()
+      : [lastFlight.date, lastFlight.time].filter(Boolean).join(' · ');
+ 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".menu-container")) {
@@ -390,7 +382,7 @@ const UserProfile = () => {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [openMenu]);
-
+ 
   if (loadingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -398,7 +390,7 @@ const UserProfile = () => {
       </div>
     );
   }
-
+ 
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -409,7 +401,7 @@ const UserProfile = () => {
       </div>
     );
   }
-
+ 
   return (
     <div className="md:mt-5 mx-auto">
       <div className="mb-4">
@@ -522,7 +514,7 @@ const UserProfile = () => {
             )}
           </div>
         </div>
-
+ 
         <div className="border-b border-gray-200">
           <div className="px-6 flex gap-2">
             <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "profile" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => setActiveTab("profile")}>
@@ -530,13 +522,18 @@ const UserProfile = () => {
             </button>
             <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "documents" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => setActiveTab("documents")}>
               Documents
+              {docAttentionCount > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white align-middle">
+                  {docAttentionCount}
+                </span>
+              )}
             </button>
             <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === "wallet" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-gray-900"}`} onClick={() => { setActiveTab("wallet"); fetchWalletTxns(); }}>
               💳 Wallet
             </button>
           </div>
         </div>
-
+ 
         {activeTab === "profile" ? (
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mb-8">
@@ -573,10 +570,10 @@ const UserProfile = () => {
               <div><p className="text-sm text-gray-500 mb-1">Balance</p><p className="text-sm font-bold text-green-700">${Number(user?.account_balance || 0).toFixed(2)}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Company</p><p className="text-sm font-medium text-gray-900">{user?.organization?.name || 'N/A'}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Created</p><p className="text-sm font-medium text-gray-900">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p></div>
-              <div><p className="text-sm text-gray-500 mb-1">Last Flight</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
+              <div><p className="text-sm text-gray-500 mb-1">Last Flight</p><p className="text-sm font-medium text-gray-900">{lastFlightLabel}</p></div>
               <div><p className="text-sm text-gray-500 mb-1">Last Login</p><p className="text-sm font-medium text-gray-900">{user?.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'N/A'}</p></div>
             </div>
-
+ 
             {String(user?.id) !== String(currentUser?.id) && (
               <LocationAssignmentSection
                 locationOptions={locationOptions}
@@ -586,7 +583,7 @@ const UserProfile = () => {
                 onSave={handleSaveLocationSettings}
               />
             )}
-
+ 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Flight Logs</h3>
@@ -656,7 +653,7 @@ const UserProfile = () => {
                 <FiDollarSign size={22} className="text-blue-400" />
               </div>
             </div>
-
+ 
             <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <FiPlusCircle size={15} className="text-green-500" /> Add Funds
@@ -711,7 +708,7 @@ const UserProfile = () => {
                 </div>
               </form>
             </div>
-
+ 
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h4 className="text-sm font-semibold text-gray-700">Transaction History</h4>
@@ -777,7 +774,7 @@ const UserProfile = () => {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold text-gray-900">User Documents</h3>
               <button
-                onClick={() => setShowAddDocument(true)}
+                onClick={() => setDocModal({ mode: 'add' })}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition shadow-sm"
               >
                 <FiPlusCircle size={16} />
@@ -793,7 +790,7 @@ const UserProfile = () => {
               <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                 <p className="text-gray-500 mb-4">No documents have been uploaded for this user yet.</p>
                 <button
-                  onClick={() => setShowAddDocument(true)}
+                  onClick={() => setDocModal({ mode: 'add' })}
                   className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-blue-700"
                 >
                   <FiPlusCircle size={18} />
@@ -802,259 +799,94 @@ const UserProfile = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {documents.map((doc, index) => (
-                  <div key={index} className="flex items-start justify-between p-4 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition">
-                    <div className="w-1/3">
-                      <h4 className="text-sm font-medium text-gray-900">{doc.title}</h4>
-                    </div>
-                    <div className="flex-1 flex flex-col items-end pr-4">
-                      {doc.details && doc.details.length > 0 ? (
-                        doc.details.map((detail, idx) => (
-                          <p key={idx} className={`text-sm ${detail.toLowerCase().includes('expired') && !detail.toLowerCase().includes('expires at') ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                            {detail}
+                {documents.map((doc, index) => {
+                  const status = getDocStatus(doc);
+                  const fileUrl = getDocFileUrl(doc);
+                  const detailLines = getDetailLines(doc);
+                  const rowTone =
+                    status.key === 'expired' ? 'border-red-200 bg-red-50/40'
+                    : status.key === 'soon' ? 'border-amber-200 bg-amber-50/40'
+                    : 'border-gray-200 bg-white hover:bg-gray-50';
+                  return (
+                    <div key={doc.id ?? index} className={`flex items-start gap-4 p-4 border rounded-lg transition ${rowTone}`}>
+                      <DocThumb url={fileUrl} />
+                      <div className="w-1/3 min-w-0">
+                        <h4 className="text-sm font-medium text-gray-900 break-words">{doc.title}</h4>
+                        <span className={`mt-1.5 inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${status.badge}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-end pr-4">
+                        {detailLines.length > 0 ? (
+                          detailLines.map((detail, idx) => (
+                            <p key={idx} className={`text-sm text-right ${detail.toLowerCase().includes('expired') && !detail.toLowerCase().includes('expires at') ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                              {detail}
+                            </p>
+                          ))
+                        ) : doc.expiry_date ? (
+                          <p className={`text-sm ${doc.is_expired ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                            {doc.is_expired ? 'Expired: ' : 'Expires at: '}{doc.expiry_date}
                           </p>
-                        ))
-                      ) : doc.expiry_date ? (
-                        <p className={`text-sm ${doc.is_expired ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                          {doc.is_expired ? 'Expired: ' : 'Expires at: '}{doc.expiry_date}
-                        </p>
-                      ) : null}
+                        ) : null}
+                      </div>
+                      <div className="relative menu-container">
+                        <button 
+                          className="p-2 hover:bg-gray-100 rounded" 
+                          onClick={() => toggleMenu(index)}
+                          aria-label="Document menu"
+                        >
+                          <FiMoreVertical className="text-gray-500" />
+                        </button>
+                        {openMenu === index && (
+                          <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                            {fileUrl && (
+                              <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px] leading-[28px]"
+                                onClick={() => setOpenMenu(null)}
+                              >
+                                View file
+                              </a>
+                            )}
+                            <button 
+                              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px]" 
+                              onClick={() => openEditDocument(doc)}
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 min-h-[44px]" 
+                              onClick={() => handleDeleteDocument(doc.id, doc.title)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="relative menu-container">
-                      <button 
-                        className="p-2 hover:bg-gray-100 rounded" 
-                        onClick={() => toggleMenu(index)}
-                        aria-label="Document menu"
-                      >
-                        <FiMoreVertical className="text-gray-500" />
-                      </button>
-                      {openMenu === index && (
-                        <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                          <button 
-                            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 min-h-[44px]" 
-                            onClick={() => handleEditDocument(doc)}
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 min-h-[44px]" 
-                            onClick={() => handleDeleteDocument(doc.id, doc.title)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         )}
       </div>
-
-      {/* --- ADD DOCUMENT MODAL --- */}
-      {showAddDocument && createPortal(
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-900">Add New Document</h3>
-                <button onClick={() => setShowAddDocument(false)} className="text-gray-400 hover:text-gray-600 focus:outline-none">
-                  <FiX size={24} />
-                </button>
-              </div>
-            </div>
-            <div className="p-6 overflow-y-auto space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Document Title <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      name="title"
-                      value={addDocumentData.title}
-                      onChange={handleAddDocumentChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Medical Certificate"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date (Optional)</label>
-                    <input
-                      type="date"
-                      name="expiry_date"
-                      value={addDocumentData.expiry_date}
-                      onChange={handleAddDocumentChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description / Details (Optional)</label>
-                    <textarea
-                      name="details"
-                      value={addDocumentData.details}
-                      onChange={handleAddDocumentChange}
-                      rows="3"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter any additional details..."
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Document File</label>
-                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-                      <div className="space-y-1 text-center">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <div className="flex text-sm text-gray-600 justify-center">
-                          <label htmlFor="add-file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                            <span>Upload a file</span>
-                            <input id="add-file-upload" name="file" type="file" className="sr-only" onChange={handleAddDocumentChange} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
-                          </label>
-                        </div>
-                        <p className="text-xs text-gray-500">PDF, DOC, JPG, PNG up to 10MB</p>
-                      </div>
-                    </div>
-                    {selectedAddFile && (
-                      <p className="mt-2 text-sm text-green-600 flex items-center">
-                        <FiCheck className="mr-1" /> {selectedAddFile.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-              <button
-                type="button"
-                disabled={addingDoc}
-                onClick={() => setShowAddDocument(false)}
-                className="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={addingDoc}
-                onClick={handleCreateDocument}
-                className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm disabled:opacity-50"
-              >
-                {addingDoc ? 'Adding...' : 'Add Document'}
-              </button>
-            </div>
-          </div>
-        </div>
-      , document.body)}
-
-      {/* --- EDIT DOCUMENT MODAL --- */}
-      {showEditDocument && editingDocument && createPortal(
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">Edit Document</h3>
-                <button
-                  onClick={() => {
-                    setShowEditDocument(false);
-                    setEditingDocument(null);
-                    setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
-                    setSelectedEditFile(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={editDocumentData.title}
-                    onChange={handleEditDocumentChange}
-                    placeholder="Enter document title..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Expiry Date (Optional)
-                  </label>
-                  <input
-                    type="date"
-                    name="expiry_date"
-                    value={editDocumentData.expiry_date}
-                    onChange={handleEditDocumentChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Details (Optional)
-                  </label>
-                  <textarea
-                    name="details"
-                    value={editDocumentData.details}
-                    onChange={handleEditDocumentChange}
-                    placeholder="Enter document details..."
-                    rows="3"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    File (Optional - Leave empty to keep current file)
-                  </label>
-                  <input
-                    type="file"
-                    name="file"
-                    onChange={handleEditDocumentChange}
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
-                  />
-                  {selectedEditFile && (
-                    <p className="mt-2 text-sm text-gray-600">
-                      Selected: {selectedEditFile.name}
-                    </p>
-                  )}
-                  {!selectedEditFile && editingDocument.file_path && (
-                    <p className="mt-2 text-sm text-gray-500 italic">
-                      Current file will be kept
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowEditDocument(false);
-                    setEditingDocument(null);
-                    setEditDocumentData({ title: '', expiry_date: '', details: '', file: null });
-                    setSelectedEditFile(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition min-h-[44px]"
-                  disabled={updatingDoc}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateDocument}
-                  disabled={updatingDoc}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updatingDoc ? 'Updating...' : 'Update Document'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      , document.body)}
-
+ 
+      {/* --- ADD / EDIT DOCUMENT MODAL --- */}
+      {docModal && (
+        <DocumentFormModal
+          key={docModal.mode === 'edit' ? `edit-${docModal.doc?.id}` : 'add'}
+          mode={docModal.mode}
+          doc={docModal.doc}
+          saving={savingDoc}
+          userDob={user?.date_of_birth || user?.dob || user?.birth_date || ''}
+          onClose={() => { if (!savingDoc) setDocModal(null); }}
+          onSubmit={handleSaveDocument}
+        />
+      )}
+ 
       {editModalOpen && (
         <EditUserModal
           isOpen={editModalOpen}
@@ -1069,14 +901,14 @@ const UserProfile = () => {
     </div>
   );
 };
-
+ 
 // ── Searchable Location Assignment Component ──────────────────────────────────
 const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationForm, locationSaving, onSave }) => {
   const [defaultSearch, setDefaultSearch] = useState('');
   const [defaultOpen, setDefaultOpen] = useState(false);
   const [multiSearch, setMultiSearch] = useState('');
   const defaultRef = React.useRef(null);
-
+ 
   // Close dropdown on outside click
   React.useEffect(() => {
     const handler = (e) => {
@@ -1087,20 +919,20 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
+ 
   const filteredDefault = locationOptions.filter(loc =>
     loc.name.toLowerCase().includes(defaultSearch.toLowerCase()) ||
     (loc.address || '').toLowerCase().includes(defaultSearch.toLowerCase())
   );
-
+ 
   const filteredMulti = locationOptions.filter(loc =>
     String(loc.id) !== String(locationForm.default_location_id) &&
     (loc.name.toLowerCase().includes(multiSearch.toLowerCase()) ||
     (loc.address || '').toLowerCase().includes(multiSearch.toLowerCase()))
   );
-
+ 
   const selectedDefaultName = locationOptions.find(l => String(l.id) === locationForm.default_location_id)?.name;
-
+ 
   const toggleCalendar = (idStr) => {
     setLocationForm(prev => ({
       ...prev,
@@ -1109,11 +941,11 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
         : [...prev.calendar_location_ids, idStr],
     }));
   };
-
+ 
   const selectedCalendarLocations = locationOptions.filter(l =>
     locationForm.calendar_location_ids.includes(String(l.id))
   );
-
+ 
   if (locationOptions.length === 0) {
     return (
       <div className="border-t border-gray-200 pt-6 mb-6">
@@ -1130,7 +962,7 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
       </div>
     );
   }
-
+ 
   return (
     <div className="border-t border-gray-200 pt-6 mb-6">
       {/* Header */}
@@ -1141,9 +973,9 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
         <h3 className="text-lg font-semibold text-gray-900">Assigned Locations</h3>
       </div>
       <p className="text-sm text-gray-500 mb-5">Assign locations to this user for scheduling and reservations.</p>
-
+ 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 max-w-4xl">
-
+ 
         {/* ── Default Location ── */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -1167,7 +999,7 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
               </span>
               <FiChevronDown size={16} className={`text-gray-400 flex-shrink-0 transition-transform ${defaultOpen ? 'rotate-180' : ''}`} />
             </button>
-
+ 
             {defaultOpen && (
               <div className="absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                 {/* Search */}
@@ -1230,13 +1062,13 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
             </p>
           )}
         </div>
-
+ 
         {/* ── Additional Locations ── */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
             Additional Schedule Locations <span className="text-gray-400 font-normal normal-case">(multi-select)</span>
           </label>
-
+ 
           {/* Selected tags */}
           {selectedCalendarLocations.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -1254,7 +1086,7 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
               ))}
             </div>
           )}
-
+ 
           {/* Search box */}
           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-1 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
             <FiSearch size={14} className="text-gray-400 flex-shrink-0" />
@@ -1271,7 +1103,7 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
               </button>
             )}
           </div>
-
+ 
           {/* Checklist */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             {filteredMulti.length === 0 ? (
@@ -1310,7 +1142,7 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
           )}
         </div>
       </div>
-
+ 
       {/* Save Button */}
       <div className="mt-5 flex items-center gap-3">
         <button
@@ -1337,5 +1169,7 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
     </div>
   );
 };
-
+ 
 export default UserProfile;
+ 
+
