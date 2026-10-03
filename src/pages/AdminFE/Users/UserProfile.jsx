@@ -801,6 +801,11 @@ const UserProfile = () => {
                   const status = getDocStatus(doc);
                   const fileUrl = getDocFileUrl(doc);
                   const detailLines = getDetailLines(doc);
+                  const currentExpiryDate = doc.expiry_date ? String(doc.expiry_date).slice(0, 10) : '';
+                  const staleExpiryLine = /^(?:class [123] privileges until|(?:first|second|third) class medical exp:|(?:training expires|recent experience ends|next flight review due):)/i;
+                  const visibleDetailLines = currentExpiryDate
+                    ? detailLines.filter((line) => !staleExpiryLine.test(line.trim()))
+                    : detailLines;
                   const rowTone =
                     status.key === 'expired' ? 'border-red-300 bg-red-50'
                     : status.key === 'soon' ? 'border-amber-300 bg-amber-50'
@@ -815,26 +820,25 @@ const UserProfile = () => {
                         </span>
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col sm:items-end lg:flex-row lg:flex-wrap lg:items-center lg:justify-end gap-x-4 gap-y-1 sm:pr-4">
-                        {detailLines.length > 0 ? (
-                          detailLines.map((detail, idx) => {
-                            const compactDetail = detail
-                              .replace(/Class 1 privileges until/i, 'First class medical exp:')
-                              .replace(/Class 2 privileges until/i, 'Second class medical exp:')
-                              .replace(/Class 3 privileges until/i, 'Third class medical exp:')
-                              .replace(/Class ([123]) medical, exam/i, 'Class $1 exam:')
-                              .replace(/Age at exam:/i, 'Age:')
-                              .replace(/Age at exam not provided \(assumed 40 or over\)/i, 'Age assumed 40+');
-                            return (
-                              <p key={idx} className={`text-sm text-left sm:text-right lg:whitespace-nowrap ${status.key === 'expired' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                                {compactDetail}
-                              </p>
-                            );
-                          })
-                        ) : doc.expiry_date ? (
-                          <p className={`text-sm ${status.key === 'expired' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                            {status.key === 'expired' ? 'Expired: ' : 'Expires at: '}{doc.expiry_date}
+                        {currentExpiryDate && (
+                          <p className={`text-sm text-left sm:text-right lg:whitespace-nowrap ${status.key === 'expired' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                            {status.key === 'expired' ? 'Expired: ' : 'Expires at: '}{currentExpiryDate}
                           </p>
-                        ) : null}
+                        )}
+                        {visibleDetailLines.map((detail, idx) => {
+                          const compactDetail = detail
+                            .replace(/Class 1 privileges until/i, 'First class medical exp:')
+                            .replace(/Class 2 privileges until/i, 'Second class medical exp:')
+                            .replace(/Class 3 privileges until/i, 'Third class medical exp:')
+                            .replace(/Class ([123]) medical, exam/i, 'Class $1 exam:')
+                            .replace(/Age at exam:/i, 'Age:')
+                            .replace(/Age at exam not provided \(assumed 40 or over\)/i, 'Age assumed 40+');
+                          return (
+                            <p key={idx} className={`text-sm text-left sm:text-right lg:whitespace-nowrap ${status.key === 'expired' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                              {compactDetail}
+                            </p>
+                          );
+                        })}
                       </div>
                       <div className="relative menu-container">
                         <button 
