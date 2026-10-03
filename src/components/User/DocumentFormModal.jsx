@@ -307,6 +307,91 @@ export const DocThumb = ({ url }) => {
   );
 };
 
+const BirthDatePicker = ({ value, onChange }) => {
+  const selectedDate = parseISO(value);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [open, setOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(() => selectedDate || today);
+  const rootRef = useRef(null);
+  const yearOptions = Array.from({ length: Math.max(1, today.getFullYear() - 1899) }, (_, index) => today.getFullYear() - index);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const firstWeekday = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
+  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+  const calendarCells = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
+  }, [open]);
+
+  useEffect(() => {
+    if (selectedDate) setViewDate(selectedDate);
+  }, [value]);
+
+  const setMonth = (month) => setViewDate((current) => new Date(current.getFullYear(), Number(month), 1));
+  const setYear = (year) => setViewDate((current) => new Date(Number(year), current.getMonth(), 1));
+  const chooseDay = (day) => {
+    const chosen = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+    if (chosen > today) return;
+    onChange(toISO(chosen));
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="w-full px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label="Choose date of birth"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        <span className={value ? 'text-gray-900' : 'text-gray-400'}>{selectedDate ? fmtDate(selectedDate) : 'Select date of birth'}</span>
+      </button>
+
+      {open && (
+        <div role="dialog" aria-label="Choose date of birth" className="absolute z-50 bottom-full left-0 mb-2 w-72 max-w-[calc(100vw-3rem)] rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
+          <div className="mb-3 grid grid-cols-[1fr_6rem] gap-2">
+            <select aria-label="Birth month" value={viewDate.getMonth()} onChange={(event) => setMonth(event.target.value)} className="min-w-0 rounded-md border border-gray-300 px-2 py-2 text-sm">
+              {monthNames.map((month, index) => <option key={month} value={index}>{month}</option>)}
+            </select>
+            <select aria-label="Birth year" value={viewDate.getFullYear()} onChange={(event) => setYear(event.target.value)} className="min-w-0 rounded-md border border-gray-300 px-2 py-2 text-sm">
+              {yearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-500">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => <span key={day} className="py-1">{day}</span>)}
+            {calendarCells.map((day, index) => {
+              if (!day) return <span key={`blank-${index}`} />;
+              const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+              const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
+              const isFuture = date > today;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  disabled={isFuture}
+                  onClick={() => chooseDay(day)}
+                  aria-pressed={!!isSelected}
+                  className={`m-0.5 h-8 rounded-md text-sm ${isSelected ? 'bg-blue-600 text-white' : isFuture ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-blue-50'}`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Add / Edit document modal (shared) ───────────────────────────────────────
 const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) => {
   const [form, setForm] = useState(() => ({
@@ -314,8 +399,6 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
     title: doc?.title || '',
     expiry_date: doc?.expiry_date ? String(doc.expiry_date).slice(0, 10) : '',
     details: detailsToText(doc?.details),
-    medical_class: doc?.medical_class || '',
-    exam_date: doc?.exam_date ? String(doc.exam_date).slice(0, 10) : '',
     medical_class: doc?.medical_class || inferMedicalClassFromDetails(doc?.details),
     exam_date: doc?.exam_date ? String(doc.exam_date).slice(0, 10) : inferExamDateFromDetails(doc?.details),
     base_date: doc?.base_date ? String(doc.base_date).slice(0, 10) : '',
@@ -467,7 +550,7 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
                 </div>
                 <div>
                   <label className={labelCls}>Date of birth (optional)</label>
-                  <input type="date" value={form.date_of_birth} onChange={(e) => update({ date_of_birth: e.target.value })} className={inputCls} />
+                  <BirthDatePicker value={form.date_of_birth} onChange={(date) => update({ date_of_birth: date })} />
                 </div>
               </div>
               <p className="text-xs text-gray-500 sm:col-span-3">
@@ -605,3 +688,4 @@ const DocumentFormModal = ({ mode, doc, saving, userDob, onClose, onSubmit }) =>
 };
 
 export default DocumentFormModal;
+
