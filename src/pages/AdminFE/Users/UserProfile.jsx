@@ -283,6 +283,7 @@ const UserProfile = () => {
       if (f.expiry_date) formData.append('expiry_date', f.expiry_date);
       if (f.details) formData.append('details', f.details);
       if (f.file) formData.append('file', f.file);
+      if (isEdit && f.remove_file) formData.append('remove_file', '1');
  
       // BACKEND HOOK (see SEND_TEMPLATE_META in DocumentFormModal.jsx)
       if (SEND_TEMPLATE_META) {
@@ -805,21 +806,30 @@ const UserProfile = () => {
                     : status.key === 'soon' ? 'border-amber-200 bg-amber-50/40'
                     : 'border-gray-200 bg-white hover:bg-gray-50';
                   return (
-                    <div key={doc.id ?? index} className={`flex items-start gap-4 p-4 border rounded-lg transition ${rowTone}`}>
+                    <div key={doc.id ?? index} className={`flex flex-col sm:flex-row sm:items-start lg:items-center gap-3 sm:gap-4 p-4 border rounded-lg transition ${rowTone}`}>
                       <DocThumb url={fileUrl} />
-                      <div className="w-1/3 min-w-0">
+                      <div className="sm:w-1/3 min-w-0 sm:flex-shrink-0">
                         <h4 className="text-sm font-medium text-gray-900 break-words">{doc.title}</h4>
                         <span className={`mt-1.5 inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${status.badge}`}>
                           {status.label}
                         </span>
                       </div>
-                      <div className="flex-1 flex flex-col items-end pr-4">
+                      <div className="flex-1 min-w-0 flex flex-col sm:items-end lg:flex-row lg:flex-wrap lg:items-center lg:justify-end gap-x-4 gap-y-1 sm:pr-4">
                         {detailLines.length > 0 ? (
-                          detailLines.map((detail, idx) => (
-                            <p key={idx} className={`text-sm text-right ${detail.toLowerCase().includes('expired') && !detail.toLowerCase().includes('expires at') ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-                              {detail}
-                            </p>
-                          ))
+                          detailLines.map((detail, idx) => {
+                            const compactDetail = detail
+                              .replace(/Class 1 privileges until/i, '1st class exp:')
+                              .replace(/Class 2 privileges until/i, '2nd class exp:')
+                              .replace(/Class 3 privileges until/i, '3rd class exp:')
+                              .replace(/Class ([123]) medical, exam/i, 'Class $1 exam:')
+                              .replace(/Age at exam:/i, 'Age:')
+                              .replace(/Age at exam not provided \(assumed 40 or over\)/i, 'Age assumed 40+');
+                            return (
+                              <p key={idx} className={`text-sm text-left sm:text-right lg:whitespace-nowrap ${compactDetail.toLowerCase().includes('expired') && !compactDetail.toLowerCase().includes('expires at') ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+                                {compactDetail}
+                              </p>
+                            );
+                          })
                         ) : doc.expiry_date ? (
                           <p className={`text-sm ${doc.is_expired ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
                             {doc.is_expired ? 'Expired: ' : 'Expires at: '}{doc.expiry_date}
@@ -1168,5 +1178,6 @@ const LocationAssignmentSection = ({ locationOptions, locationForm, setLocationF
 };
  
 export default UserProfile;
+ 
  
 
