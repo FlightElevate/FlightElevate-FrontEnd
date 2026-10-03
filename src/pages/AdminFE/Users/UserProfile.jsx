@@ -809,7 +809,6 @@ const UserProfile = () => {
                   const status = getDocStatus(doc);
                   const fileUrl = getDocFileUrl(doc);
                   const detailLines = getDetailLines(doc);
-                  const currentExpiryDate = doc.expiry_date ? String(doc.expiry_date).slice(0, 10) : '';
                   const currentExpiryDate = doc.expiry_date ? formatDocumentDate(doc.expiry_date) : '';
                   const staleExpiryLine = /^(?:class [123] privileges until|(?:first|second|third) class medical exp:|(?:training expires|recent experience ends|next flight review due):)/i;
                   const visibleDetailLines = currentExpiryDate
